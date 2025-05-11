@@ -1,10 +1,10 @@
 
-import { Tables, Enums } from "../integrations/supabase/types";
+import { Database } from "../integrations/supabase/types";
 
 // Re-export the enums for convenience
-export type OrderStatus = Enums["order_status"];
-export type PaymentStatus = Enums["payment_status"];
-export type FulfillmentStatus = Enums["fulfillment_status"];
+export type OrderStatus = Database["public"]["Enums"]["order_status"];
+export type PaymentStatus = Database["public"]["Enums"]["payment_status"];
+export type FulfillmentStatus = Database["public"]["Enums"]["fulfillment_status"];
 
 // Create type for order with optional fields
 export interface Order extends Tables<"orders"> {
@@ -29,3 +29,6 @@ export interface Profile extends Tables<"profiles"> {
   created_at: string;
   updated_at: string;
 }
+
+// Helper type to get row types from tables
+type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
