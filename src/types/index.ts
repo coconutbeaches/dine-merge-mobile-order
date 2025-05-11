@@ -3,7 +3,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  phone?: string;
+  phone: string;  // Changed from optional to required
   addresses: Address[];
   orderHistory: Order[];
 }

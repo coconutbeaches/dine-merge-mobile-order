@@ -113,6 +113,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       id: `user-${Date.now()}`,
       email,
       name,
+      phone: "", // Add empty phone string to satisfy the required field
       addresses: [],
       orderHistory: []
     };
