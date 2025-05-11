@@ -72,7 +72,7 @@ const ProductsDashboard = () => {
               <Card 
                 key={product.id} 
                 className="cursor-pointer hover:shadow-lg transition-shadow"
-                onClick={() => navigate(`/products/${product.id}`)}
+                onClick={() => navigate(`/products/edit/${product.id}`)}
               >
                 <div className="relative h-48 bg-gray-100">
                   {product.image_url ? (

@@ -18,7 +18,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { ProductOption, ProductOptionChoice } from '@/types/supabaseTypes';
+import { Product, ProductOption, ProductOptionChoice } from '@/types/supabaseTypes';
 import ProductOptionsManager from '@/components/ProductOptionsManager';
 import { Trash2, Plus } from 'lucide-react';
 import { nanoid } from 'nanoid';
@@ -34,7 +34,7 @@ const ProductForm = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isEditMode = id !== 'new';
+  const isEditMode = Boolean(id) && id !== 'new';
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [options, setOptions] = useState<ProductOption[]>([]);
 
@@ -60,7 +60,7 @@ const ProductForm = () => {
         .single();
         
       if (error) throw error;
-      return data;
+      return data as Product;
     },
     enabled: isEditMode
   });
@@ -73,20 +73,31 @@ const ProductForm = () => {
       
       const { data: optionsData, error: optionsError } = await supabase
         .from('product_options')
-        .select(`
-          *,
-          choices:product_option_choices(*)
-        `)
+        .select('*')
         .eq('product_id', id)
         .order('sort_order', { ascending: true });
         
       if (optionsError) throw optionsError;
       
-      // Sort choices by sort_order
-      return optionsData.map(option => ({
-        ...option,
-        choices: option.choices.sort((a: any, b: any) => a.sort_order - b.sort_order)
-      }));
+      const options: ProductOption[] = [];
+      
+      // For each option, fetch its choices
+      for (const option of optionsData) {
+        const { data: choicesData, error: choicesError } = await supabase
+          .from('product_option_choices')
+          .select('*')
+          .eq('option_id', option.id)
+          .order('sort_order', { ascending: true });
+          
+        if (choicesError) throw choicesError;
+        
+        options.push({
+          ...option,
+          choices: choicesData as ProductOptionChoice[]
+        });
+      }
+      
+      return options;
     },
     enabled: isEditMode
   });
@@ -131,7 +142,7 @@ const ProductForm = () => {
   const uploadImage = async (file: File) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${nanoid()}.${fileExt}`;
-    const filePath = `products/${fileName}`;
+    const filePath = `${fileName}`;
 
     const { data: uploadData, error: uploadError } = await supabase
       .storage
@@ -228,6 +239,8 @@ const ProductForm = () => {
   // Update product mutation
   const updateProductMutation = useMutation({
     mutationFn: async (data: FormValues) => {
+      if (!id) return;
+      
       let imageUrl = null;
       
       // Upload image if provided

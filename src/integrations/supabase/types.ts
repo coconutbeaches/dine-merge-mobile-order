@@ -54,6 +54,118 @@ export type Database = {
         }
         Relationships: []
       }
+      product_option_choices: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          option_id: string
+          price_adjustment: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          option_id: string
+          price_adjustment?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          option_id?: string
+          price_adjustment?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_option_choices_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "product_options"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_options: {
+        Row: {
+          created_at: string
+          enable_quantity: boolean
+          id: string
+          name: string
+          product_id: string
+          required: boolean
+          selection_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enable_quantity?: boolean
+          id?: string
+          name: string
+          product_id: string
+          required?: boolean
+          selection_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enable_quantity?: boolean
+          id?: string
+          name?: string
+          product_id?: string
+          required?: boolean
+          selection_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_options_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

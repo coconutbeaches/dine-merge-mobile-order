@@ -39,7 +39,7 @@ export interface Product {
   image_url: string | null;
   created_at: string;
   updated_at: string;
-  options: ProductOption[] | null;
+  options?: ProductOption[];
 }
 
 // Type for Product Option
