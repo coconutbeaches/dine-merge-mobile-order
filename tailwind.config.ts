@@ -64,12 +64,12 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				restaurant: {
-					primary: '#8B2635',
-					secondary: '#F4A261',
-					accent: '#FFD700',
-					background: '#F8F9FA',
-					lightGray: '#E9ECEF',
-					text: '#333333'
+					primary: '#000000',
+					secondary: '#333333',
+					accent: '#888888',
+					background: '#FFFFFF',
+					lightGray: '#F1F1F1',
+					text: '#000000'
 				}
 			},
 			borderRadius: {

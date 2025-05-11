@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { restaurantInfo, menuItems, categories } from '@/data/mockData';
 import { useAppContext } from '@/context/AppContext';
 
@@ -12,52 +12,52 @@ const Index = () => {
   const { isLoggedIn, currentUser } = useAppContext();
   
   // Get popular items
-  const popularItems = menuItems.filter(item => item.popular).slice(0, 3);
+  const popularItems = menuItems.filter(item => item.popular).slice(0, 4);
   
   return (
     <Layout>
       <div className="page-container">
         {/* Hero Section */}
         <div className="mb-6">
-          <Card className="overflow-hidden">
+          <Card className="overflow-hidden border-none shadow-none">
             <div 
               className="h-40 bg-center bg-cover" 
               style={{ backgroundImage: `url(${restaurantInfo.coverImage})` }}
             />
-            <CardContent className="p-4">
+            <div className="p-4 bg-white">
               <div className="flex justify-between items-start">
                 <div>
-                  <h1 className="text-2xl font-bold text-restaurant-primary">{restaurantInfo.name}</h1>
-                  <p className="text-sm text-muted-foreground mt-1">{restaurantInfo.description}</p>
+                  <h1 className="text-2xl font-bold text-black">{restaurantInfo.name}</h1>
+                  <p className="text-sm text-gray-600 mt-1">{restaurantInfo.description}</p>
                 </div>
-                <div className="flex items-center bg-restaurant-secondary text-restaurant-text px-2 py-1 rounded-md">
+                <div className="flex items-center bg-black text-white px-2 py-1 rounded-md">
                   <span className="text-sm font-bold">{restaurantInfo.rating} ★</span>
                 </div>
               </div>
               
               <div className="mt-4">
                 <Button 
-                  className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90" 
+                  className="w-full bg-black hover:bg-black/90 text-white" 
                   onClick={() => navigate('/menu')}
                 >
                   View Menu
                 </Button>
               </div>
-            </CardContent>
+            </div>
           </Card>
         </div>
         
         {/* Welcome Back - for logged in users */}
         {isLoggedIn && currentUser && (
           <div className="mb-6">
-            <Card>
-              <CardContent className="p-4">
+            <Card className="border border-gray-200">
+              <div className="p-4">
                 <h2 className="text-lg font-semibold">Welcome back, {currentUser.name.split(' ')[0]}!</h2>
-                <p className="text-sm text-muted-foreground mb-3">Ready to order your favorites?</p>
+                <p className="text-sm text-gray-600 mb-3">Ready to order your favorites?</p>
                 
                 {currentUser.orderHistory && currentUser.orderHistory.length > 0 ? (
                   <Button 
-                    className="w-full" 
+                    className="w-full border-black text-black hover:bg-gray-100" 
                     variant="outline"
                     onClick={() => navigate('/order-history')}
                   >
@@ -65,81 +65,68 @@ const Index = () => {
                   </Button>
                 ) : (
                   <Button 
-                    className="w-full" 
+                    className="w-full border-black text-black hover:bg-gray-100" 
                     variant="outline"
                     onClick={() => navigate('/menu')}
                   >
                     Start Ordering
                   </Button>
                 )}
-              </CardContent>
+              </div>
             </Card>
           </div>
         )}
         
-        {/* Popular Items */}
-        <div className="mb-6">
-          <h2 className="section-heading">Popular Items</h2>
-          <div className="space-y-3">
-            {popularItems.map((item) => (
-              <Card key={item.id} className="food-card">
-                <CardContent className="p-3 flex items-center">
+        {/* Categories with Black Headers */}
+        {categories.map((category) => {
+          const categoryItems = menuItems.filter(item => item.category === category.id).slice(0, 4);
+          if (categoryItems.length === 0) return null;
+          
+          return (
+            <div key={category.id} className="mb-8">
+              <div className="category-header">
+                {category.name}
+              </div>
+              <div className="menu-grid">
+                {categoryItems.map((item) => (
                   <div 
-                    className="w-16 h-16 rounded-md mr-3 bg-center bg-cover" 
-                    style={{ backgroundImage: `url(${item.image})` }}
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-1">{item.description}</p>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="font-semibold">${item.price.toFixed(2)}</span>
-                      <Button 
-                        size="sm" 
-                        onClick={() => navigate(`/menu/item/${item.id}`)}
-                      >
-                        View
-                      </Button>
+                    key={item.id} 
+                    className="food-card cursor-pointer relative"
+                    onClick={() => navigate(`/menu/item/${item.id}`)}
+                  >
+                    <div className="aspect-square overflow-hidden mb-2">
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
+                    <h3 className="menu-item-name">{item.name}</h3>
+                    <p className="menu-item-price">${item.price.toFixed(2)}</p>
+                    {item.popular && (
+                      <span className="popular-badge">Popular</span>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-            
-            <div className="text-center mt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => navigate('/menu')}
-                className="mx-auto"
-              >
-                View Full Menu
-              </Button>
+                ))}
+              </div>
+              <div className="mt-3 text-center">
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate(`/menu?category=${category.id}`)}
+                  className="border-black text-black hover:bg-gray-100"
+                >
+                  See All {category.name}
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
-        
-        {/* Categories */}
-        <div className="mb-6">
-          <h2 className="section-heading">Browse Categories</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {categories.map((category) => (
-              <Card 
-                key={category.id} 
-                className="food-card cursor-pointer hover:bg-muted/50"
-                onClick={() => navigate(`/menu?category=${category.id}`)}
-              >
-                <CardContent className="p-4 text-center">
-                  <h3 className="font-semibold">{category.name}</h3>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+          );
+        })}
         
         {/* Restaurant Info */}
         <div className="mb-6">
           <h2 className="section-heading">Restaurant Info</h2>
-          <Card>
-            <CardContent className="p-4">
+          <Card className="border border-gray-200">
+            <div className="p-4">
               <div className="space-y-2">
                 <div>
                   <strong className="text-sm">Address:</strong>
@@ -157,7 +144,7 @@ const Index = () => {
                   </p>
                 </div>
               </div>
-            </CardContent>
+            </div>
           </Card>
         </div>
       </div>

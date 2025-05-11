@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
-import { Toast } from '@/components/ui/toast';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Plus, Minus } from 'lucide-react';
 import { MenuItem, MenuItemOption } from '@/types';
@@ -29,10 +28,10 @@ const MenuItemDetail = () => {
     return (
       <Layout title="Item Not Found" showBackButton>
         <div className="page-container text-center py-10">
-          <AlertTriangle className="h-12 w-12 mx-auto text-restaurant-primary mb-4" />
+          <AlertTriangle className="h-12 w-12 mx-auto text-black mb-4" />
           <h2 className="text-xl font-bold mb-2">Menu Item Not Found</h2>
-          <p className="text-muted-foreground mb-6">The item you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/menu')}>Back to Menu</Button>
+          <p className="text-gray-600 mb-6">The item you're looking for doesn't exist.</p>
+          <Button onClick={() => navigate('/menu')} className="bg-black hover:bg-black/90 text-white">Back to Menu</Button>
         </div>
       </Layout>
     );
@@ -144,19 +143,19 @@ const MenuItemDetail = () => {
       <div className="page-container">
         {/* Item Image */}
         <div 
-          className="h-64 w-full bg-center bg-cover rounded-md mb-4" 
+          className="h-80 w-full bg-center bg-cover rounded-none mb-4" 
           style={{ backgroundImage: `url(${menuItem.image})` }}
         />
         
         {/* Item Details */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-1">{menuItem.name}</h1>
-          <p className="text-muted-foreground mb-2">{menuItem.description}</p>
+          <p className="text-gray-600 mb-2">{menuItem.description}</p>
           
           {/* Allergies */}
           {menuItem.allergies && menuItem.allergies.length > 0 && (
             <div className="mt-2 mb-3">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-gray-600">
                 <span className="font-semibold">Contains:</span> {menuItem.allergies.join(', ')}
               </p>
             </div>
@@ -170,11 +169,11 @@ const MenuItemDetail = () => {
         {menuItem.options && menuItem.options.length > 0 && (
           <div className="mb-6 space-y-4">
             {menuItem.options.map((option: MenuItemOption) => (
-              <Card key={option.name}>
+              <Card key={option.name} className="border border-gray-200">
                 <CardContent className="p-4">
                   <Label className="text-base font-medium mb-2 block">
                     {option.name}
-                    {option.required && <span className="text-destructive ml-1">*</span>}
+                    {option.required && <span className="text-red-500 ml-1">*</span>}
                   </Label>
                   
                   {option.multiSelect ? (
@@ -188,6 +187,7 @@ const MenuItemDetail = () => {
                             onCheckedChange={(checked) => {
                               handleCheckboxChange(option.name, choice.name, checked as boolean);
                             }}
+                            className="border-black data-[state=checked]:bg-black data-[state=checked]:text-white"
                           />
                           <label 
                             htmlFor={`${option.name}-${choice.name}`}
@@ -204,10 +204,15 @@ const MenuItemDetail = () => {
                     <RadioGroup 
                       value={selectedOptions[option.name] as string || ''}
                       onValueChange={(value) => handleOptionChange(option.name, value)}
+                      className="space-y-2"
                     >
                       {option.choices.map((choice) => (
                         <div key={choice.name} className="flex items-center space-x-2">
-                          <RadioGroupItem value={choice.name} id={`${option.name}-${choice.name}`} />
+                          <RadioGroupItem 
+                            value={choice.name} 
+                            id={`${option.name}-${choice.name}`} 
+                            className="border-black text-black"
+                          />
                           <label 
                             htmlFor={`${option.name}-${choice.name}`}
                             className="text-sm cursor-pointer flex justify-between w-full"
@@ -235,7 +240,7 @@ const MenuItemDetail = () => {
             placeholder="Any special requests or allergies?"
             value={specialInstructions}
             onChange={(e) => setSpecialInstructions(e.target.value)}
-            className="resize-none"
+            className="resize-none border-gray-300"
           />
         </div>
         
@@ -248,6 +253,7 @@ const MenuItemDetail = () => {
                 size="icon"
                 onClick={() => quantity > 1 && setQuantity(q => q - 1)}
                 disabled={quantity <= 1}
+                className="border-black text-black"
               >
                 <Minus className="h-4 w-4" />
               </Button>
@@ -256,6 +262,7 @@ const MenuItemDetail = () => {
                 variant="outline" 
                 size="icon"
                 onClick={() => setQuantity(q => q + 1)}
+                className="border-black text-black"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -263,7 +270,7 @@ const MenuItemDetail = () => {
             
             <Button 
               onClick={handleAddToCart}
-              className="bg-restaurant-primary hover:bg-restaurant-primary/90"
+              className="bg-black hover:bg-black/90 text-white"
             >
               Add to Cart - ${(calculateTotalPrice(menuItem, selectedOptions) * quantity).toFixed(2)}
             </Button>

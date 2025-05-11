@@ -34,7 +34,7 @@ const Header: React.FC<HeaderProps> = ({
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h1 className="text-lg font-bold text-restaurant-primary">{title}</h1>
+          <h1 className="text-lg font-bold text-black">{title}</h1>
         </div>
       </div>
     </header>

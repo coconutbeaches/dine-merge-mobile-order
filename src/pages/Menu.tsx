@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { menuItems, categories } from '@/data/mockData';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -20,6 +20,15 @@ const Menu = () => {
   const [filteredItems, setFilteredItems] = useState(menuItems);
   const [activeCategory, setActiveCategory] = useState<string | null>(selectedCategoryId);
   
+  // Group menu items by category
+  const groupedItems = filteredItems.reduce((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, typeof menuItems>);
+  
   // Filter menu items when search query or category changes
   useEffect(() => {
     let filtered = menuItems;
@@ -27,8 +36,7 @@ const Menu = () => {
     // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(item => 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.description.toLowerCase().includes(searchQuery.toLowerCase())
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
@@ -48,7 +56,7 @@ const Menu = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="Search menu..."
-            className="pl-9"
+            className="pl-9 border-black"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -61,7 +69,7 @@ const Menu = () => {
               variant={activeCategory === null ? "default" : "outline"}
               size="sm"
               onClick={() => setActiveCategory(null)}
-              className={`whitespace-nowrap ${activeCategory === null ? "bg-restaurant-primary hover:bg-restaurant-primary/90" : ""}`}
+              className={`whitespace-nowrap ${activeCategory === null ? "bg-black text-white hover:bg-black/90" : "border-black text-black hover:bg-gray-100"}`}
             >
               All
             </Button>
@@ -72,7 +80,7 @@ const Menu = () => {
                 variant={activeCategory === category.id ? "default" : "outline"}
                 size="sm"
                 onClick={() => setActiveCategory(category.id)}
-                className={`whitespace-nowrap ${activeCategory === category.id ? "bg-restaurant-primary hover:bg-restaurant-primary/90" : ""}`}
+                className={`whitespace-nowrap ${activeCategory === category.id ? "bg-black text-white hover:bg-black/90" : "border-black text-black hover:bg-gray-100"}`}
               >
                 {category.name}
               </Button>
@@ -86,35 +94,66 @@ const Menu = () => {
             <p className="text-muted-foreground">No menu items found. Try a different search.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredItems.map((item) => (
-              <Card 
-                key={item.id} 
-                className="food-card cursor-pointer"
-                onClick={() => navigate(`/menu/item/${item.id}`)}
-              >
-                <CardContent className="p-3 flex">
-                  <div 
-                    className="w-20 h-20 rounded-md mr-3 bg-center bg-cover" 
-                    style={{ backgroundImage: `url(${item.image})` }}
-                  />
-                  <div className="flex-1">
-                    <div className="flex justify-between">
-                      <h3 className="font-semibold">{item.name}</h3>
-                      {item.popular && (
-                        <span className="bg-restaurant-accent/20 text-restaurant-primary text-xs px-2 py-0.5 rounded-full">
-                          Popular
-                        </span>
-                      )}
+          <div>
+            {activeCategory === null ? (
+              // Display grouped by categories
+              Object.entries(groupedItems).map(([categoryId, items]) => {
+                const category = categories.find(c => c.id === categoryId);
+                return (
+                  <div key={categoryId} className="mb-8">
+                    <div className="category-header">
+                      {category?.name}
                     </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
-                    <div className="flex justify-between items-center mt-1">
-                      <span className="font-semibold">${item.price.toFixed(2)}</span>
+                    <div className="menu-grid">
+                      {items.map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="food-card cursor-pointer relative"
+                          onClick={() => navigate(`/menu/item/${item.id}`)}
+                        >
+                          <div className="aspect-square overflow-hidden mb-2">
+                            <img 
+                              src={item.image} 
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <h3 className="menu-item-name">{item.name}</h3>
+                          <p className="menu-item-price">${item.price.toFixed(2)}</p>
+                          {item.popular && (
+                            <span className="popular-badge">Popular</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
+                );
+              })
+            ) : (
+              // Display single category
+              <div className="menu-grid">
+                {filteredItems.map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="food-card cursor-pointer relative"
+                    onClick={() => navigate(`/menu/item/${item.id}`)}
+                  >
+                    <div className="aspect-square overflow-hidden mb-2">
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <h3 className="menu-item-name">{item.name}</h3>
+                    <p className="menu-item-price">${item.price.toFixed(2)}</p>
+                    {item.popular && (
+                      <span className="popular-badge">Popular</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

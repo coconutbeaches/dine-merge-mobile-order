@@ -17,7 +17,7 @@ const Layout: React.FC<LayoutProps> = ({
   showFooter = true
 }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-restaurant-background">
+    <div className="min-h-screen flex flex-col bg-white">
       <Header title={title} showBackButton={showBackButton} />
       
       <main className="flex-1">
