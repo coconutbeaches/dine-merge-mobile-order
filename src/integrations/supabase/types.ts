@@ -9,7 +9,78 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      orders: {
+        Row: {
+          created_at: string
+          customer_name: string | null
+          fulfillment_status:
+            | Database["public"]["Enums"]["fulfillment_status"]
+            | null
+          id: number
+          order_items: Json | null
+          order_status: Database["public"]["Enums"]["order_status"] | null
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
+          total_amount: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_name?: string | null
+          fulfillment_status?:
+            | Database["public"]["Enums"]["fulfillment_status"]
+            | null
+          id?: number
+          order_items?: Json | null
+          order_status?: Database["public"]["Enums"]["order_status"] | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          total_amount: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string | null
+          fulfillment_status?:
+            | Database["public"]["Enums"]["fulfillment_status"]
+            | null
+          id?: number
+          order_items?: Json | null
+          order_status?: Database["public"]["Enums"]["order_status"] | null
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +89,18 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      fulfillment_status:
+        | "unfulfilled"
+        | "ready"
+        | "out_for_delivery"
+        | "fulfilled"
+      order_status: "pending" | "confirmed" | "completed" | "cancelled"
+      payment_status:
+        | "unpaid"
+        | "confirming_payment"
+        | "partially_paid"
+        | "paid"
+        | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +215,21 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      fulfillment_status: [
+        "unfulfilled",
+        "ready",
+        "out_for_delivery",
+        "fulfilled",
+      ],
+      order_status: ["pending", "confirmed", "completed", "cancelled"],
+      payment_status: [
+        "unpaid",
+        "confirming_payment",
+        "partially_paid",
+        "paid",
+        "refunded",
+      ],
+    },
   },
 } as const
