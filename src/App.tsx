@@ -19,6 +19,8 @@ import OrdersDashboard from "./pages/OrdersDashboard";
 import Admin from "./pages/Admin";
 import AdminMergeAccounts from "./pages/AdminMergeAccounts";
 import NotFound from "./pages/NotFound";
+import ProductsDashboard from "./pages/ProductsDashboard";
+import ProductForm from "./pages/ProductForm";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,9 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/order-history" element={<OrderHistory />} />
             <Route path="/orders-dashboard" element={<OrdersDashboard />} />
+            <Route path="/products-dashboard" element={<ProductsDashboard />} />
+            <Route path="/products/new" element={<ProductForm />} />
+            <Route path="/products/edit/:id" element={<ProductForm />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/merge-accounts" element={<AdminMergeAccounts />} />
             <Route path="*" element={<NotFound />} />

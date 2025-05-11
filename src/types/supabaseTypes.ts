@@ -30,5 +30,38 @@ export interface Profile extends Tables<"profiles"> {
   updated_at: string;
 }
 
+// Type for Product
+export interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  created_at: string;
+  updated_at: string;
+  options: ProductOption[] | null;
+}
+
+// Type for Product Option
+export interface ProductOption {
+  id: string;
+  product_id: string;
+  name: string;
+  required: boolean;
+  enable_quantity: boolean;
+  selection_type: "single" | "multiple";
+  choices: ProductOptionChoice[];
+  sort_order: number;
+}
+
+// Type for Product Option Choice
+export interface ProductOptionChoice {
+  id: string;
+  option_id: string;
+  name: string;
+  price_adjustment: number;
+  sort_order: number;
+}
+
 // Helper type to get row types from tables
 type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
