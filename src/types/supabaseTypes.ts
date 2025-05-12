@@ -42,14 +42,14 @@ export interface Product {
   options?: ProductOption[];
 }
 
-// Type for Product Option
+// Type for Product Option - Updated to handle string type from database
 export interface ProductOption {
   id: string;
   product_id: string;
   name: string;
   required: boolean;
   enable_quantity: boolean;
-  selection_type: "single" | "multiple"; // Fixed type definition
+  selection_type: "single" | "multiple" | string; // Modified to accept string from DB
   choices: ProductOptionChoice[];
   sort_order: number;
 }

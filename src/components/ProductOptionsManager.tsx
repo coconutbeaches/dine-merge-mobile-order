@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,6 +57,7 @@ const ProductOptionsManager: React.FC<ProductOptionsManagerProps> = ({
   };
 
   return (
+    
     <div className="border rounded-md overflow-hidden">
       <div 
         className="flex items-center justify-between p-4 bg-gray-50 cursor-pointer"
