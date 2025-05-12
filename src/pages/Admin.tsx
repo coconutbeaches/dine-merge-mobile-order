@@ -1,14 +1,42 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { mockUsers } from '@/data/mockData';
 import { UserSearch, Settings, ArrowRight } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Admin = () => {
   const navigate = useNavigate();
+  
+  // Add admin role to super admin account if needed
+  useEffect(() => {
+    const setupAdminRole = async () => {
+      // Get the user id for the admin email
+      const { data: adminUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', 'hello@coconutbeachkohphangan.com')
+        .single();
+        
+      if (adminUser) {
+        // Update the role to admin if not already set
+        const { error } = await supabase
+          .from('profiles')
+          .update({ role: 'admin' })
+          .eq('id', adminUser.id);
+          
+        if (error) {
+          console.error('Error updating admin role:', error);
+        }
+      }
+    };
+    
+    setupAdminRole();
+  }, []);
   
   return (
     <Layout title="Restaurant Admin" showBackButton>

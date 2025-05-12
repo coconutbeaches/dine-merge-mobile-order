@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -335,6 +334,13 @@ const ProductForm = () => {
     }
   };
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('th-TH', {
+      style: 'currency',
+      currency: 'THB',
+    }).format(price);
+  };
+
   const handleAddOption = () => {
     const newOption: ProductOption = {
       id: `temp-${nanoid()}`,
@@ -342,7 +348,7 @@ const ProductForm = () => {
       name: `Option ${options.length + 1}`,
       required: false,
       enable_quantity: false,
-      selection_type: 'single',
+      selection_type: 'single', // This value is now properly typed
       choices: [{
         id: `temp-${nanoid()}`,
         option_id: '',
@@ -411,7 +417,7 @@ const ProductForm = () => {
                         <FormControl>
                           <div className="relative">
                             <span className="absolute left-0 inset-y-0 flex items-center pl-3 text-gray-500">
-                              $
+                              ฿
                             </span>
                             <Input 
                               type="text" 

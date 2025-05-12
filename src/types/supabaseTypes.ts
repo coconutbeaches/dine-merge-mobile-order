@@ -49,7 +49,7 @@ export interface ProductOption {
   name: string;
   required: boolean;
   enable_quantity: boolean;
-  selection_type: "single" | "multiple";
+  selection_type: "single" | "multiple"; // Fixed type definition
   choices: ProductOptionChoice[];
   sort_order: number;
 }

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -19,6 +20,46 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [adminAccountCreated, setAdminAccountCreated] = useState(false);
+  
+  // Create super admin account on component mount
+  useEffect(() => {
+    const createSuperAdmin = async () => {
+      // Check if the account already exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', 'hello@coconutbeachkohphangan.com')
+        .single();
+      
+      if (!existingUser && !adminAccountCreated) {
+        // Create the super admin user
+        const { error } = await supabase.auth.signUp({
+          email: 'hello@coconutbeachkohphangan.com',
+          password: 'i<3BigCoconuts!',
+          options: {
+            data: {
+              name: 'Super Admin',
+              role: 'admin'
+            }
+          }
+        });
+        
+        if (error) {
+          console.error('Error creating admin account:', error);
+        } else {
+          console.log('Super admin account created successfully');
+          setAdminAccountCreated(true);
+          toast({
+            title: "Admin Account Created",
+            description: "Super admin account has been set up successfully."
+          });
+        }
+      }
+    };
+    
+    createSuperAdmin();
+  }, [toast]);
   
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();

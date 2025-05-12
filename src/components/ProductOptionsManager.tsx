@@ -138,7 +138,7 @@ const ProductOptionsManager: React.FC<ProductOptionsManagerProps> = ({
                 </div>
                 <div className="w-24">
                   <div className="relative">
-                    <span className="absolute left-0 inset-y-0 flex items-center pl-3 text-gray-500">$</span>
+                    <span className="absolute left-0 inset-y-0 flex items-center pl-3 text-gray-500">฿</span>
                     <Input
                       type="text"
                       value={choice.price_adjustment}
