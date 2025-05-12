@@ -52,7 +52,7 @@ const Login = () => {
       } else {
         toast({
           title: "Error",
-          description: "Invalid email or password",
+          description: "Invalid email or password. Please check your credentials and try again.",
           variant: "destructive"
         });
       }
@@ -142,6 +142,19 @@ const Login = () => {
                   }}
                 >
                   Customer 2
+                </Button>
+              </div>
+              <div className="mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    setEmail('hello@coconutbeachkohphangan.com');
+                    setPassword('i<3BigCoconuts!');
+                  }}
+                >
+                  Admin
                 </Button>
               </div>
             </div>

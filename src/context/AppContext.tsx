@@ -1,7 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, CartItem, MenuItem, Order, OrderStatus, Address } from '../types';
 import { mockUsers, menuItems, mockOrders } from '../data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { Profile } from '@/types/supabaseTypes';
 
 interface AppContextType {
   // User Management
@@ -41,17 +43,86 @@ interface AppProviderProps {
 
 export const AppProvider = ({ children }: AppProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
+  const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>(mockOrders);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Load user from localStorage on mount
+  // Initialize authentication state from Supabase
   useEffect(() => {
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser));
+    // Set up auth state listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (session) {
+          setSupabaseSession(session);
+          setSupabaseUser(session.user);
+          
+          // Fetch additional user data from profiles table
+          setTimeout(async () => {
+            if (session.user?.id) {
+              fetchUserProfile(session.user.id);
+            }
+          }, 0);
+        } else {
+          setSupabaseSession(null);
+          setSupabaseUser(null);
+          setCurrentUser(null);
+        }
+      }
+    );
+
+    // Then check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSupabaseSession(session);
+        setSupabaseUser(session.user);
+        
+        if (session.user?.id) {
+          fetchUserProfile(session.user.id);
+        }
+      }
+      
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Fetch user profile from Supabase
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+      
+      if (data) {
+        // Transform Supabase profile to app User format
+        setCurrentUser({
+          id: data.id,
+          email: data.email,
+          name: data.name || data.email.split('@')[0],
+          phone: data.phone || "",
+          addresses: [],
+          orderHistory: []
+        });
+      }
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
     }
-    
+  };
+  
+  // Load cart from localStorage on mount
+  useEffect(() => {
     const storedCart = localStorage.getItem('cart');
     if (storedCart) {
       setCart(JSON.parse(storedCart));
@@ -67,13 +138,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     }
   }, [cart, isLoading]);
   
-  // Save user to localStorage when it changes
-  useEffect(() => {
-    if (!isLoading && currentUser) {
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    }
-  }, [currentUser, isLoading]);
-  
   // Calculate cart total
   const cartTotal = cart.reduce((total, item) => {
     return total + (item.menuItem.price * item.quantity);
@@ -81,51 +145,56 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   
   // User Management Functions
   const login = async (email: string, password: string): Promise<boolean> => {
-    // In a real app, we would call an API endpoint here
-    const user = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    // For demo purposes, we'll simulate a successful login if we find the user
-    if (user) {
-      // Add order history to the user
-      const userWithOrders = {
-        ...user,
-        orderHistory: orders.filter(o => o.userId === user.id)
-      };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      setCurrentUser(userWithOrders);
+      if (error) {
+        console.error('Error signing in:', error);
+        return false;
+      }
+      
       return true;
+    } catch (error) {
+      console.error('Unexpected error during login:', error);
+      return false;
     }
-    return false;
   };
   
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
-    // In a real app, we would call an API endpoint here
-    // For demo purposes, we'll simulate creating a new user
-    
-    // Check if user already exists
-    const existingUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (existingUser) {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('Error signing up:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Unexpected error during signup:', error);
       return false;
     }
-    
-    // Create new user
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      email,
-      name,
-      phone: "", // Add empty phone string to satisfy the required field
-      addresses: [],
-      orderHistory: []
-    };
-    
-    setCurrentUser(newUser);
-    mockUsers.push(newUser);
-    return true;
   };
   
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setCurrentUser(null);
+      localStorage.removeItem('currentUser');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   };
   
   const mergeAccounts = async (sourceUserId: string, targetUserId: string): Promise<boolean> => {
