@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -123,6 +124,26 @@ const MenuItemDetail = () => {
       </Layout>
     );
   }
+
+  // Convert product to MenuItem format for cart
+  const menuItemForCart: MenuItem = {
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    description: product.description || '',
+    image: product.image_url || '/placeholder.svg',
+    category: product.category_id || '',
+    available: true, // Adding the missing 'available' property required by MenuItem type
+    options: product.options?.map(option => ({
+      name: option.name,
+      required: option.required,
+      multiSelect: option.selection_type === 'multiple',
+      choices: option.choices.map(choice => ({
+        name: choice.name,
+        price: choice.price_adjustment
+      }))
+    })) || []
+  };
   
   const handleOptionChange = (optionName: string, value: string | string[]) => {
     setSelectedOptions(prev => ({
@@ -164,26 +185,6 @@ const MenuItemDetail = () => {
       });
       return;
     }
-    
-    // Convert product to MenuItem format for cart
-    const menuItemForCart: MenuItem = {
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      description: product.description || '',
-      image: product.image_url || '/placeholder.svg',
-      category: product.category_id || '',
-      available: true, // Adding the missing 'available' property required by MenuItem type
-      options: product.options?.map(option => ({
-        name: option.name,
-        required: option.required,
-        multiSelect: option.selection_type === 'multiple',
-        choices: option.choices.map(choice => ({
-          name: choice.name,
-          price: choice.price_adjustment
-        }))
-      })) || []
-    };
     
     // Calculate total price including options
     let totalItemPrice = calculateTotalPrice(menuItemForCart, selectedOptions);
