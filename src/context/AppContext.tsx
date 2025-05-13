@@ -1,9 +1,8 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, CartItem, MenuItem, Order, OrderStatus, Address } from '../types';
-import { mockUsers, menuItems, mockOrders } from '../data/mockData';
 import { supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
-import { Profile } from '@/types/supabaseTypes';
 
 interface AppContextType {
   // User Management
@@ -12,7 +11,6 @@ interface AppContextType {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
-  mergeAccounts: (sourceUserId: string, targetUserId: string) => Promise<boolean>;
   
   // Cart Management
   cart: CartItem[];
@@ -46,7 +44,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>(mockOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Initialize authentication state from Supabase
@@ -140,7 +138,30 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   
   // Calculate cart total
   const cartTotal = cart.reduce((total, item) => {
-    return total + (item.menuItem.price * item.quantity);
+    let itemPrice = item.menuItem.price;
+    
+    // Add option prices if there are any
+    if (item.selectedOptions && item.menuItem.options) {
+      item.menuItem.options.forEach(option => {
+        if (option.multiSelect) {
+          const selectedValues = item.selectedOptions?.[option.name] as string[] || [];
+          selectedValues.forEach(value => {
+            const choice = option.choices.find(c => c.name === value);
+            if (choice) {
+              itemPrice += choice.price;
+            }
+          });
+        } else {
+          const selectedValue = item.selectedOptions?.[option.name] as string;
+          const choice = option.choices?.find(c => c.name === selectedValue);
+          if (choice) {
+            itemPrice += choice.price;
+          }
+        }
+      });
+    }
+    
+    return total + (itemPrice * item.quantity);
   }, 0);
   
   // User Management Functions
@@ -195,53 +216,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  };
-  
-  const mergeAccounts = async (sourceUserId: string, targetUserId: string): Promise<boolean> => {
-    // This would be handled by the backend in a real app
-    // For demo purposes, we'll simulate merging two accounts
-    
-    const sourceUser = mockUsers.find(u => u.id === sourceUserId);
-    const targetUser = mockUsers.find(u => u.id === targetUserId);
-    
-    if (!sourceUser || !targetUser) {
-      return false;
-    }
-    
-    // Merge order histories
-    const sourceOrders = orders.filter(o => o.userId === sourceUserId);
-    
-    // Update orders to belong to target user
-    sourceOrders.forEach(order => {
-      order.userId = targetUserId;
-    });
-    
-    // Update the orders state
-    setOrders([...orders]);
-    
-    // Add source user's addresses to target user if they don't already exist
-    sourceUser.addresses.forEach(address => {
-      const addressExists = targetUser.addresses.some(a => a.id === address.id);
-      if (!addressExists) {
-        targetUser.addresses.push({...address, isDefault: false});
-      }
-    });
-    
-    // If current user is the source user, log them out
-    if (currentUser && currentUser.id === sourceUserId) {
-      logout();
-      return true;
-    }
-    
-    // If current user is the target user, refresh their data
-    if (currentUser && currentUser.id === targetUserId) {
-      setCurrentUser({
-        ...targetUser,
-        orderHistory: orders.filter(o => o.userId === targetUserId)
-      });
-    }
-    
-    return true;
   };
   
   // Cart Management Functions
@@ -338,7 +312,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     login,
     signup,
     logout,
-    mergeAccounts,
     cart,
     addToCart,
     removeFromCart,

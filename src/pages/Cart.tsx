@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Plus, Minus, AlertTriangle, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 
 const Cart = () => {
   const navigate = useNavigate();
@@ -37,11 +37,8 @@ const Cart = () => {
     navigate('/checkout');
   };
   
-  // Calculate fees and taxes
-  const deliveryFee = 2.99;
-  const serviceFee = cartTotal * 0.05; // 5% service fee
-  const tax = cartTotal * 0.08; // 8% tax
-  const grandTotal = cartTotal + deliveryFee + serviceFee + tax;
+  // Removed delivery fee, service fee, and tax calculations
+  const grandTotal = cartTotal;
   
   if (cart.length === 0) {
     return (
@@ -164,29 +161,12 @@ const Cart = () => {
           </div>
         </div>
         
-        {/* Order Summary */}
+        {/* Order Summary - simplified */}
         <div className="mb-16">
           <h2 className="section-heading">Order Summary</h2>
           <Card>
             <CardContent className="p-4">
               <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal</span>
-                  <span>${cartTotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Delivery Fee</span>
-                  <span>${deliveryFee.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Service Fee</span>
-                  <span>${serviceFee.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Estimated Tax</span>
-                  <span>${tax.toFixed(2)}</span>
-                </div>
-                <Separator className="my-2" />
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
                   <span>${grandTotal.toFixed(2)}</span>
