@@ -39,6 +39,7 @@ export interface Product {
   image_url: string | null;
   created_at: string;
   updated_at: string;
+  category_id: string | null; // Added category_id property
   options?: ProductOption[];
 }
 
