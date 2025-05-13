@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { menuItems } from '@/data/mockData';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { AlertTriangle, Plus, Minus } from 'lucide-react';
 import { MenuItem, MenuItemOption } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Product, ProductOption, ProductOptionChoice } from '@/types/supabaseTypes';
 
 const MenuItemDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,11 +22,97 @@ const MenuItemDetail = () => {
   const { addToCart } = useAppContext();
   const { toast } = useToast();
   
-  // Find the menu item by ID
-  const menuItem = menuItems.find(item => item.id === id);
+  // Fetch the product by ID from Supabase
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: ['product', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Product ID is required');
+      
+      const { data: productData, error: productError } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (productError) throw productError;
+      if (!productData) throw new Error('Product not found');
+      
+      // Fetch product options
+      const { data: optionsData, error: optionsError } = await supabase
+        .from('product_options')
+        .select('*')
+        .eq('product_id', id)
+        .order('sort_order', { ascending: true });
+        
+      if (optionsError) throw optionsError;
+      
+      // Fetch option choices for all options
+      if (optionsData && optionsData.length > 0) {
+        const optionIds = optionsData.map(option => option.id);
+        const { data: choicesData, error: choicesError } = await supabase
+          .from('product_option_choices')
+          .select('*')
+          .in('option_id', optionIds)
+          .order('sort_order', { ascending: true });
+          
+        if (choicesError) throw choicesError;
+        
+        // Attach choices to their corresponding options
+        const optionsWithChoices = optionsData.map(option => {
+          const choices = choicesData?.filter(choice => choice.option_id === option.id) || [];
+          return {
+            ...option,
+            choices
+          };
+        });
+        
+        // Return product with options
+        return {
+          ...productData,
+          options: optionsWithChoices
+        } as Product & { options: ProductOption[] };
+      }
+      
+      return { ...productData, options: [] } as Product & { options: ProductOption[] };
+    },
+  });
   
-  // Handle invalid item ID
-  if (!menuItem) {
+  const [quantity, setQuantity] = useState(1);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string | string[]>>({});
+  const [specialInstructions, setSpecialInstructions] = useState('');
+  
+  // Initialize selectedOptions with default values when product loads
+  React.useEffect(() => {
+    if (product?.options) {
+      const defaults: Record<string, string | string[]> = {};
+      product.options.forEach(option => {
+        if (option.required && option.selection_type === 'single') {
+          // Set first choice as default for required single-select options
+          if (option.choices && option.choices.length > 0) {
+            defaults[option.name] = option.choices[0].name;
+          }
+        } else if (option.required && option.selection_type === 'multiple') {
+          // Set empty array for required multi-select options
+          defaults[option.name] = [];
+        }
+      });
+      setSelectedOptions(defaults);
+    }
+  }, [product]);
+  
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <Layout title="Loading..." showBackButton>
+        <div className="page-container text-center py-10">
+          <p>Loading product details...</p>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Handle error state or product not found
+  if (error || !product) {
     return (
       <Layout title="Item Not Found" showBackButton>
         <div className="page-container text-center py-10">
@@ -36,25 +124,6 @@ const MenuItemDetail = () => {
       </Layout>
     );
   }
-  
-  const [quantity, setQuantity] = useState(1);
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string | string[]>>({});
-  const [specialInstructions, setSpecialInstructions] = useState('');
-  
-  // Initialize selectedOptions with default values
-  React.useEffect(() => {
-    const defaults: Record<string, string | string[]> = {};
-    menuItem.options?.forEach(option => {
-      if (option.required && !option.multiSelect) {
-        // Set first choice as default for required single-select options
-        defaults[option.name] = option.choices[0].name;
-      } else if (option.required && option.multiSelect) {
-        // Set empty array for required multi-select options
-        defaults[option.name] = [];
-      }
-    });
-    setSelectedOptions(defaults);
-  }, [menuItem]);
   
   const handleOptionChange = (optionName: string, value: string | string[]) => {
     setSelectedOptions(prev => ({
@@ -78,11 +147,11 @@ const MenuItemDetail = () => {
   
   const handleAddToCart = () => {
     // Validate required options
-    const missingRequiredOptions = (menuItem.options || [])
+    const missingRequiredOptions = (product.options || [])
       .filter(option => option.required)
       .filter(option => {
         const selected = selectedOptions[option.name];
-        if (option.multiSelect) {
+        if (option.selection_type === 'multiple') {
           return !selected || (selected as string[]).length === 0;
         }
         return !selected;
@@ -97,6 +166,25 @@ const MenuItemDetail = () => {
       return;
     }
     
+    // Convert product to MenuItem format for cart
+    const menuItem: MenuItem = {
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      description: product.description || '',
+      image: product.image_url || '/placeholder.svg',
+      category: product.category_id || '',
+      options: product.options?.map(option => ({
+        name: option.name,
+        required: option.required,
+        multiSelect: option.selection_type === 'multiple',
+        choices: option.choices.map(choice => ({
+          name: choice.name,
+          price: choice.price_adjustment
+        }))
+      })) || []
+    };
+    
     // Calculate total price including options
     let totalItemPrice = calculateTotalPrice(menuItem, selectedOptions);
     
@@ -104,7 +192,7 @@ const MenuItemDetail = () => {
     
     toast({
       title: "Added to cart",
-      description: `${quantity} × ${menuItem.name} added to your cart`,
+      description: `${quantity} × ${product.name} added to your cart`,
     });
     
     navigate('/menu');
@@ -139,36 +227,27 @@ const MenuItemDetail = () => {
   };
   
   return (
-    <Layout title={menuItem.name} showBackButton>
+    <Layout title={product.name} showBackButton>
       <div className="page-container">
         {/* Item Image */}
         <div 
           className="h-80 w-full bg-center bg-cover rounded-none mb-4" 
-          style={{ backgroundImage: `url(${menuItem.image})` }}
+          style={{ backgroundImage: `url(${product.image_url || '/placeholder.svg'})` }}
         />
         
         {/* Item Details */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-1">{menuItem.name}</h1>
-          <p className="text-gray-600 mb-2">{menuItem.description}</p>
-          
-          {/* Allergies */}
-          {menuItem.allergies && menuItem.allergies.length > 0 && (
-            <div className="mt-2 mb-3">
-              <p className="text-sm text-gray-600">
-                <span className="font-semibold">Contains:</span> {menuItem.allergies.join(', ')}
-              </p>
-            </div>
-          )}
+          <h1 className="text-2xl font-bold mb-1">{product.name}</h1>
+          <p className="text-gray-600 mb-2">{product.description}</p>
           
           {/* Base Price */}
-          <p className="text-xl font-bold">${menuItem.price.toFixed(2)}</p>
+          <p className="text-xl font-bold">${product.price.toFixed(2)}</p>
         </div>
         
         {/* Options */}
-        {menuItem.options && menuItem.options.length > 0 && (
+        {product.options && product.options.length > 0 && (
           <div className="mb-6 space-y-4">
-            {menuItem.options.map((option: MenuItemOption) => (
+            {product.options.map((option) => (
               <Card key={option.name} className="border border-gray-200">
                 <CardContent className="p-4">
                   <Label className="text-base font-medium mb-2 block">
@@ -176,7 +255,7 @@ const MenuItemDetail = () => {
                     {option.required && <span className="text-red-500 ml-1">*</span>}
                   </Label>
                   
-                  {option.multiSelect ? (
+                  {option.selection_type === 'multiple' ? (
                     // Multi-select options (checkboxes)
                     <div className="space-y-2">
                       {option.choices.map((choice) => (
@@ -194,7 +273,7 @@ const MenuItemDetail = () => {
                             className="text-sm cursor-pointer flex justify-between w-full"
                           >
                             <span>{choice.name}</span>
-                            {choice.price > 0 && <span>+${choice.price.toFixed(2)}</span>}
+                            {choice.price_adjustment > 0 && <span>+${choice.price_adjustment.toFixed(2)}</span>}
                           </label>
                         </div>
                       ))}
@@ -218,7 +297,7 @@ const MenuItemDetail = () => {
                             className="text-sm cursor-pointer flex justify-between w-full"
                           >
                             <span>{choice.name}</span>
-                            {choice.price > 0 && <span>+${choice.price.toFixed(2)}</span>}
+                            {choice.price_adjustment > 0 && <span>+${choice.price_adjustment.toFixed(2)}</span>}
                           </label>
                         </div>
                       ))}
