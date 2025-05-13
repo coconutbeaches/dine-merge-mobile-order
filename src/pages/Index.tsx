@@ -4,15 +4,56 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { restaurantInfo, menuItems, categories } from '@/data/mockData';
+import { restaurantInfo } from '@/data/mockData';
 import { useAppContext } from '@/context/AppContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types/supabaseTypes';
+
+interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+}
 
 const Index = () => {
   const navigate = useNavigate();
   const { isLoggedIn, currentUser } = useAppContext();
   
-  // Get popular items
-  const popularItems = menuItems.filter(item => item.popular).slice(0, 4);
+  // Fetch categories
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+        
+      if (error) throw error;
+      return data as Category[];
+    },
+  });
+  
+  // Fetch products
+  const { data: products } = useQuery({
+    queryKey: ['index-products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*');
+        
+      if (error) throw error;
+      return data as Product[];
+    },
+  });
+  
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('th-TH', {
+      style: 'currency',
+      currency: 'THB',
+    }).format(price);
+  };
   
   return (
     <Layout>
@@ -78,9 +119,9 @@ const Index = () => {
         )}
         
         {/* Categories with Black Headers */}
-        {categories.map((category) => {
-          const categoryItems = menuItems.filter(item => item.category === category.id).slice(0, 4);
-          if (categoryItems.length === 0) return null;
+        {categories && products && categories.map((category) => {
+          const categoryProducts = products.filter(product => product.category_id === category.id).slice(0, 4);
+          if (categoryProducts.length === 0) return null;
           
           return (
             <div key={category.id} className="mb-8">
@@ -88,24 +129,21 @@ const Index = () => {
                 {category.name}
               </div>
               <div className="menu-grid">
-                {categoryItems.map((item) => (
+                {categoryProducts.map((product) => (
                   <div 
-                    key={item.id} 
+                    key={product.id} 
                     className="food-card cursor-pointer relative"
-                    onClick={() => navigate(`/menu/item/${item.id}`)}
+                    onClick={() => navigate(`/menu/item/${product.id}`)}
                   >
                     <div className="aspect-square overflow-hidden mb-2">
                       <img 
-                        src={item.image} 
-                        alt={item.name}
+                        src={product.image_url || '/placeholder.svg'} 
+                        alt={product.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <h3 className="menu-item-name">{item.name}</h3>
-                    <p className="menu-item-price">${item.price.toFixed(2)}</p>
-                    {item.popular && (
-                      <span className="popular-badge">Popular</span>
-                    )}
+                    <h3 className="menu-item-name">{product.name}</h3>
+                    <p className="menu-item-price">{formatPrice(product.price)}</p>
                   </div>
                 ))}
               </div>

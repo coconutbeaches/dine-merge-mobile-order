@@ -2,11 +2,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { menuItems, categories } from '@/data/mockData';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Product } from '@/types/supabaseTypes';
+
+interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  sort_order: number;
+}
 
 const Menu = () => {
   const navigate = useNavigate();
@@ -17,36 +26,74 @@ const Menu = () => {
   const selectedCategoryId = searchParams.get('category');
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredItems, setFilteredItems] = useState(menuItems);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(selectedCategoryId);
   
-  // Group menu items by category
-  const groupedItems = filteredItems.reduce((acc, item) => {
-    if (!acc[item.category]) {
-      acc[item.category] = [];
-    }
-    acc[item.category].push(item);
-    return acc;
-  }, {} as Record<string, typeof menuItems>);
+  // Fetch categories
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
+        
+      if (error) throw error;
+      return data as Category[];
+    },
+  });
   
-  // Filter menu items when search query or category changes
+  // Fetch products
+  const { data: products, isLoading } = useQuery({
+    queryKey: ['menu-products'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*');
+        
+      if (error) throw error;
+      return data as Product[];
+    },
+  });
+  
+  // Group menu items by category
+  const groupedProducts = filteredProducts.reduce((acc, item) => {
+    const categoryId = item.category_id || 'uncategorized';
+    if (!acc[categoryId]) {
+      acc[categoryId] = [];
+    }
+    acc[categoryId].push(item);
+    return acc;
+  }, {} as Record<string, Product[]>);
+  
+  // Filter products when search query or category changes
   useEffect(() => {
-    let filtered = menuItems;
+    if (!products) return;
+    
+    let filtered = [...products];
     
     // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(item => 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
     
     // Filter by category
     if (activeCategory) {
-      filtered = filtered.filter(item => item.category === activeCategory);
+      filtered = filtered.filter(item => item.category_id === activeCategory);
     }
     
-    setFilteredItems(filtered);
-  }, [searchQuery, activeCategory]);
+    setFilteredProducts(filtered);
+  }, [searchQuery, activeCategory, products]);
+  
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('th-TH', {
+      style: 'currency',
+      currency: 'THB',
+    }).format(price);
+  };
   
   return (
     <Layout title="Menu" showBackButton>
@@ -74,7 +121,7 @@ const Menu = () => {
               All
             </Button>
             
-            {categories.map((category) => (
+            {categories && categories.map((category) => (
               <Button
                 key={category.id}
                 variant={activeCategory === category.id ? "default" : "outline"}
@@ -89,7 +136,11 @@ const Menu = () => {
         </div>
         
         {/* Menu Items */}
-        {filteredItems.length === 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p>Loading menu items...</p>
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No menu items found. Try a different search.</p>
           </div>
@@ -97,12 +148,12 @@ const Menu = () => {
           <div>
             {activeCategory === null ? (
               // Display grouped by categories
-              Object.entries(groupedItems).map(([categoryId, items]) => {
-                const category = categories.find(c => c.id === categoryId);
+              Object.entries(groupedProducts).map(([categoryId, items]) => {
+                const category = categories?.find(c => c.id === categoryId) || { name: 'Uncategorized' };
                 return (
                   <div key={categoryId} className="mb-8">
                     <div className="category-header">
-                      {category?.name}
+                      {categoryId === 'uncategorized' ? 'Uncategorized' : category.name}
                     </div>
                     <div className="menu-grid">
                       {items.map((item) => (
@@ -113,16 +164,13 @@ const Menu = () => {
                         >
                           <div className="aspect-square overflow-hidden mb-2">
                             <img 
-                              src={item.image} 
+                              src={item.image_url || '/placeholder.svg'} 
                               alt={item.name}
                               className="w-full h-full object-cover"
                             />
                           </div>
                           <h3 className="menu-item-name">{item.name}</h3>
-                          <p className="menu-item-price">${item.price.toFixed(2)}</p>
-                          {item.popular && (
-                            <span className="popular-badge">Popular</span>
-                          )}
+                          <p className="menu-item-price">{formatPrice(item.price)}</p>
                         </div>
                       ))}
                     </div>
@@ -132,7 +180,7 @@ const Menu = () => {
             ) : (
               // Display single category
               <div className="menu-grid">
-                {filteredItems.map((item) => (
+                {filteredProducts.map((item) => (
                   <div 
                     key={item.id} 
                     className="food-card cursor-pointer relative"
@@ -140,16 +188,13 @@ const Menu = () => {
                   >
                     <div className="aspect-square overflow-hidden mb-2">
                       <img 
-                        src={item.image} 
+                        src={item.image_url || '/placeholder.svg'} 
                         alt={item.name}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <h3 className="menu-item-name">{item.name}</h3>
-                    <p className="menu-item-price">${item.price.toFixed(2)}</p>
-                    {item.popular && (
-                      <span className="popular-badge">Popular</span>
-                    )}
+                    <p className="menu-item-price">{formatPrice(item.price)}</p>
                   </div>
                 ))}
               </div>

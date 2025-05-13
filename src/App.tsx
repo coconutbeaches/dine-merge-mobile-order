@@ -21,6 +21,8 @@ import AdminMergeAccounts from "./pages/AdminMergeAccounts";
 import NotFound from "./pages/NotFound";
 import ProductsDashboard from "./pages/ProductsDashboard";
 import ProductForm from "./pages/ProductForm";
+import CategoriesManager from "./pages/CategoriesManager";
+import ProductsByCategory from "./pages/ProductsByCategory";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,8 @@ const App = () => (
             <Route path="/products/edit/:id" element={<ProductForm />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/merge-accounts" element={<AdminMergeAccounts />} />
+            <Route path="/categories-manager" element={<CategoriesManager />} />
+            <Route path="/products-by-category/:categoryId" element={<ProductsByCategory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

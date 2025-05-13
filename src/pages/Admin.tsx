@@ -5,7 +5,7 @@ import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { mockUsers } from '@/data/mockData';
-import { UserSearch, Settings, ArrowRight } from 'lucide-react';
+import { UserSearch, Settings, ArrowRight, LayoutList } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -51,6 +51,18 @@ const Admin = () => {
             </p>
             
             <div className="grid grid-cols-1 gap-3">
+              <Button 
+                variant="outline" 
+                className="flex justify-between items-center"
+                onClick={() => navigate('/categories-manager')}
+              >
+                <div className="flex items-center">
+                  <LayoutList className="h-4 w-4 mr-2" />
+                  <span>Manage Categories</span>
+                </div>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+
               <Button 
                 variant="outline" 
                 className="flex justify-between items-center"

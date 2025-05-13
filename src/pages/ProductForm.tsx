@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -16,17 +17,30 @@ import {
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Product, ProductOption, ProductOptionChoice } from '@/types/supabaseTypes';
 import ProductOptionsManager from '@/components/ProductOptionsManager';
 import { Trash2, Plus } from 'lucide-react';
 import { nanoid } from 'nanoid';
 
+interface Category {
+  id: string;
+  name: string;
+}
+
 interface FormValues {
   name: string;
   price: number | string;
   description: string;
   image: File | null;
+  category_id: string | null;
 }
 
 const ProductForm = () => {
@@ -42,8 +56,23 @@ const ProductForm = () => {
       name: '',
       price: '',
       description: '',
-      image: null
+      image: null,
+      category_id: null
     }
+  });
+
+  // Fetch categories
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .order('sort_order', { ascending: true });
+        
+      if (error) throw error;
+      return data as Category[];
+    },
   });
 
   // Fetch product if in edit mode
@@ -107,7 +136,8 @@ const ProductForm = () => {
       form.reset({
         name: product.name || '',
         price: product.price || '',
-        description: product.description || ''
+        description: product.description || '',
+        category_id: product.category_id
       });
       
       if (product.image_url) {
@@ -178,7 +208,8 @@ const ProductForm = () => {
           name: data.name,
           description: data.description,
           price: parseFloat(data.price.toString()),
-          image_url: imageUrl
+          image_url: imageUrl,
+          category_id: data.category_id
         }])
         .select()
         .single();
@@ -226,6 +257,7 @@ const ProductForm = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['menu-products'] });
       toast.success('Product created successfully');
       navigate('/products-dashboard');
     },
@@ -252,6 +284,7 @@ const ProductForm = () => {
         name: data.name,
         description: data.description,
         price: parseFloat(data.price.toString()),
+        category_id: data.category_id
       };
       
       // Only update image if a new one was provided
@@ -317,6 +350,7 @@ const ProductForm = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['menu-products'] });
       toast.success('Product updated successfully');
       navigate('/products-dashboard');
     },
@@ -348,7 +382,7 @@ const ProductForm = () => {
       name: `Option ${options.length + 1}`,
       required: false,
       enable_quantity: false,
-      selection_type: 'single', // This value is now properly typed
+      selection_type: 'single',
       choices: [{
         id: `temp-${nanoid()}`,
         option_id: '',
@@ -435,6 +469,36 @@ const ProductForm = () => {
                             />
                           </div>
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                {/* Category */}
+                <div className="mt-6">
+                  <FormField
+                    control={form.control}
+                    name="category_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select
+                          value={field.value || undefined}
+                          onValueChange={(value) => field.onChange(value || null)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {categories?.map((category) => (
+                              <SelectItem key={category.id} value={category.id}>
+                                {category.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

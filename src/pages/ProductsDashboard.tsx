@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
@@ -10,21 +10,49 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Product } from '@/types/supabaseTypes';
 
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface ProductWithCategory extends Product {
+  categories?: Category;
+}
+
 const ProductsDashboard = () => {
   const navigate = useNavigate();
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
-  const { data: products, isLoading, error } = useQuery({
-    queryKey: ['products'],
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('products')
+        .from('categories')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('sort_order', { ascending: true });
+        
+      if (error) throw error;
+      return data as Category[];
+    },
+  });
+
+  const { data: products, isLoading, error } = useQuery({
+    queryKey: ['products', categoryFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from('products')
+        .select('*, categories(id, name)');
+      
+      if (categoryFilter) {
+        query = query.eq('category_id', categoryFilter);
+      }
+        
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
-      return data as Product[];
+      return data as ProductWithCategory[];
     }
   });
 
@@ -52,6 +80,41 @@ const ProductsDashboard = () => {
           <Button onClick={handleAddProduct}>
             <Plus className="mr-2 h-4 w-4" /> Add Product
           </Button>
+        </div>
+        
+        {/* Category filter */}
+        <div className="mb-6 overflow-x-auto pb-2">
+          <div className="flex space-x-2">
+            <Button
+              variant={categoryFilter === null ? "default" : "outline"}
+              size="sm"
+              onClick={() => setCategoryFilter(null)}
+              className={`whitespace-nowrap`}
+            >
+              All Products
+            </Button>
+            
+            {categories && categories.map((category) => (
+              <Button
+                key={category.id}
+                variant={categoryFilter === category.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCategoryFilter(category.id)}
+                className="whitespace-nowrap"
+              >
+                {category.name}
+              </Button>
+            ))}
+            
+            <Button
+              variant={categoryFilter === 'uncategorized' ? "default" : "outline"}
+              size="sm"
+              onClick={() => setCategoryFilter('uncategorized')}
+              className="whitespace-nowrap"
+            >
+              Uncategorized
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -84,6 +147,13 @@ const ProductsDashboard = () => {
                   ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">
                       No image
+                    </div>
+                  )}
+                  
+                  {/* Category tag */}
+                  {product.categories && (
+                    <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 text-xs rounded">
+                      {product.categories.name}
                     </div>
                   )}
                 </div>
