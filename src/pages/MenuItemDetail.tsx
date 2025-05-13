@@ -167,13 +167,14 @@ const MenuItemDetail = () => {
     }
     
     // Convert product to MenuItem format for cart
-    const menuItem: MenuItem = {
+    const menuItemForCart: MenuItem = {
       id: product.id,
       name: product.name,
       price: product.price,
       description: product.description || '',
       image: product.image_url || '/placeholder.svg',
       category: product.category_id || '',
+      available: true, // Adding the missing 'available' property required by MenuItem type
       options: product.options?.map(option => ({
         name: option.name,
         required: option.required,
@@ -186,9 +187,9 @@ const MenuItemDetail = () => {
     };
     
     // Calculate total price including options
-    let totalItemPrice = calculateTotalPrice(menuItem, selectedOptions);
+    let totalItemPrice = calculateTotalPrice(menuItemForCart, selectedOptions);
     
-    addToCart(menuItem, quantity, selectedOptions, specialInstructions);
+    addToCart(menuItemForCart, quantity, selectedOptions, specialInstructions);
     
     toast({
       title: "Added to cart",
@@ -351,7 +352,7 @@ const MenuItemDetail = () => {
               onClick={handleAddToCart}
               className="bg-black hover:bg-black/90 text-white"
             >
-              Add to Cart - ${(calculateTotalPrice(menuItem, selectedOptions) * quantity).toFixed(2)}
+              Add to Cart - ${(calculateTotalPrice(menuItemForCart, selectedOptions) * quantity).toFixed(2)}
             </Button>
           </div>
         </div>
