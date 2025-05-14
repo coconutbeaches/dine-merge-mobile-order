@@ -7,17 +7,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle } from 'lucide-react';
-import { formatThaiCurrency } from '@/lib/utils'; // Import for currency formatting
+import { formatThaiCurrency } from '@/lib/utils';
+import { MenuItem } from '@/types';
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { cart, cartTotal, placeOrder, currentUser, isLoggedIn } = useAppContext();
+  const { cart, cartTotal, placeOrder, currentUser, isLoggedIn, isLoading: isLoadingAppContext } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Redirect if not logged in
   React.useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoadingAppContext && !isLoggedIn) {
       toast({
         title: "Sign in required",
         description: "Please sign in or create an account to checkout",
@@ -25,20 +26,15 @@ const Checkout = () => {
       });
       navigate('/login', { state: { returnTo: '/checkout' } });
     }
-  }, [isLoggedIn, navigate, toast]);
+  }, [isLoggedIn, navigate, toast, isLoadingAppContext]);
   
   // Redirect if cart is empty
   React.useEffect(() => {
-    // Ensure cart is not empty when this page is loaded
     if (!isLoadingAppContext && cart.length === 0 && isLoggedIn) {
-      navigate('/menu'); // Or '/cart' which will then redirect to menu if empty
+      navigate('/menu');
     }
-  }, [cart, navigate, isLoggedIn, isLoadingAppContext]); // isLoadingAppContext needs to be defined or obtained
+  }, [cart, navigate, isLoggedIn, isLoadingAppContext]);
   
-  // A simple way to check if AppContext is still loading its initial state
-  // This might need refinement depending on AppContext's loading logic
-  const { isLoading: isLoadingAppContext } = useAppContext();
-
   const handlePlaceOrder = async () => {
     if (!currentUser) {
       toast({
@@ -100,7 +96,6 @@ const Checkout = () => {
   };
   
   if (isLoadingAppContext || (!isLoggedIn && !isLoadingAppContext) || (cart.length === 0 && isLoggedIn && !isLoadingAppContext)) {
-     // Show loading indicator or null while redirecting or context is loading
     return (
       <Layout title="Checkout" showBackButton>
         <div className="page-container text-center py-10">
@@ -128,7 +123,7 @@ const Checkout = () => {
                         <div className="text-xs text-muted-foreground">
                           {Object.entries(item.selectedOptions).map(([optionName, value]) => {
                             const displayValue = Array.isArray(value) ? value.join(', ') : value;
-                            if (displayValue) { // Only render if there's a value
+                            if (displayValue) {
                               return <p key={optionName}>{optionName}: {displayValue}</p>;
                             }
                             return null;
@@ -137,7 +132,6 @@ const Checkout = () => {
                       )}
                     </div>
                     <div className="text-right">
-                      {/* Calculate item total price with options for display */}
                       {formatThaiCurrency(calculateTotalPrice(item.menuItem, item.selectedOptions || {}) * item.quantity)}
                     </div>
                   </div>

@@ -23,6 +23,9 @@ interface AppContextType {
   // Order Management
   placeOrder: (address: Address, paymentMethod: string, tip?: number) => Promise<Order | null>;
   getOrderHistory: () => Order[];
+  
+  // Add isLoading to the context type
+  isLoading: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -353,7 +356,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   
   const value = {
     currentUser,
-    isLoggedIn: !!currentUser && !!supabaseSession, // isLoggedIn should also depend on session
+    isLoggedIn: !!currentUser && !!supabaseSession,
     login,
     signup,
     logout,
@@ -364,7 +367,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     clearCart,
     cartTotal,
     placeOrder,
-    getOrderHistory
+    getOrderHistory,
+    isLoading // Provide isLoading in the context value
   };
   
   return (
