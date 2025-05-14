@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingBag, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -58,7 +58,7 @@ const Checkout = () => {
       toast({
         title: "Order placed successfully!",
         description: "Thank you for your order.",
-        variant: "success"
+        variant: "default"
       });
       
       // Redirect to order history or confirmation page
@@ -108,7 +108,7 @@ const Checkout = () => {
                       )}
                     </div>
                     <div className="text-right">
-                      ${(item.menuItem.price * item.quantity).toFixed(2)}
+                      ฿{Math.round(item.menuItem.price * item.quantity)}
                     </div>
                   </div>
                 ))}
@@ -117,7 +117,7 @@ const Checkout = () => {
                 
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>${cartTotal.toFixed(2)}</span>
+                  <span>฿{Math.round(cartTotal)}</span>
                 </div>
               </div>
             </CardContent>
@@ -158,7 +158,7 @@ const Checkout = () => {
               ) : (
                 <>
                   <CheckCircle className="mr-2 h-5 w-5" />
-                  Place Order - ${cartTotal.toFixed(2)}
+                  Place Order - ฿{Math.round(cartTotal)}
                 </>
               )}
             </Button>

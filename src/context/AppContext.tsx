@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, CartItem, MenuItem, Order, OrderStatus, Address } from '../types';
 import { supabase } from '@/integrations/supabase/client';
@@ -247,6 +246,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         }
       ]);
     }
+    
+    // Removed toast notification
   };
   
   const removeFromCart = (itemId: string) => {

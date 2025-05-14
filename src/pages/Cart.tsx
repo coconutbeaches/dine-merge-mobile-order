@@ -37,7 +37,7 @@ const Cart = () => {
     navigate('/checkout');
   };
   
-  // Removed delivery fee, service fee, and tax calculations
+  // Simplified - no delivery fee, service fee, and tax
   const grandTotal = cartTotal;
   
   if (cart.length === 0) {
@@ -148,8 +148,8 @@ const Cart = () => {
                             </Button>
                           </div>
                           <div className="text-right">
-                            <p className="font-semibold">${(itemPrice * item.quantity).toFixed(2)}</p>
-                            <p className="text-xs text-muted-foreground">${itemPrice.toFixed(2)} each</p>
+                            <p className="font-semibold">฿{Math.round(itemPrice * item.quantity)}</p>
+                            <p className="text-xs text-muted-foreground">฿{Math.round(itemPrice)} each</p>
                           </div>
                         </div>
                       </div>
@@ -169,7 +169,7 @@ const Cart = () => {
               <div className="space-y-2">
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>${grandTotal.toFixed(2)}</span>
+                  <span>฿{Math.round(grandTotal)}</span>
                 </div>
               </div>
             </CardContent>
@@ -183,7 +183,7 @@ const Cart = () => {
               onClick={handleCheckout}
               className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
             >
-              Proceed to Checkout - ${grandTotal.toFixed(2)}
+              Proceed to Checkout - ฿{Math.round(grandTotal)}
             </Button>
           </div>
         </div>
