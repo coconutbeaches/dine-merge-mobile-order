@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   email: string;
@@ -63,13 +62,14 @@ export interface Order {
 }
 
 export enum OrderStatus {
-  PENDING = 'pending',
-  CONFIRMED = 'confirmed',
-  PREPARING = 'preparing',
-  READY = 'ready',
-  OUT_FOR_DELIVERY = 'out_for_delivery',
-  DELIVERED = 'delivered',
-  CANCELLED = 'cancelled'
+  NEW = "new",
+  CONFIRMED = "confirmed",
+  MAKE = "make",
+  READY = "ready",
+  DELIVERED = "delivered",
+  PAID = "paid",
+  CANCELLED = "cancelled",
+  PENDING = "pending" // Keep for backward compatibility
 }
 
 export interface RestaurantInfo {

@@ -6,22 +6,37 @@ import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { User, LogOut, History, MapPin, Settings } from 'lucide-react';
+import { User, LogOut, History, Settings } from 'lucide-react';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { currentUser, logout } = useAppContext();
+  const { currentUser, logout, isLoading } = useAppContext();
   
   // Redirect to login if not logged in
-  if (!currentUser) {
-    navigate('/login');
-    return null;
-  }
+  React.useEffect(() => {
+    if (!isLoading && !currentUser) {
+      navigate('/login');
+    }
+  }, [currentUser, navigate, isLoading]);
   
   const handleLogout = () => {
     logout();
     navigate('/');
   };
+
+  if (isLoading) {
+    return (
+      <Layout title="My Profile" showBackButton>
+        <div className="page-container text-center py-10">
+          <p>Loading profile...</p>
+        </div>
+      </Layout>
+    );
+  }
+  
+  if (!currentUser) {
+    return null;
+  }
   
   return (
     <Layout title="My Profile" showBackButton>
@@ -52,20 +67,6 @@ const Profile = () => {
             <div className="text-left">
               <p className="font-medium">Order History</p>
               <p className="text-sm text-muted-foreground">View your past orders</p>
-            </div>
-          </Button>
-          
-          <Separator />
-          
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start h-auto py-3 px-4"
-            onClick={() => navigate('/addresses')}
-          >
-            <MapPin className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <p className="font-medium">Saved Addresses</p>
-              <p className="text-sm text-muted-foreground">Manage your delivery addresses</p>
             </div>
           </Button>
           

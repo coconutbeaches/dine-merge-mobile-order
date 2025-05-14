@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -9,12 +10,14 @@ import { useToast } from '@/hooks/use-toast';
 import { CheckCircle } from 'lucide-react';
 import { formatThaiCurrency } from '@/lib/utils';
 import { MenuItem } from '@/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { cart, cartTotal, placeOrder, currentUser, isLoggedIn, isLoading: isLoadingAppContext } = useAppContext();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tableNumber, setTableNumber] = useState<string>('Take Away');
   
   // Redirect if not logged in
   React.useEffect(() => {
@@ -60,24 +63,19 @@ const Checkout = () => {
       setIsSubmitting(true);
       
       const mockAddress = {
-        id: 'default-address', // This should ideally come from user's saved addresses
-        street: currentUser.name || 'N/A', // Using user's name for street temporarily
+        id: 'default-address',
+        street: currentUser.name || 'N/A',
         city: 'Online Order',
         state: 'TH',
         zipCode: 'N/A',
         isDefault: true
       };
       
-      const paymentMethod = 'Cash on Delivery'; // Defaulting payment method
+      const paymentMethod = 'Cash on Delivery';
       
-      const order = await placeOrder(mockAddress, paymentMethod);
+      const order = await placeOrder(mockAddress, paymentMethod, tableNumber);
       
       if (order) {
-        toast({
-          title: "Order placed successfully!",
-          description: `Your order #${order.id} has been placed.`,
-          variant: "default"
-        });
         navigate('/order-history');
       } else {
         throw new Error("Order placement failed, no order data returned.");
@@ -93,6 +91,26 @@ const Checkout = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Generate table numbers for dropdown
+  const generateTableNumbers = () => {
+    const options = [];
+    options.push(
+      <SelectItem key="take-away" value="Take Away">
+        Take Away
+      </SelectItem>
+    );
+    
+    for (let i = 1; i <= 40; i++) {
+      options.push(
+        <SelectItem key={i} value={i.toString()}>
+          Table {i}
+        </SelectItem>
+      );
+    }
+    
+    return options;
   };
   
   if (isLoadingAppContext || (!isLoggedIn && !isLoadingAppContext) || (cart.length === 0 && isLoggedIn && !isLoadingAppContext)) {
@@ -148,7 +166,26 @@ const Checkout = () => {
           </Card>
         </div>
         
-        {/* Delivery Details and Payment Method sections removed */}
+        <div className="mb-6">
+          <h2 className="section-heading">Table Number</h2>
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid w-full items-center gap-1.5">
+                <label htmlFor="tableNumber" className="text-sm font-medium">
+                  Select your table number or choose Take Away
+                </label>
+                <Select value={tableNumber} onValueChange={setTableNumber}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select table number" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {generateTableNumbers()}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         
         <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-md">
           <div className="max-w-lg mx-auto">
@@ -173,8 +210,7 @@ const Checkout = () => {
   );
 };
 
-// Helper function from productUtils, co-located for simplicity if not already imported broadly
-// or ensure it's imported from '@/utils/productUtils'
+// Helper function from productUtils, co-located for simplicity
 const calculateTotalPrice = (
   item: MenuItem, 
   options: Record<string, string | string[]>
@@ -194,6 +230,5 @@ const calculateTotalPrice = (
   });
   return total;
 };
-
 
 export default Checkout;
