@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, Category, ShoppingCart } from 'lucide-react';
+import { Users, Package, LayoutGrid, ShoppingCart } from 'lucide-react';
 
 const Admin = () => {
   return (
@@ -45,7 +44,7 @@ const Admin = () => {
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2">
-                  <Category className="h-5 w-5" />
+                  <LayoutGrid className="h-5 w-5" />
                   Categories Management
                 </CardTitle>
               </CardHeader>
