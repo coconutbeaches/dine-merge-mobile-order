@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, CartItem, MenuItem, Order, OrderStatus, Address } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { Order as SupabaseOrder, OrderStatus as SupabaseOrderStatus, PaymentStatus as SupabasePaymentStatus, FulfillmentStatus as SupabaseFulfillmentStatus } from '@/types/supabaseTypes';
 
 interface AppContextType {
   // User Management
@@ -20,7 +21,7 @@ interface AppContextType {
   cartTotal: number;
   
   // Order Management
-  placeOrder: (address: Address, paymentMethod: string, tip?: number) => Promise<Order>;
+  placeOrder: (address: Address, paymentMethod: string, tip?: number) => Promise<Order | null>;
   getOrderHistory: () => Order[];
 }
 
@@ -103,7 +104,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       }
       
       if (data) {
-        // Transform Supabase profile to app User format
         setCurrentUser({
           id: data.id,
           email: data.email,
@@ -230,12 +230,10 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     );
     
     if (existingCartItemIndex > -1) {
-      // Update quantity if item with same options already exists
       const updatedCart = [...cart];
       updatedCart[existingCartItemIndex].quantity += quantity;
       setCart(updatedCart);
     } else {
-      // Add new cart item
       setCart([
         ...cart,
         {
@@ -246,7 +244,6 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         }
       ]);
     }
-    
     // Removed toast notification
   };
   
@@ -268,41 +265,82 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   };
   
   // Order Management Functions
-  const placeOrder = async (address: Address, paymentMethod: string, tip?: number): Promise<Order> => {
+  const placeOrder = async (address: Address, paymentMethod: string, tip?: number): Promise<Order | null> => {
     if (!currentUser) {
-      throw new Error('User must be logged in to place an order');
+      console.error('User must be logged in to place an order');
+      // Consider throwing an error or returning a specific status
+      return null;
     }
     
     if (cart.length === 0) {
-      throw new Error('Cart cannot be empty');
+      console.error('Cart cannot be empty');
+      // Consider throwing an error
+      return null;
     }
-    
-    const newOrder: Order = {
-      id: `order-${Date.now()}`,
-      userId: currentUser.id,
-      items: [...cart], // Create a copy of the cart
-      status: OrderStatus.PENDING,
-      total: cartTotal + (tip || 0),
-      createdAt: new Date(),
-      address,
-      paymentMethod,
-      tip
+
+    const orderItemsForSupabase = cart.map(cartItem => ({
+      menuItemId: cartItem.menuItem.id,
+      name: cartItem.menuItem.name,
+      quantity: cartItem.quantity,
+      unitPrice: cartItem.menuItem.price,
+      selectedOptions: cartItem.selectedOptions || {},
+      specialInstructions: cartItem.specialInstructions || "",
+    }));
+
+    const orderPayload = {
+      user_id: currentUser.id,
+      customer_name: currentUser.name || currentUser.email, // Ensure name is available
+      order_items: orderItemsForSupabase,
+      total_amount: cartTotal + (tip || 0),
+      order_status: 'pending' as SupabaseOrderStatus,
+      // payment_status and fulfillment_status will use DB defaults ('unpaid', 'unfulfilled')
+      // created_at and updated_at are handled by DB
     };
-    
-    // Add order to orders list
-    setOrders([newOrder, ...orders]);
-    
-    // Clear cart after order is placed
-    clearCart();
-    
-    return newOrder;
+
+    try {
+      const { data: insertedOrderData, error } = await supabase
+        .from('orders')
+        .insert(orderPayload)
+        .select()
+        .single(); // Assuming you want the single inserted order back
+
+      if (error) {
+        console.error('Error placing order in Supabase:', error);
+        // Potentially use a toast to inform user of failure
+        return null;
+      }
+
+      if (insertedOrderData) {
+        // Construct the local Order object using data from Supabase
+        const newOrderForLocalState: Order = {
+          id: insertedOrderData.id.toString(), // Use DB ID
+          userId: insertedOrderData.user_id || currentUser.id,
+          items: [...cart], // Keep original cart items for local state if needed by OrderHistory
+          status: (insertedOrderData.order_status as OrderStatus) || OrderStatus.PENDING,
+          total: insertedOrderData.total_amount,
+          createdAt: new Date(insertedOrderData.created_at),
+          address, // Keep address from input
+          paymentMethod, // Keep paymentMethod from input
+          tip, // Keep tip from input
+        };
+        
+        setOrders(prevOrders => [newOrderForLocalState, ...prevOrders]);
+        clearCart();
+        return newOrderForLocalState;
+      }
+      return null;
+
+    } catch (error) {
+      console.error('Unexpected error during placeOrder:', error);
+      return null;
+    }
   };
   
   const getOrderHistory = () => {
     if (!currentUser) {
       return [];
     }
-    
+    // This filters the local 'orders' state. If OrderHistory needs to fetch from DB, it should do so directly.
     return orders.filter(order => order.userId === currentUser.id)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   };
