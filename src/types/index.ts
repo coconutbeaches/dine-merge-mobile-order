@@ -56,9 +56,10 @@ export interface Order {
   total: number;
   createdAt: Date;
   estimatedDeliveryTime?: Date;
-  address: Address;
+  address: Address; // For delivery orders, if applicable
   paymentMethod: string;
   tip?: number;
+  tableNumber?: string; // Added for table number or "Take Away"
 }
 
 export enum OrderStatus {
@@ -69,7 +70,7 @@ export enum OrderStatus {
   DELIVERED = "delivered",
   PAID = "paid",
   CANCELLED = "cancelled",
-  PENDING = "pending" // Keep for backward compatibility
+  // PENDING = "pending" // Removed as per new enum, 'new' is the initial state
 }
 
 export interface RestaurantInfo {

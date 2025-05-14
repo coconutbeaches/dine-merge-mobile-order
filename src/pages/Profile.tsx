@@ -1,87 +1,172 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { User, LogOut, History, Settings } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { currentUser, logout, isLoading } = useAppContext();
-  
-  // Redirect to login if not logged in
-  React.useEffect(() => {
-    if (!isLoading && !currentUser) {
-      navigate('/login');
+  const { currentUser, isLoggedIn, isLoading: isLoadingAppContext, logout } = useAppContext();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isLoadingAppContext && !isLoggedIn) {
+      navigate('/login', { state: { returnTo: '/profile' } });
     }
-  }, [currentUser, navigate, isLoading]);
+    if (currentUser) {
+      setName(currentUser.name || '');
+      setEmail(currentUser.email || '');
+      // Assuming phone is directly on currentUser, or fetched via profiles
+      // For now, let's fetch it from profiles table
+      fetchProfileDetails();
+    }
+  }, [currentUser, isLoggedIn, isLoadingAppContext, navigate]);
+
+  const fetchProfileDetails = async () => {
+    if (!currentUser) return;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', currentUser.id)
+        .single();
+      if (error && error.code !== 'PGRST116') { // PGRST116: 0 rows found (expected)
+        throw error;
+      }
+      if (data) {
+        setPhone(data.phone || '');
+      }
+    } catch (error: any) {
+      toast.error(`Failed to fetch profile details: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    setIsLoading(true);
+    try {
+      // Update name in auth.users.user_metadata if needed (more complex, usually handled at signup/profile specific endpoint)
+      // For now, we update the 'profiles' table
+      const { error } = await supabase
+        .from('profiles')
+        .update({ name, phone }) // Only update name and phone here
+        .eq('id', currentUser.id);
+
+      if (error) throw error;
+
+      // Note: Email updates usually require verification and are handled separately by Supabase Auth.
+      // If you need to update email, use supabase.auth.updateUser({ email: newEmail })
+      // For this example, we are not updating email directly.
+
+      toast.success('Profile updated successfully!');
+      setIsEditing(false);
+      // Potentially re-fetch currentUser or update context if name change affects AppContext's currentUser display
+      // For simplicity, local state change and toast are shown.
+    } catch (error: any) {
+      toast.error(`Failed to update profile: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
-  if (isLoading) {
+  if (isLoadingAppContext || (!currentUser && isLoggedIn)) {
     return (
       <Layout title="My Profile" showBackButton>
-        <div className="page-container text-center py-10">
-          <p>Loading profile...</p>
-        </div>
+        <div className="page-container text-center py-10">Loading profile...</div>
       </Layout>
     );
   }
-  
-  if (!currentUser) {
-    return null;
+
+  if (!isLoggedIn || !currentUser) {
+     // Should have been redirected by useEffect, but as a fallback
+    return (
+      <Layout title="My Profile" showBackButton>
+        <div className="page-container text-center py-10">Please log in to view your profile.</div>
+      </Layout>
+    );
   }
-  
+
   return (
     <Layout title="My Profile" showBackButton>
-      <div className="page-container">
-        <Card className="mb-6">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto bg-restaurant-primary/10 rounded-full w-20 h-20 flex items-center justify-center mb-2">
-              <User className="h-10 w-10 text-restaurant-primary" />
-            </div>
-            <CardTitle>{currentUser.name}</CardTitle>
-            <p className="text-sm text-muted-foreground">{currentUser.email}</p>
+      <div className="page-container max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Information</CardTitle>
           </CardHeader>
-          <CardContent>
-            <Button variant="outline" className="w-full" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </CardContent>
+          <form onSubmit={handleUpdateProfile}>
+            <CardContent className="space-y-6">
+              <div>
+                <Label htmlFor="name">Name</Label>
+                <Input 
+                  id="name" 
+                  value={name} 
+                  onChange={(e) => setName(e.target.value)} 
+                  disabled={!isEditing || isLoading} 
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input 
+                  id="email" 
+                  type="email" 
+                  value={email} 
+                  disabled // Email typically not changed here directly
+                />
+                <p className="text-xs text-muted-foreground mt-1">Email address cannot be changed here.</p>
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input 
+                  id="phone" 
+                  type="tel" 
+                  value={phone} 
+                  onChange={(e) => setPhone(e.target.value)} 
+                  disabled={!isEditing || isLoading} 
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between items-center pt-6">
+              {isEditing ? (
+                <>
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button variant="outline" onClick={() => {setIsEditing(false); fetchProfileDetails(); /* Reset changes */}}>
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+              )}
+            </CardFooter>
+          </form>
         </Card>
-        
-        <div className="space-y-4">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start h-auto py-3 px-4"
-            onClick={() => navigate('/order-history')}
-          >
-            <History className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <p className="font-medium">Order History</p>
-              <p className="text-sm text-muted-foreground">View your past orders</p>
-            </div>
-          </Button>
-          
-          <Separator />
-          
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start h-auto py-3 px-4"
-            onClick={() => navigate('/account-settings')}
-          >
-            <Settings className="h-5 w-5 mr-3" />
-            <div className="text-left">
-              <p className="font-medium">Account Settings</p>
-              <p className="text-sm text-muted-foreground">Update your profile information</p>
-            </div>
+
+        {/* Removed Saved Addresses section as per Photo 7 */}
+
+        <div className="mt-8 text-center">
+          <Button variant="link" onClick={handleLogout} className="text-destructive hover:text-destructive/80">
+            Log Out
           </Button>
         </div>
       </div>

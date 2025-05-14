@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
@@ -7,11 +6,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { Order, OrderStatus } from '@/types/supabaseTypes';
+import { Order as SupabaseOrder, OrderStatus as SupabaseOrderStatus } from '@/types/supabaseTypes';
 import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { New, Confirmed, CircleCheck, ChefHat, Clock, Truck, XCircle } from 'lucide-react';
+
+type Order = SupabaseOrder;
 
 const OrdersDashboard = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -21,6 +20,25 @@ const OrdersDashboard = () => {
 
   useEffect(() => {
     fetchOrders();
+    // Setup real-time subscription for orders
+    const channel = supabase
+      .channel('custom-orders-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders' },
+        (payload) => {
+          console.log('Change received!', payload);
+          // Re-fetch orders to get the latest state
+          // More sophisticated updates (new, update, delete) can be handled here
+          // For simplicity, just re-fetching now.
+          fetchOrders(); 
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchOrders = async () => {
@@ -44,7 +62,7 @@ const OrdersDashboard = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId: number, status: OrderStatus) => {
+  const updateOrderStatus = async (orderId: number, status: SupabaseOrderStatus) => {
     try {
       const { error } = await supabase
         .from('orders')
@@ -57,10 +75,11 @@ const OrdersDashboard = () => {
         title: "Success",
         description: "Order status updated successfully",
       });
-      
-      setOrders(prevOrders => prevOrders.map(order => 
-        order.id === orderId ? { ...order, order_status: status, updated_at: new Date().toISOString() } : order
-      ));
+      // Optimistic update or rely on real-time / re-fetch
+      // setOrders(prevOrders => prevOrders.map(order => 
+      //   order.id === orderId ? { ...order, order_status: status, updated_at: new Date().toISOString() } : order
+      // ));
+      // Real-time subscription should handle the update, or call fetchOrders() if not using real-time for this.
     } catch (error: any) {
       toast({
         title: "Error",
@@ -117,56 +136,37 @@ const OrdersDashboard = () => {
     return `#${id.toString().padStart(4, '0')}`;
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
       const date = new Date(dateString);
-      return format(date, 'dd MMM yyyy HH:mm');
+      return format(date, 'dd MMM yy HH:mm'); // Shorter date format
     } catch (e) {
       return 'Invalid Date';
     }
   };
   
-  const getStatusBadge = (status: string) => {
-    const badgeClasses = {
-      new: "bg-red-100 text-red-800 border-red-200",
-      confirmed: "bg-green-100 text-green-800 border-green-200",
-      make: "bg-yellow-100 text-yellow-800 border-yellow-200",
-      ready: "bg-orange-100 text-orange-800 border-orange-200",
-      delivered: "bg-blue-100 text-blue-800 border-blue-200",
-      paid: "bg-emerald-100 text-emerald-800 border-emerald-200",
-      cancelled: "bg-gray-100 text-gray-800 border-gray-200"
-    };
-    
-    return `rounded-full px-2 py-1 text-xs font-medium border ${badgeClasses[status] || "bg-gray-100 text-gray-800 border-gray-200"}`;
-  };
-
-  const getStatusIcon = (status: string) => {
+  const getStatusColorDot = (status: string | null) => {
     switch (status) {
-      case 'new':
-        return <div className="h-4 w-4 text-red-600 mr-1">●</div>;
-      case 'confirmed':
-        return <div className="h-4 w-4 text-green-600 mr-1">●</div>;
-      case 'make':
-        return <div className="h-4 w-4 text-yellow-600 mr-1">●</div>;
-      case 'ready':
-        return <div className="h-4 w-4 text-orange-600 mr-1">●</div>;
-      case 'delivered':
-        return <div className="h-4 w-4 text-blue-600 mr-1">●</div>;
-      case 'paid':
-        return <div className="h-4 w-4 text-emerald-600 mr-1">●</div>;
-      case 'cancelled':
-        return <div className="h-4 w-4 text-gray-600 mr-1">●</div>;
-      default:
-        return <div className="h-4 w-4 text-gray-600 mr-1">●</div>;
+      case 'new': return "bg-red-500";
+      case 'confirmed': return "bg-green-500";
+      case 'make': return "bg-yellow-500";
+      case 'ready': return "bg-orange-500";
+      case 'delivered': return "bg-blue-500";
+      case 'paid': return "bg-green-700";
+      case 'cancelled': return "bg-gray-500";
+      default: return "bg-gray-300";
     }
   };
+  
+  // Define the order statuses for the dropdown
+  const orderStatusOptions: SupabaseOrderStatus[] = ['new', 'confirmed', 'make', 'ready', 'delivered', 'paid', 'cancelled'];
 
   return (
     <Layout title="Orders Dashboard" showBackButton={false}>
       <div className="page-container p-4 md:p-6">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <h1 className="text-lg font-bold">Orders Dashboard</h1>
+          <h1 className="text-xl font-bold">Orders Dashboard</h1> {/* Increased font size slightly */}
           <div className="flex gap-2 flex-wrap">
             <Button 
               variant="destructive" 
@@ -177,24 +177,26 @@ const OrdersDashboard = () => {
               Delete Selected ({selectedOrders.length})
             </Button>
             <Button onClick={fetchOrders} disabled={isLoading} size="sm">
-              {isLoading ? "Loading..." : "Refresh"}
+              {isLoading ? "Refreshing..." : "Refresh"}
             </Button>
           </div>
         </div>
 
         <Card>
-          <CardHeader className="bg-muted/50 p-4">
-            <div className="grid grid-cols-8 gap-x-2 md:gap-x-4 font-semibold text-sm">
+          <CardHeader className="bg-muted/50 p-3"> {/* Reduced padding slightly */}
+            {/* Adjusted grid for new layout: Checkbox, Customer, Table, Amount, Date, Status */}
+            <div className="grid grid-cols-12 gap-x-2 md:gap-x-3 font-semibold text-sm">
               <div className="col-span-1 flex items-center">
                 <Checkbox 
-                  checked={selectedOrders.length === orders.length && orders.length > 0} 
+                  checked={selectedOrders.length === orders.length && orders.length > 0 && orders.length > 0} 
                   onCheckedChange={selectAllOrders}
                   disabled={orders.length === 0}
                   aria-label="Select all orders"
                 />
               </div>
-              <div className="col-span-2">Customer</div>
-              <div className="col-span-1 text-right">Amount</div>
+              <div className="col-span-3">Customer</div> {/* Increased span for customer */}
+              <div className="col-span-2">Table/Type</div>
+              <div className="col-span-2 text-right">Amount</div> {/* Amount before Date */}
               <div className="col-span-2">Date</div>
               <div className="col-span-2">Status</div>
             </div>
@@ -209,71 +211,47 @@ const OrdersDashboard = () => {
                 {orders.map((order) => (
                   <div 
                     key={order.id} 
-                    className="grid grid-cols-8 gap-x-2 md:gap-x-4 p-4 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
+                    className="grid grid-cols-12 gap-x-2 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
                   >
                     <div className="col-span-1 flex items-center">
                       <Checkbox 
                         checked={selectedOrders.includes(order.id)} 
                         onCheckedChange={() => toggleSelectOrder(order.id)}
-                        aria-label={`Select order ${formatOrderNumber(order.id)}`}
+                        aria-label={`Select order ${order.id}`}
                       />
                     </div>
-                    <div className="col-span-2">
+                    <div className="col-span-3">
                       <div className="font-medium truncate" title={order.customer_name || 'Anonymous'}>
-                        {order.customer_name || 'Anonymous'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {order.table_number ? (
-                          order.table_number === 'Take Away' ? 'Take Away' : `Table ${order.table_number}`
-                        ) : 'No table'}
+                        {order.customer_name || `Order #${order.id}`} {/* Show order id if no name */}
                       </div>
                     </div>
-                    <div className="col-span-1 text-right">{formatThaiCurrency(order.total_amount)}</div>
+                    <div className="col-span-2 text-xs text-muted-foreground capitalize">
+                      {(order as any).table_number ? ((order as any).table_number === 'Take Away' ? 'Take Away' : `Table ${(order as any).table_number}`) : 'N/A'}
+                    </div>
+                    <div className="col-span-2 text-right">{formatThaiCurrency(order.total_amount)}</div>
                     <div className="col-span-2 text-xs text-muted-foreground">{formatDate(order.created_at)}</div>
                     
                     <div className="col-span-2">
                       <Select
-                        defaultValue={order.order_status || undefined}
-                        onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
+                        value={order.order_status || undefined} // Use value instead of defaultValue for controlled component if status can change
+                        onValueChange={(value: SupabaseOrderStatus) => updateOrderStatus(order.id, value)}
                       >
-                        <SelectTrigger className="w-full h-9 text-xs flex items-center gap-1">
-                          {order.order_status && (
-                            <span className="flex items-center">
-                              {getStatusIcon(order.order_status)}
+                        <SelectTrigger className="w-full h-9 text-xs flex items-center gap-1.5 py-1">
+                           {order.order_status && (
+                            <>
+                              <span className={`inline-block w-2.5 h-2.5 rounded-full ${getStatusColorDot(order.order_status)}`}></span>
                               <span className="capitalize">{order.order_status}</span>
-                            </span>
-                          )}
-                          <SelectValue placeholder="Status" />
+                            </>
+                           )}
+                           {!order.order_status && <span className="text-muted-foreground">Select...</span>}
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="new" className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-red-500 rounded-full" />
-                            <span>New</span>
-                          </SelectItem>
-                          <SelectItem value="confirmed" className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-green-500 rounded-full" />
-                            <span>Confirmed</span>
-                          </SelectItem>
-                          <SelectItem value="make" className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-yellow-500 rounded-full" />
-                            <span>Make</span>
-                          </SelectItem>
-                          <SelectItem value="ready" className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-orange-500 rounded-full" />
-                            <span>Ready</span>
-                          </SelectItem>
-                          <SelectItem value="delivered" className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-blue-500 rounded-full" />
-                            <span>Delivered</span>
-                          </SelectItem>
-                          <SelectItem value="paid" className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-green-700 rounded-full" />
-                            <span>Paid</span>
-                          </SelectItem>
-                          <SelectItem value="cancelled" className="flex items-center gap-2">
-                            <div className="h-3 w-3 bg-gray-500 rounded-full" />
-                            <span>Cancelled</span>
-                          </SelectItem>
+                          {orderStatusOptions.map(statusVal => (
+                            <SelectItem key={statusVal} value={statusVal} className="flex items-center gap-2 text-xs capitalize">
+                              <span className={`inline-block w-2.5 h-2.5 rounded-full ${getStatusColorDot(statusVal)}`}></span>
+                              {statusVal}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>

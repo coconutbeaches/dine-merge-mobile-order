@@ -1,234 +1,201 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { useToast } from '@/hooks/use-toast';
-import { CheckCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatThaiCurrency } from '@/lib/utils';
-import { MenuItem } from '@/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { Address, CartItem } from '@/types'; // Ensure MenuItem is imported if CartItem uses it, or it's part of types/index.ts
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { cart, cartTotal, placeOrder, currentUser, isLoggedIn, isLoading: isLoadingAppContext } = useAppContext();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [tableNumber, setTableNumber] = useState<string>('Take Away');
-  
-  // Redirect if not logged in
-  React.useEffect(() => {
+  const { 
+    cart, 
+    cartTotal, 
+    placeOrder, 
+    currentUser, 
+    isLoggedIn, 
+    isLoading: isLoadingAppContext // Renamed to avoid conflict
+  } = useAppContext();
+
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  // Removed address state as per previous refactor to simplify (assuming take-away or table number for now)
+  // const [street, setStreet] = useState('');
+  // const [city, setCity] = useState('');
+  // const [zipCode, setZipCode] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('cash'); // Default to cash
+  const [tableNumber, setTableNumber] = useState('Take Away'); // Default to Take Away
+  const [tip, setTip] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
     if (!isLoadingAppContext && !isLoggedIn) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in or create an account to checkout",
-        variant: "destructive"
-      });
       navigate('/login', { state: { returnTo: '/checkout' } });
     }
-  }, [isLoggedIn, navigate, toast, isLoadingAppContext]);
-  
-  // Redirect if cart is empty
-  React.useEffect(() => {
-    if (!isLoadingAppContext && cart.length === 0 && isLoggedIn) {
+    if (currentUser) {
+      setName(currentUser.name || '');
+      // Assuming phone is part of currentUser or fetched separately
+      // For now, if currentUser has phone, use it.
+      setPhone(currentUser.phone || ''); 
+    }
+    if (cart.length === 0 && !isLoadingAppContext) {
+      toast.info("Your cart is empty. Add some items before checking out.");
       navigate('/menu');
     }
-  }, [cart, navigate, isLoggedIn, isLoadingAppContext]);
-  
-  const handlePlaceOrder = async () => {
-    if (!currentUser) {
-      toast({
-        title: "Authentication Error",
-        description: "You must be logged in to place an order.",
-        variant: "destructive",
-      });
-      navigate('/login', { state: { returnTo: '/checkout' } });
-      return;
-    }
-    
-    if (cart.length === 0) {
-      toast({
-        title: "Empty Cart",
-        description: "Your cart is empty. Please add items to proceed.",
-        variant: "destructive",
-      });
-      navigate('/menu');
-      return;
-    }
-    
+  }, [currentUser, isLoggedIn, isLoadingAppContext, navigate, cart.length]);
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Create a dummy address object or null if not collecting full address for take-away/table orders
+    const orderAddress: Address | null = null; 
+    // Example if needed:
+    // const orderAddress: Address = { id: 'checkout-address', street, city, state: 'N/A', zipCode, isDefault: false };
+
+
     try {
-      setIsSubmitting(true);
-      
-      const mockAddress = {
-        id: 'default-address',
-        street: currentUser.name || 'N/A',
-        city: 'Online Order',
-        state: 'TH',
-        zipCode: 'N/A',
-        isDefault: true
-      };
-      
-      const paymentMethod = 'Cash on Delivery';
-      
-      const order = await placeOrder(mockAddress, paymentMethod, tableNumber);
-      
+      const order = await placeOrder(orderAddress, paymentMethod, tableNumber, tip);
       if (order) {
-        navigate('/order-history');
+        toast.success(`Order #${order.id.substring(0,8)} placed successfully!`);
+        navigate(`/order-history`); // Or a specific order confirmation page
       } else {
-        throw new Error("Order placement failed, no order data returned.");
+        toast.error('Failed to place order. Please try again.');
       }
-      
     } catch (error: any) {
-      console.error('Error placing order:', error);
-      toast({
-        title: "Error placing order",
-        description: error.message || "Please try again later.",
-        variant: "destructive"
-      });
+      toast.error(`Error placing order: ${error.message}`);
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  // Generate table numbers for dropdown
-  const generateTableNumbers = () => {
-    const options = [];
-    options.push(
-      <SelectItem key="take-away" value="Take Away">
-        Take Away
-      </SelectItem>
-    );
-    
-    for (let i = 1; i <= 40; i++) {
-      options.push(
-        <SelectItem key={i} value={i.toString()}>
-          Table {i}
-        </SelectItem>
-      );
-    }
-    
-    return options;
-  };
-  
-  if (isLoadingAppContext || (!isLoggedIn && !isLoadingAppContext) || (cart.length === 0 && isLoggedIn && !isLoadingAppContext)) {
-    return (
-      <Layout title="Checkout" showBackButton>
-        <div className="page-container text-center py-10">
-          <p>Loading checkout...</p>
-        </div>
-      </Layout>
-    );
+  const subtotal = cartTotal;
+  const totalWithTip = subtotal + tip;
+
+  const tableNumberOptions = ['Take Away', ...Array.from({ length: 40 }, (_, i) => (i + 1).toString())];
+
+  if (isLoadingAppContext) {
+    return <Layout title="Checkout"><div className="page-container text-center">Loading...</div></Layout>;
   }
-  
+
   return (
     <Layout title="Checkout" showBackButton>
-      <div className="page-container pb-20">
-        <div className="mb-6">
-          <h2 className="section-heading">Review Your Order</h2>
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                {cart.map((item, index) => (
-                  <div key={`${item.menuItem.id}-${index}`} className="flex justify-between py-1">
-                    <div>
-                      <span className="font-medium">
-                        {item.quantity} x {item.menuItem.name}
-                      </span>
-                      {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          {Object.entries(item.selectedOptions).map(([optionName, value]) => {
-                            const displayValue = Array.isArray(value) ? value.join(', ') : value;
-                            if (displayValue) {
-                              return <p key={optionName}>{optionName}: {displayValue}</p>;
-                            }
-                            return null;
-                          })}
-                        </div>
-                      )}
+      <div className="page-container max-w-2xl mx-auto">
+        <form onSubmit={handlePlaceOrder}>
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-8"> {/* Simplified to single column for now */}
+            <div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Your Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="name">Name</Label>
+                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required disabled={isLoading} />
+                  </div>
+                  <div>
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required disabled={isLoading} />
+                  </div>
+                  <div>
+                    <Label htmlFor="tableNumber">Table Number / Order Type</Label>
+                    <Select value={tableNumber} onValueChange={setTableNumber} disabled={isLoading}>
+                      <SelectTrigger id="tableNumber">
+                        <SelectValue placeholder="Select Table or Take Away" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {tableNumberOptions.map(option => (
+                          <SelectItem key={option} value={option}>
+                            {option === 'Take Away' ? 'Take Away' : `Table ${option}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Payment Method</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RadioGroup defaultValue="cash" value={paymentMethod} onValueChange={setPaymentMethod} disabled={isLoading}>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="cash" id="cash" />
+                      <Label htmlFor="cash">Cash</Label>
                     </div>
-                    <div className="text-right">
-                      {formatThaiCurrency(calculateTotalPrice(item.menuItem, item.selectedOptions || {}) * item.quantity)}
+                    {/* Add other payment methods if needed */}
+                    {/* <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="card" id="card" />
+                      <Label htmlFor="card">Credit Card (Online - Coming Soon)</Label>
+                    </div> */}
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div> {/* This was the second column, now stacked */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {cart.map((item: CartItem) => (
+                    <div key={item.menuItem.id} className="flex justify-between items-center py-2 border-b last:border-b-0">
+                      <div>
+                        <p className="font-medium">{item.menuItem.name} (×{item.quantity})</p>
+                        {/* Optionally show selected options */}
+                      </div>
+                      <p>{formatThaiCurrency(item.menuItem.price * item.quantity)}</p>
+                    </div>
+                  ))}
+                  <div className="py-3 space-y-2">
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
+                      <span>{formatThaiCurrency(subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="tip" className="flex-shrink-0 mr-2">Tip (Optional)</Label>
+                      <div className="flex items-center">
+                        <span className="mr-1">฿</span>
+                        <Input 
+                          id="tip" 
+                          type="number" 
+                          value={tip === 0 ? '' : tip.toString()} // Show empty if tip is 0
+                          onChange={(e) => setTip(Math.max(0, parseFloat(e.target.value) || 0))} 
+                          className="w-20 text-right"
+                          placeholder="0"
+                          min="0"
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg pt-2 border-t">
+                      <span>Total</span>
+                      <span>{formatThaiCurrency(totalWithTip)}</span>
                     </div>
                   </div>
-                ))}
-                
-                <Separator className="my-3" />
-                
-                <div className="flex justify-between font-bold">
-                  <span>Total</span>
-                  <span>{formatThaiCurrency(cartTotal)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="mb-6">
-          <h2 className="section-heading">Table Number</h2>
-          <Card>
-            <CardContent className="p-4">
-              <div className="grid w-full items-center gap-1.5">
-                <label htmlFor="tableNumber" className="text-sm font-medium">
-                  Select your table number or choose Take Away
-                </label>
-                <Select value={tableNumber} onValueChange={setTableNumber}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select table number" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {generateTableNumbers()}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-md">
-          <div className="max-w-lg mx-auto">
-            <Button 
-              onClick={handlePlaceOrder}
-              className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
-              disabled={isSubmitting || cart.length === 0}
-            >
-              {isSubmitting ? (
-                "Processing..."
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  Place Order - {formatThaiCurrency(cartTotal)}
-                </>
-              )}
-            </Button>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="w-full" disabled={isLoading || cart.length === 0}>
+                    {isLoading ? 'Placing Order...' : `Place Order (${formatThaiCurrency(totalWithTip)})`}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </Layout>
   );
-};
-
-// Helper function from productUtils, co-located for simplicity
-const calculateTotalPrice = (
-  item: MenuItem, 
-  options: Record<string, string | string[]>
-): number => {
-  let total = item.price;
-  (item.options || []).forEach(option => {
-    const selectedValue = options[option.name];
-    if (option.multiSelect && Array.isArray(selectedValue)) {
-      selectedValue.forEach(value => {
-        const choice = option.choices.find(c => c.name === value);
-        if (choice) total += choice.price;
-      });
-    } else if (!Array.isArray(selectedValue)) {
-      const choice = option.choices.find(c => c.name === selectedValue);
-      if (choice) total += choice.price;
-    }
-  });
-  return total;
 };
 
 export default Checkout;

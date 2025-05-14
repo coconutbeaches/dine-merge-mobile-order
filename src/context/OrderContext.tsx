@@ -1,13 +1,16 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Order, OrderStatus, Address } from '../types';
+import { Order, OrderStatus, Address } from '../types'; // OrderStatus from local types
 import { supabase } from '@/integrations/supabase/client';
 import { useCartContext } from './CartContext';
 import { useUserContext } from './UserContext';
-import { OrderStatus as SupabaseOrderStatus, PaymentStatus as SupabasePaymentStatus, FulfillmentStatus as SupabaseFulfillmentStatus } from '@/types/supabaseTypes';
+// Import Supabase specific types carefully, assuming regeneration will update them
+import { OrderStatus as SupabaseOrderStatus, PaymentStatus as SupabasePaymentStatus, FulfillmentStatus as SupabaseFulfillmentStatus, Tables } from '@/types/supabaseTypes'; 
+
+type OrderRow = Tables<'orders'>; // Expecting this to have table_number after regeneration
 
 interface OrderContextType {
-  placeOrder: (address: Address, paymentMethod: string, tableNumber?: string, tip?: number) => Promise<Order | null>;
+  placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string, tip?: number) => Promise<Order | null>;
   getOrderHistory: () => Order[];
 }
 
@@ -53,35 +56,51 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       }
 
       if (data && data.length > 0) {
-        const formattedOrders = data.map(order => ({
-          id: order.id.toString(),
-          userId: order.user_id || userId,
-          items: order.order_items?.map((item: any) => ({
-            menuItem: {
-              id: item.menuItemId,
-              name: item.name,
-              price: item.unitPrice,
-            },
-            quantity: item.quantity,
-            selectedOptions: item.selectedOptions || {},
-          })) || [],
-          status: order.order_status as OrderStatus || OrderStatus.PENDING,
-          total: order.total_amount,
-          createdAt: new Date(order.created_at),
-          address: { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true },
-          paymentMethod: 'Cash on Delivery',
-          tableNumber: order.table_number || 'Take Away',
-        }));
-        
-        setOrders(formattedOrders);
+        const formattedOrders = data.map(order => {
+          // Assert order_items to be an array of the expected structure or handle parsing
+          const orderItemsParsed: any[] = Array.isArray(order.order_items) 
+            ? order.order_items 
+            : typeof order.order_items === 'string' 
+              ? JSON.parse(order.order_items) 
+              : [];
+
+          return {
+            id: order.id.toString(),
+            userId: order.user_id || userId,
+            items: orderItemsParsed.map((item: any) => ({ // Type 'item' properly if possible
+              menuItem: {
+                id: item.menuItemId,
+                name: item.name,
+                price: item.unitPrice,
+                // Ensure all MenuItem fields are present or handle optionality
+                description: item.description || '',
+                image: item.image || '',
+                category: item.category || '',
+                available: item.available !== undefined ? item.available : true,
+              },
+              quantity: item.quantity,
+              selectedOptions: item.selectedOptions || {},
+            })),
+            status: order.order_status as OrderStatus || OrderStatus.NEW, // Cast to local OrderStatus
+            total: order.total_amount,
+            createdAt: new Date(order.created_at),
+            // Address might be null if not applicable (e.g. for take away initially)
+            address: { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true }, 
+            paymentMethod: 'Cash on Delivery', // This might need to come from DB if variable
+            tableNumber: (order as OrderRow).table_number || 'Take Away', // Expect table_number from OrderRow
+          };
+        });
+        setOrders(formattedOrders as Order[]);
+      } else {
+        setOrders([]);
       }
     } catch (error) {
       console.error('Error fetching user orders:', error);
+      setOrders([]); // Ensure orders is empty on error
     }
   };
 
-  // Order Management Functions
-  const placeOrder = async (address: Address, paymentMethod: string, tableNumber = 'Take Away', tip?: number): Promise<Order | null> => {
+  const placeOrder = async (address: Address | null, paymentMethod: string, tableNumberInput = 'Take Away', tip?: number): Promise<Order | null> => {
     if (!currentUser) {
       console.error('User must be logged in to place an order');
       return null;
@@ -98,6 +117,10 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       quantity: cartItem.quantity,
       unitPrice: cartItem.menuItem.price,
       selectedOptions: cartItem.selectedOptions || {},
+      // Potentially add other menuItem fields if needed by backend logic or display
+      description: cartItem.menuItem.description,
+      image: cartItem.menuItem.image,
+      category: cartItem.menuItem.category,
     }));
 
     const orderPayload = {
@@ -105,10 +128,10 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       customer_name: currentUser.name || currentUser.email,
       order_items: orderItemsForSupabase,
       total_amount: cartTotal + (tip || 0),
-      order_status: 'new' as SupabaseOrderStatus,
-      payment_status: 'unpaid' as SupabasePaymentStatus,
-      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
-      table_number: tableNumber
+      order_status: 'new' as SupabaseOrderStatus, // Use SupabaseOrderStatus
+      payment_status: 'unpaid' as SupabasePaymentStatus, // Use SupabasePaymentStatus
+      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus, // Use SupabaseFulfillmentStatus
+      table_number: tableNumberInput // Add table_number to payload
     };
 
     try {
@@ -132,12 +155,12 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
             quantity: ci.quantity,
             selectedOptions: ci.selectedOptions,
           })),
-          status: (insertedOrderData.order_status as OrderStatus) || OrderStatus.PENDING,
+          status: (insertedOrderData.order_status as OrderStatus) || OrderStatus.NEW, // Cast to local OrderStatus
           total: insertedOrderData.total_amount,
           createdAt: new Date(insertedOrderData.created_at),
-          address,
+          address: address || { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true },
           paymentMethod,
-          tableNumber: insertedOrderData.table_number || tableNumber,
+          tableNumber: (insertedOrderData as OrderRow).table_number || tableNumberInput, // Expect table_number
           tip,
         };
         
@@ -156,7 +179,8 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     if (!currentUser) {
       return [];
     }
-    return orders.filter(order => order.userId === currentUser.id)
+    // Ensure orders are properly typed before filtering and sorting
+    return (orders as Order[]).filter(order => order.userId === currentUser.id)
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   };
 
