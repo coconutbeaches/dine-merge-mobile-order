@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { CheckCircle } from 'lucide-react';
+import { formatThaiCurrency } from '@/lib/utils'; // Import for currency formatting
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -29,46 +29,69 @@ const Checkout = () => {
   
   // Redirect if cart is empty
   React.useEffect(() => {
-    if (cart.length === 0) {
-      navigate('/cart');
+    // Ensure cart is not empty when this page is loaded
+    if (!isLoadingAppContext && cart.length === 0 && isLoggedIn) {
+      navigate('/menu'); // Or '/cart' which will then redirect to menu if empty
     }
-  }, [cart, navigate]);
+  }, [cart, navigate, isLoggedIn, isLoadingAppContext]); // isLoadingAppContext needs to be defined or obtained
   
+  // A simple way to check if AppContext is still loading its initial state
+  // This might need refinement depending on AppContext's loading logic
+  const { isLoading: isLoadingAppContext } = useAppContext();
+
   const handlePlaceOrder = async () => {
     if (!currentUser) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to place an order.",
+        variant: "destructive",
+      });
+      navigate('/login', { state: { returnTo: '/checkout' } });
+      return;
+    }
+    
+    if (cart.length === 0) {
+      toast({
+        title: "Empty Cart",
+        description: "Your cart is empty. Please add items to proceed.",
+        variant: "destructive",
+      });
+      navigate('/menu');
       return;
     }
     
     try {
       setIsSubmitting(true);
       
-      // For now, we'll use a mock address and payment method
       const mockAddress = {
-        id: 'default-address',
-        street: '123 Main St',
-        city: 'Demo City',
-        state: 'CA',
-        zipCode: '12345',
+        id: 'default-address', // This should ideally come from user's saved addresses
+        street: currentUser.name || 'N/A', // Using user's name for street temporarily
+        city: 'Online Order',
+        state: 'TH',
+        zipCode: 'N/A',
         isDefault: true
       };
       
-      await placeOrder(mockAddress, 'Credit Card');
+      const paymentMethod = 'Cash on Delivery'; // Defaulting payment method
       
-      // Show success toast
-      toast({
-        title: "Order placed successfully!",
-        description: "Thank you for your order.",
-        variant: "default"
-      });
+      const order = await placeOrder(mockAddress, paymentMethod);
       
-      // Redirect to order history or confirmation page
-      navigate('/order-history');
+      if (order) {
+        toast({
+          title: "Order placed successfully!",
+          description: `Your order #${order.id} has been placed.`,
+          variant: "default"
+        });
+        navigate('/order-history');
+      } else {
+        throw new Error("Order placement failed, no order data returned.");
+      }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error placing order:', error);
       toast({
         title: "Error placing order",
-        description: "Please try again later.",
+        description: error.message || "Please try again later.",
         variant: "destructive"
       });
     } finally {
@@ -76,8 +99,15 @@ const Checkout = () => {
     }
   };
   
-  if (!isLoggedIn || cart.length === 0) {
-    return null; // Will be redirected by useEffect
+  if (isLoadingAppContext || (!isLoggedIn && !isLoadingAppContext) || (cart.length === 0 && isLoggedIn && !isLoadingAppContext)) {
+     // Show loading indicator or null while redirecting or context is loading
+    return (
+      <Layout title="Checkout" showBackButton>
+        <div className="page-container text-center py-10">
+          <p>Loading checkout...</p>
+        </div>
+      </Layout>
+    );
   }
   
   return (
@@ -97,18 +127,18 @@ const Checkout = () => {
                       {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
                         <div className="text-xs text-muted-foreground">
                           {Object.entries(item.selectedOptions).map(([optionName, value]) => {
-                            if (Array.isArray(value)) {
-                              return value.length > 0 ? (
-                                <p key={optionName}>{optionName}: {value.join(', ')}</p>
-                              ) : null;
+                            const displayValue = Array.isArray(value) ? value.join(', ') : value;
+                            if (displayValue) { // Only render if there's a value
+                              return <p key={optionName}>{optionName}: {displayValue}</p>;
                             }
-                            return <p key={optionName}>{optionName}: {value}</p>;
+                            return null;
                           })}
                         </div>
                       )}
                     </div>
                     <div className="text-right">
-                      ฿{Math.round(item.menuItem.price * item.quantity)}
+                      {/* Calculate item total price with options for display */}
+                      {formatThaiCurrency(calculateTotalPrice(item.menuItem, item.selectedOptions || {}) * item.quantity)}
                     </div>
                   </div>
                 ))}
@@ -117,48 +147,28 @@ const Checkout = () => {
                 
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>฿{Math.round(cartTotal)}</span>
+                  <span>{formatThaiCurrency(cartTotal)}</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
         
-        <div className="mb-6">
-          <h2 className="section-heading">Delivery Details</h2>
-          <Card>
-            <CardContent className="p-4">
-              <p className="mb-2">Deliver to:</p>
-              <p className="font-medium">{currentUser?.name}</p>
-              <p>123 Main St</p>
-              <p>Demo City, CA 12345</p>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Delivery Details and Payment Method sections removed */}
         
-        <div className="mb-16">
-          <h2 className="section-heading">Payment Method</h2>
-          <Card>
-            <CardContent className="p-4">
-              <p>Credit Card (ending in 1234)</p>
-            </CardContent>
-          </Card>
-        </div>
-        
-        {/* Place Order Button - Fixed at bottom */}
         <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-md">
           <div className="max-w-lg mx-auto">
             <Button 
               onClick={handlePlaceOrder}
               className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
-              disabled={isSubmitting}
+              disabled={isSubmitting || cart.length === 0}
             >
               {isSubmitting ? (
                 "Processing..."
               ) : (
                 <>
                   <CheckCircle className="mr-2 h-5 w-5" />
-                  Place Order - ฿{Math.round(cartTotal)}
+                  Place Order - {formatThaiCurrency(cartTotal)}
                 </>
               )}
             </Button>
@@ -168,5 +178,28 @@ const Checkout = () => {
     </Layout>
   );
 };
+
+// Helper function from productUtils, co-located for simplicity if not already imported broadly
+// or ensure it's imported from '@/utils/productUtils'
+const calculateTotalPrice = (
+  item: MenuItem, 
+  options: Record<string, string | string[]>
+): number => {
+  let total = item.price;
+  (item.options || []).forEach(option => {
+    const selectedValue = options[option.name];
+    if (option.multiSelect && Array.isArray(selectedValue)) {
+      selectedValue.forEach(value => {
+        const choice = option.choices.find(c => c.name === value);
+        if (choice) total += choice.price;
+      });
+    } else if (!Array.isArray(selectedValue)) {
+      const choice = option.choices.find(c => c.name === selectedValue);
+      if (choice) total += choice.price;
+    }
+  });
+  return total;
+};
+
 
 export default Checkout;

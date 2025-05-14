@@ -1,9 +1,7 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { MenuItem } from '@/types';
 import { useQuery } from '@tanstack/react-query';
@@ -11,9 +9,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/supabaseTypes';
 import ProductImageHeader from '@/components/menu-item/ProductImageHeader';
 import ProductOptions from '@/components/menu-item/ProductOptions';
-import SpecialInstructions from '@/components/menu-item/SpecialInstructions';
 import QuantityAddToCart from '@/components/menu-item/QuantityAddToCart';
 import { calculateTotalPrice, convertProductToMenuItem } from '@/utils/productUtils';
+import { formatThaiCurrency } from '@/lib/utils'; // Import for currency formatting
 import { useNavigate } from 'react-router-dom';
 
 const MenuItemDetail = () => {
@@ -70,16 +68,15 @@ const MenuItemDetail = () => {
         return {
           ...productData,
           options: optionsWithChoices
-        } as Product & { options: any[] };
+        } as Product & { options: any[] }; // Cast to include options
       }
       
-      return { ...productData, options: [] } as Product & { options: any[] };
+      return { ...productData, options: [] } as Product & { options: any[] }; // Cast to include options
     },
   });
   
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string | string[]>>({});
-  const [specialInstructions, setSpecialInstructions] = useState('');
   
   // Initialize selectedOptions with default values when product loads
   React.useEffect(() => {
@@ -95,6 +92,7 @@ const MenuItemDetail = () => {
           // Set empty array for required multi-select options
           defaults[option.name] = [];
         }
+        // Non-required options will not have a default pre-selected
       });
       setSelectedOptions(defaults);
     }
@@ -111,7 +109,7 @@ const MenuItemDetail = () => {
   };
   
   const handleCheckboxChange = (optionName: string, value: string, checked: boolean) => {
-    const currentValues = selectedOptions[optionName] as string[] || [];
+    const currentValues = selectedOptions[optionName] as string[] || []; // Ensure currentValues is an array
     
     let newValues: string[];
     if (checked) {
@@ -124,16 +122,18 @@ const MenuItemDetail = () => {
   };
   
   const handleAddToCart = () => {
-    if (!menuItemForCart) return;
+    if (!menuItemForCart || !product) return;
     
     // Validate required options
     const missingRequiredOptions = (product?.options || [])
       .filter(option => option.required)
       .filter(option => {
         const selected = selectedOptions[option.name];
+        // For multi-select, check if the array is empty or undefined
         if (option.selection_type === 'multiple') {
-          return !selected || (selected as string[]).length === 0;
+          return !selected || (Array.isArray(selected) && selected.length === 0);
         }
+        // For single-select, check if it's undefined or an empty string
         return !selected;
       });
     
@@ -149,7 +149,7 @@ const MenuItemDetail = () => {
     // Calculate total price including options
     let totalItemPrice = calculateTotalPrice(menuItemForCart, selectedOptions);
     
-    addToCart(menuItemForCart, quantity, selectedOptions, specialInstructions);
+    addToCart(menuItemForCart, quantity, selectedOptions);
     
     toast({
       title: "Added to cart",
@@ -160,7 +160,7 @@ const MenuItemDetail = () => {
   };
   
   // Calculate total price for display
-  const totalPrice = menuItemForCart && calculateTotalPrice(menuItemForCart, selectedOptions) * quantity;
+  const totalPrice = menuItemForCart ? calculateTotalPrice(menuItemForCart, selectedOptions) * quantity : 0;
 
   return (
     <Layout title={product?.name || 'Product Details'} showBackButton>
@@ -170,11 +170,11 @@ const MenuItemDetail = () => {
           error={error}
           productName={product?.name || ''}
           productDescription={product?.description}
-          productPrice={product?.price || 0}
+          // Use formatThaiCurrency for product price
+          productPrice={product?.price ? parseFloat(product.price.toString()) : 0}
           imageUrl={product?.image_url}
         />
         
-        {/* Only render these components if we have a product */}
         {product && (
           <>
             <ProductOptions 
@@ -184,14 +184,11 @@ const MenuItemDetail = () => {
               onCheckboxChange={handleCheckboxChange}
             />
             
-            <SpecialInstructions 
-              value={specialInstructions}
-              onChange={setSpecialInstructions}
-            />
+            {/* SpecialInstructions component removed */}
             
             <QuantityAddToCart 
               quantity={quantity}
-              totalPrice={totalPrice || 0}
+              totalPrice={totalPrice} // Already calculated with options
               onQuantityDecrease={() => quantity > 1 && setQuantity(q => q - 1)}
               onQuantityIncrease={() => setQuantity(q => q + 1)}
               onAddToCart={handleAddToCart}

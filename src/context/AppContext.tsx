@@ -14,7 +14,7 @@ interface AppContextType {
   
   // Cart Management
   cart: CartItem[];
-  addToCart: (item: MenuItem, quantity: number, selectedOptions?: any, specialInstructions?: string) => void;
+  addToCart: (item: MenuItem, quantity: number, selectedOptions?: any) => void;
   removeFromCart: (itemId: string) => void;
   updateCartItemQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -109,8 +109,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
           email: data.email,
           name: data.name || data.email.split('@')[0],
           phone: data.phone || "",
-          addresses: [],
-          orderHistory: []
+          addresses: [], // Assuming addresses are managed elsewhere or not used yet
+          orderHistory: [] // Assuming order history is fetched separately or not used yet
         });
       }
     } catch (error) {
@@ -125,12 +125,12 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       setCart(JSON.parse(storedCart));
     }
     
-    setIsLoading(false);
+    setIsLoading(false); // Ensure isLoading is set to false after cart is loaded
   }, []);
   
   // Save cart to localStorage when it changes
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading) { // Only save cart if not in initial loading state
       localStorage.setItem('cart', JSON.stringify(cart));
     }
   }, [cart, isLoading]);
@@ -176,6 +176,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         return false;
       }
       
+      if (data.session) { // User successfully logged in
+        clearCart(); // Clear cart on successful login
+      }
       return true;
     } catch (error) {
       console.error('Unexpected error during login:', error);
@@ -200,6 +203,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         return false;
       }
       
+      // Optionally clear cart on signup as well, or leave as is
+      // clearCart(); 
       return true;
     } catch (error) {
       console.error('Unexpected error during signup:', error);
@@ -210,8 +215,13 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-      setCurrentUser(null);
-      localStorage.removeItem('currentUser');
+      setCurrentUser(null); // Ensure currentUser is reset
+      setSupabaseUser(null);
+      setSupabaseSession(null);
+      // Cart is persisted in localStorage, so it remains unless explicitly cleared on logout.
+      // If you want to clear cart on logout:
+      // clearCart(); 
+      // localStorage.removeItem('currentUser'); // This was likely for a different auth system
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -221,8 +231,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const addToCart = (
     item: MenuItem, 
     quantity: number, 
-    selectedOptions?: any, 
-    specialInstructions?: string
+    selectedOptions?: any
   ) => {
     const existingCartItemIndex = cart.findIndex(
       cartItem => cartItem.menuItem.id === item.id && 
@@ -239,12 +248,10 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         {
           menuItem: item,
           quantity,
-          selectedOptions,
-          specialInstructions
+          selectedOptions
         }
       ]);
     }
-    // Removed toast notification
   };
   
   const removeFromCart = (itemId: string) => {
@@ -268,13 +275,11 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const placeOrder = async (address: Address, paymentMethod: string, tip?: number): Promise<Order | null> => {
     if (!currentUser) {
       console.error('User must be logged in to place an order');
-      // Consider throwing an error or returning a specific status
       return null;
     }
     
     if (cart.length === 0) {
       console.error('Cart cannot be empty');
-      // Consider throwing an error
       return null;
     }
 
@@ -282,19 +287,18 @@ export const AppProvider = ({ children }: AppProviderProps) => {
       menuItemId: cartItem.menuItem.id,
       name: cartItem.menuItem.name,
       quantity: cartItem.quantity,
-      unitPrice: cartItem.menuItem.price,
+      unitPrice: cartItem.menuItem.price, // This should be the base price
       selectedOptions: cartItem.selectedOptions || {},
-      specialInstructions: cartItem.specialInstructions || "",
     }));
 
     const orderPayload = {
       user_id: currentUser.id,
-      customer_name: currentUser.name || currentUser.email, // Ensure name is available
+      customer_name: currentUser.name || currentUser.email,
       order_items: orderItemsForSupabase,
-      total_amount: cartTotal + (tip || 0),
+      total_amount: cartTotal + (tip || 0), // Ensure cartTotal reflects options prices correctly
       order_status: 'pending' as SupabaseOrderStatus,
-      // payment_status and fulfillment_status will use DB defaults ('unpaid', 'unfulfilled')
-      // created_at and updated_at are handled by DB
+      payment_status: 'unpaid' as SupabasePaymentStatus,
+      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
     };
 
     try {
@@ -302,26 +306,28 @@ export const AppProvider = ({ children }: AppProviderProps) => {
         .from('orders')
         .insert(orderPayload)
         .select()
-        .single(); // Assuming you want the single inserted order back
+        .single();
 
       if (error) {
         console.error('Error placing order in Supabase:', error);
-        // Potentially use a toast to inform user of failure
         return null;
       }
 
       if (insertedOrderData) {
-        // Construct the local Order object using data from Supabase
         const newOrderForLocalState: Order = {
-          id: insertedOrderData.id.toString(), // Use DB ID
+          id: insertedOrderData.id.toString(),
           userId: insertedOrderData.user_id || currentUser.id,
-          items: [...cart], // Keep original cart items for local state if needed by OrderHistory
+          items: cart.map(ci => ({ // Map cart items, ensuring specialInstructions is not included
+            menuItem: ci.menuItem,
+            quantity: ci.quantity,
+            selectedOptions: ci.selectedOptions,
+          })),
           status: (insertedOrderData.order_status as OrderStatus) || OrderStatus.PENDING,
           total: insertedOrderData.total_amount,
           createdAt: new Date(insertedOrderData.created_at),
-          address, // Keep address from input
-          paymentMethod, // Keep paymentMethod from input
-          tip, // Keep tip from input
+          address,
+          paymentMethod,
+          tip,
         };
         
         setOrders(prevOrders => [newOrderForLocalState, ...prevOrders]);
@@ -347,7 +353,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   
   const value = {
     currentUser,
-    isLoggedIn: !!currentUser,
+    isLoggedIn: !!currentUser && !!supabaseSession, // isLoggedIn should also depend on session
     login,
     signup,
     logout,

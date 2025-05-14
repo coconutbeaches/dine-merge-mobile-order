@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client'; // Added for Google Sign-In
 
 interface LocationState {
   returnTo?: string;
@@ -44,10 +45,11 @@ const Login = () => {
       const success = await login(email, password);
       
       if (success) {
-        toast({
-          title: "Success",
-          description: "You've been logged in successfully"
-        });
+        // Toast for successful login removed as requested
+        // toast({
+        //   title: "Success",
+        //   description: "You've been logged in successfully"
+        // });
         navigate(returnTo);
       } else {
         toast({
@@ -65,6 +67,25 @@ const Login = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin + (returnTo !== '/' ? returnTo : '/menu'), // Redirect after login
+      },
+    });
+    if (error) {
+      toast({
+        title: "Google Sign-In Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      setIsLoading(false);
+    }
+    // Supabase handles redirection, setIsLoading(false) might not be reached if redirect occurs.
   };
   
   return (
@@ -107,6 +128,16 @@ const Login = () => {
                 >
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
+
+                <Button 
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={isLoading}
+                >
+                  {/* You can add a Google Icon here if you have one */}
+                  Sign in with Google
+                </Button>
                 
                 <div className="text-center mt-4">
                   <p className="text-sm text-muted-foreground">
@@ -119,45 +150,7 @@ const Login = () => {
               </div>
             </form>
             
-            {/* Demo credentials */}
-            <div className="mt-8 border-t pt-4">
-              <p className="text-xs text-muted-foreground text-center mb-2">Demo Credentials</p>
-              <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setEmail('customer@example.com');
-                    setPassword('password');
-                  }}
-                >
-                  Customer
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setEmail('customer2@example.com');
-                    setPassword('password');
-                  }}
-                >
-                  Customer 2
-                </Button>
-              </div>
-              <div className="mt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => {
-                    setEmail('hello@coconutbeachkohphangan.com');
-                    setPassword('i<3BigCoconuts!');
-                  }}
-                >
-                  Admin
-                </Button>
-              </div>
-            </div>
+            {/* Demo credentials removed */}
           </CardContent>
         </Card>
       </div>
@@ -166,3 +159,4 @@ const Login = () => {
 };
 
 export default Login;
+

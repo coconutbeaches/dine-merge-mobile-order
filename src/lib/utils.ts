@@ -7,5 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatThaiCurrency(amount: number): string {
-  return `฿${Math.round(amount)}`
+  // Math.round ensures no decimal places for amounts like X.00 and rounds X.50 up.
+  return `฿${Math.round(amount)}`;
 }
+
