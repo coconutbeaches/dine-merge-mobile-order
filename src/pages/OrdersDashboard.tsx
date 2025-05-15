@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,11 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { format } from 'date-fns';
-import { Order as SupabaseOrder, OrderStatus as SupabaseOrderStatus } from '@/types/supabaseTypes';
+import { 
+  Order as SupabaseOrder, 
+  OrderStatus as OrderStatusType,
+  SupabaseOrderStatus 
+} from '@/types/supabaseTypes';
 import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
 import AdminOrderCreator from '@/components/admin/AdminOrderCreator';
@@ -155,8 +158,8 @@ const OrdersDashboard = () => {
     }
   };
   
-  // Define the order statuses for the dropdown
-  const orderStatusOptions: SupabaseOrderStatus[] = ['new', 'confirmed', 'make', 'ready', 'delivered', 'paid', 'cancelled'];
+  // Define the order statuses for the dropdown - Using Supabase status values directly
+  const orderStatusOptions: SupabaseOrderStatus[] = ['pending', 'confirmed', 'completed', 'cancelled'];
 
   return (
     <Layout title="Orders Dashboard" showBackButton={false}>

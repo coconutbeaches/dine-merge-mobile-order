@@ -5,8 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCartContext } from './CartContext';
 import { useUserContext } from './UserContext';
 // Import Supabase specific types
-import { OrderStatus as SupabaseOrderStatus, PaymentStatus as SupabasePaymentStatus, FulfillmentStatus as SupabaseFulfillmentStatus } from '@/types/supabaseTypes'; 
+import { 
+  OrderStatus as SupabaseOrderStatus, 
+  PaymentStatus as SupabasePaymentStatus, 
+  FulfillmentStatus as SupabaseFulfillmentStatus,
+  mapOrderStatusToSupabase
+} from '@/types/supabaseTypes'; 
 import { Tables } from '@/integrations/supabase/types';
+import { Json } from '@/integrations/supabase/types';
 
 type OrderRow = Tables<'orders'>; // Using Tables type from supabase client types
 
@@ -81,6 +87,10 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
               ? JSON.parse(order.order_items) 
               : [];
 
+          // Use optional chaining to safely access properties
+          const tableNumberValue = (order as any).table_number || 'Take Away';
+          const tipValue = (order as any).tip || 0;
+
           return {
             id: order.id.toString(),
             userId: order.user_id || userId,
@@ -104,8 +114,8 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
             // Address might be null if not applicable (e.g. for take away initially)
             address: { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true }, 
             paymentMethod: 'Cash on Delivery', // This might need to come from DB if variable
-            tableNumber: order.table_number || 'Take Away',
-            tip: order.tip || 0,
+            tableNumber: tableNumberValue,
+            tip: tipValue,
           };
         });
         setOrders(formattedOrders as Order[]);
@@ -141,12 +151,15 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       category: cartItem.menuItem.category,
     }));
 
+    // Convert to Json type for Supabase
+    const orderItemsJson = orderItemsForSupabase as unknown as Json;
+
     const orderPayload = {
       user_id: currentUser.id,
       customer_name: currentUser.name || currentUser.email,
-      order_items: orderItemsForSupabase,
+      order_items: orderItemsJson,
       total_amount: cartTotal + (tip || 0),
-      order_status: 'new' as SupabaseOrderStatus,
+      order_status: 'pending' as SupabaseOrderStatus, // Use the Supabase enum value directly
       payment_status: 'unpaid' as SupabasePaymentStatus,
       fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
       table_number: tableNumberInput,
@@ -166,6 +179,9 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       }
 
       if (insertedOrderData) {
+        // Use optional chaining to safely access properties
+        const tableNumberValue = (insertedOrderData as any).table_number || tableNumberInput;
+
         const newOrderForLocalState: Order = {
           id: insertedOrderData.id.toString(),
           userId: insertedOrderData.user_id || currentUser.id,
@@ -174,12 +190,12 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
             quantity: ci.quantity,
             selectedOptions: ci.selectedOptions,
           })),
-          status: (insertedOrderData.order_status as OrderStatus) || OrderStatus.NEW,
+          status: (insertedOrderData.order_status as unknown as OrderStatus) || OrderStatus.NEW,
           total: insertedOrderData.total_amount,
           createdAt: new Date(insertedOrderData.created_at),
           address: address || { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true },
           paymentMethod,
-          tableNumber: insertedOrderData.table_number || tableNumberInput,
+          tableNumber: tableNumberValue,
           tip,
         };
         

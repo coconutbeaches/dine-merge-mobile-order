@@ -11,7 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
-import { OrderStatus, PaymentStatus, FulfillmentStatus } from '@/types/supabaseTypes';
+import { 
+  OrderStatus, 
+  PaymentStatus, 
+  FulfillmentStatus, 
+  SupabaseOrderStatus,
+  mapOrderStatusToSupabase 
+} from '@/types/supabaseTypes';
+import { Json } from '@/integrations/supabase/types';
 
 // Interface for profile data
 interface Profile {
@@ -209,12 +216,15 @@ const AdminOrderCreator = () => {
     setIsLoading(true);
 
     try {
+      // Convert the order items to a format compatible with Json type
+      const orderItemsJson = orderItems as unknown as Json;
+
       const orderPayload = {
         user_id: selectedCustomer.id,
         customer_name: selectedCustomer.name || selectedCustomer.email,
-        order_items: orderItems,
+        order_items: orderItemsJson,
         total_amount: calculateTotal(),
-        order_status: 'new' as OrderStatus,
+        order_status: 'pending' as SupabaseOrderStatus, // Use the Supabase enum value directly
         payment_status: 'unpaid' as PaymentStatus,
         fulfillment_status: 'unfulfilled' as FulfillmentStatus,
         table_number: tableNumber

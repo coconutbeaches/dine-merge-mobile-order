@@ -1,10 +1,35 @@
 
 import { Database } from "../integrations/supabase/types";
+import { Json } from "../integrations/supabase/types";
 
-// Re-export the enums for convenience
+// Re-export the enums for convenience but with our application values
 export type OrderStatus = 'new' | 'confirmed' | 'make' | 'ready' | 'delivered' | 'paid' | 'cancelled';
+export type SupabaseOrderStatus = Database["public"]["Enums"]["order_status"]; // This is 'pending' | 'confirmed' | 'completed' | 'cancelled'
 export type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 export type FulfillmentStatus = Database["public"]["Enums"]["fulfillment_status"];
+
+// Map our application status to Supabase status
+export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStatus => {
+  const map: Record<OrderStatus, SupabaseOrderStatus> = {
+    'new': 'pending',
+    'confirmed': 'confirmed',
+    'make': 'confirmed',
+    'ready': 'confirmed',
+    'delivered': 'completed',
+    'paid': 'completed',
+    'cancelled': 'cancelled'
+  };
+  return map[status];
+};
+
+// Map Supabase status to our application status
+export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStatus => {
+  if (status === 'pending') return 'new';
+  if (status === 'confirmed') return 'confirmed';
+  if (status === 'completed') return 'delivered';
+  if (status === 'cancelled') return 'cancelled';
+  return 'new'; // Default
+};
 
 // Create type for order with optional fields
 export interface Order extends Omit<Tables<"orders">, 'order_status'> {
