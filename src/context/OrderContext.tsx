@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Order, OrderStatus, Address } from '../types'; // OrderStatus from local types
 import { supabase } from '@/integrations/supabase/client';
@@ -182,7 +181,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     // Convert to Json type for Supabase
     const orderItemsJson = orderItemsForSupabase as unknown as Json;
 
-    // Convert the OrderStatus.NEW to corresponding Supabase value 'pending'
+    // Convert the OrderStatus.NEW to corresponding Supabase value using the mapping function
     const supabaseStatus = mapOrderStatusToSupabase(OrderStatus.NEW);
 
     const orderPayload = {

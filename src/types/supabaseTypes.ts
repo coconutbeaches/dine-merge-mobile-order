@@ -23,7 +23,7 @@ export const mapOrderStatusToSupabase = (status: OrderStatus | AppOrderStatus): 
       'paid': 'completed',    // Map "paid" to "completed" in Supabase
       'cancelled': 'cancelled'
     };
-    return map[status as OrderStatus];
+    return map[status as OrderStatus] || 'pending';
   }
   
   // Handle enum values from AppOrderStatus
