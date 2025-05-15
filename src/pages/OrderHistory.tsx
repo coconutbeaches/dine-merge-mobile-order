@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { OrderStatus } from '@/types'; // Uses local OrderStatus
+import { OrderStatus } from '@/types/supabaseTypes'; // Import from supabaseTypes
 import { formatThaiCurrency } from '@/lib/utils';
 
 const OrderHistory = () => {
@@ -27,19 +27,21 @@ const OrderHistory = () => {
   
   const getStatusColor = (status: OrderStatus | null) => { // Allow null status
     switch (status) {
-      case OrderStatus.NEW:
+      case 'new':
+      case 'pending':
         return "bg-red-500"; // Consistent with dashboard 'new'
-      case OrderStatus.CONFIRMED:
+      case 'confirmed':
         return "bg-green-500";
-      case OrderStatus.MAKE:
+      case 'make':
         return "bg-yellow-500";
-      case OrderStatus.READY:
+      case 'ready':
         return "bg-orange-500";
-      case OrderStatus.DELIVERED:
+      case 'delivered':
+      case 'completed':
         return "bg-blue-500";
-      case OrderStatus.PAID:
+      case 'paid':
         return "bg-green-700"; // Darker green for Paid
-      case OrderStatus.CANCELLED:
+      case 'cancelled':
         return "bg-gray-500";
       default:
         return "bg-gray-400"; // Default for null or unknown
@@ -109,7 +111,6 @@ const OrderHistory = () => {
                     <span>Total</span>
                     <span>{formatThaiCurrency(order.total)}</span>
                   </div>
-                  {/* Removed View Details Button as per Photo 4 */}
                 </CardContent>
               </Card>
             ))}

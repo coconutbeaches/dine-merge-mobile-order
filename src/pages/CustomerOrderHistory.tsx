@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -67,7 +68,16 @@ const CustomerOrderHistory = () => {
       if (error) throw error;
       
       if (data) {
-        setOrders(data as Order[]);
+        // Transform the data to correctly handle the order_status
+        const transformedOrders = data.map(order => {
+          // Special handling for 'paid' orders
+          if (order.payment_status === 'paid') {
+            order.order_status = 'paid' as OrderStatus;
+          }
+          return order as Order;
+        });
+        
+        setOrders(transformedOrders);
       } else {
         setOrders([]);
       }
@@ -80,6 +90,7 @@ const CustomerOrderHistory = () => {
   const getStatusColor = (status: OrderStatus | null) => {
     switch (status) {
       case 'new':
+      case 'pending':
         return "bg-red-500";
       case 'confirmed':
         return "bg-green-500";
@@ -88,6 +99,7 @@ const CustomerOrderHistory = () => {
       case 'ready':
         return "bg-orange-500";
       case 'delivered':
+      case 'completed':
         return "bg-blue-500";
       case 'paid':
         return "bg-green-700";

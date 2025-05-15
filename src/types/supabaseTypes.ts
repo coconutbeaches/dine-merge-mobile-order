@@ -16,7 +16,7 @@ export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStat
     'make': 'confirmed',
     'ready': 'confirmed',
     'delivered': 'completed',
-    'paid': 'completed',
+    'paid': 'completed', // Map "paid" to "completed" in Supabase
     'cancelled': 'cancelled'
   };
   return map[status];
@@ -24,9 +24,10 @@ export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStat
 
 // Map Supabase status to our application status
 export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStatus => {
+  // By default, map to specific statuses in our application
   if (status === 'pending') return 'new';
   if (status === 'confirmed') return 'confirmed';
-  if (status === 'completed') return 'delivered';
+  if (status === 'completed') return 'delivered'; // Default mapping for 'completed'
   if (status === 'cancelled') return 'cancelled';
   return 'new'; // Default
 };

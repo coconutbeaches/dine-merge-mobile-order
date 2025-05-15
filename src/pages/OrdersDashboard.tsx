@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -57,7 +56,25 @@ const OrdersDashboard = () => {
       if (error) throw error;
       
       if (data) {
-        setOrders(data as Order[]);
+        // Transform the data to ensure order_status is properly mapped to our application's OrderStatus
+        const transformedOrders = data.map(order => {
+          // Map the Supabase order_status to our application's OrderStatus if needed
+          if (order.order_status) {
+            const supabaseStatus = order.order_status as SupabaseOrderStatus;
+            // Keep payment_status === 'paid' orders as 'paid' status
+            if (order.payment_status === 'paid') {
+              order.order_status = 'paid' as OrderStatus;
+            } 
+            // Otherwise map from Supabase status to our application status
+            else if (order.order_status !== 'paid') {
+              const appStatus = mapSupabaseToOrderStatus(supabaseStatus);
+              order.order_status = appStatus;
+            }
+          }
+          return order as Order;
+        });
+        
+        setOrders(transformedOrders);
       } else {
         setOrders([]);
       }
@@ -73,16 +90,29 @@ const OrdersDashboard = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId: number, status: SupabaseOrderStatus) => {
+  const updateOrderStatus = async (orderId: number, newStatus: OrderStatus) => {
     try {
-      console.log(`Updating order ${orderId} to status: ${status}`);
+      console.log(`Updating order ${orderId} to status: ${newStatus}`);
+      
+      // Map our application status to Supabase status
+      const supabaseStatus = newStatus === 'paid' 
+        ? 'completed' as SupabaseOrderStatus  // Special case for 'paid'
+        : mapOrderStatusToSupabase(newStatus);
+      
+      // Also update payment_status to 'paid' if the new status is 'paid'
+      const updateData: any = { 
+        order_status: supabaseStatus, 
+        updated_at: new Date().toISOString() 
+      };
+      
+      // If setting to paid status, also update the payment_status
+      if (newStatus === 'paid') {
+        updateData.payment_status = 'paid';
+      }
       
       const { error } = await supabase
         .from('orders')
-        .update({ 
-          order_status: status, 
-          updated_at: new Date().toISOString() 
-        })
+        .update(updateData)
         .eq('id', orderId);
 
       if (error) {
@@ -94,9 +124,9 @@ const OrdersDashboard = () => {
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId 
-            ? { ...order, order_status: status } 
+            ? { ...order, order_status: newStatus, payment_status: newStatus === 'paid' ? 'paid' : order.payment_status } 
             : order
-        ) as Order[]  // Cast the result back to Order[]
+        ) as Order[]
       );
       
       toast({
@@ -168,16 +198,19 @@ const OrdersDashboard = () => {
   
   const getStatusColorDot = (status: string | null) => {
     switch (status) {
+      case 'new':
       case 'pending': return "bg-red-500";
       case 'confirmed': return "bg-green-500";
+      case 'delivered':
       case 'completed': return "bg-blue-500";
+      case 'paid': return "bg-green-700";
       case 'cancelled': return "bg-gray-500";
       default: return "bg-gray-300";
     }
   };
   
-  // Define the order statuses for the dropdown - Using Supabase status values directly
-  const orderStatusOptions: SupabaseOrderStatus[] = ['pending', 'confirmed', 'completed', 'cancelled'];
+  // Define the order statuses for the dropdown
+  const orderStatusOptions: OrderStatus[] = ['new', 'confirmed', 'delivered', 'paid', 'cancelled'];
 
   return (
     <Layout title="Orders Dashboard" showBackButton={false}>
@@ -260,8 +293,8 @@ const OrdersDashboard = () => {
                     
                     <div className="col-span-2">
                       <Select
-                        value={order.order_status || 'pending'}
-                        onValueChange={(value: SupabaseOrderStatus) => updateOrderStatus(order.id, value)}
+                        value={order.order_status || 'new'}
+                        onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
                       >
                         <SelectTrigger className="w-full h-9 text-xs flex items-center gap-1.5 py-1">
                            {order.order_status && (
