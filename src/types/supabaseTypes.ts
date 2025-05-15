@@ -1,6 +1,7 @@
 
 import { Database } from "../integrations/supabase/types";
 import { Json } from "../integrations/supabase/types";
+import { OrderStatus as AppOrderStatus } from "../types";
 
 // Re-export the enums for convenience but with our application values
 export type OrderStatus = 'new' | 'confirmed' | 'make' | 'ready' | 'delivered' | 'paid' | 'cancelled';
@@ -9,17 +10,32 @@ export type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 export type FulfillmentStatus = Database["public"]["Enums"]["fulfillment_status"];
 
 // Map our application status to Supabase status
-export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStatus => {
-  const map: Record<OrderStatus, SupabaseOrderStatus> = {
-    'new': 'pending',
-    'confirmed': 'confirmed',
-    'make': 'confirmed',
-    'ready': 'confirmed',
-    'delivered': 'completed',
-    'paid': 'completed', // Map "paid" to "completed" in Supabase
-    'cancelled': 'cancelled'
-  };
-  return map[status];
+export const mapOrderStatusToSupabase = (status: OrderStatus | AppOrderStatus): SupabaseOrderStatus => {
+  // Handle string values from OrderStatus type
+  if (typeof status === 'string') {
+    const map: Record<OrderStatus, SupabaseOrderStatus> = {
+      'new': 'pending',
+      'confirmed': 'confirmed',
+      'make': 'confirmed',
+      'ready': 'confirmed',
+      'delivered': 'completed',
+      'paid': 'completed', // Map "paid" to "completed" in Supabase
+      'cancelled': 'cancelled'
+    };
+    return map[status as OrderStatus];
+  }
+  
+  // Handle enum values from AppOrderStatus
+  switch(status) {
+    case AppOrderStatus.NEW: return 'pending';
+    case AppOrderStatus.CONFIRMED: return 'confirmed';
+    case AppOrderStatus.MAKE: return 'confirmed';
+    case AppOrderStatus.READY: return 'confirmed';
+    case AppOrderStatus.DELIVERED: return 'completed';
+    case AppOrderStatus.PAID: return 'completed';
+    case AppOrderStatus.CANCELLED: return 'cancelled';
+    default: return 'pending';
+  }
 };
 
 // Map Supabase status to our application status

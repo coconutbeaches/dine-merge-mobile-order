@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   email: string;
@@ -70,7 +71,6 @@ export enum OrderStatus {
   DELIVERED = "delivered",
   PAID = "paid",
   CANCELLED = "cancelled",
-  // PENDING = "pending" // Removed as per new enum, 'new' is the initial state
 }
 
 export interface RestaurantInfo {

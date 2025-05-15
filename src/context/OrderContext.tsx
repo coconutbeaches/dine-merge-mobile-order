@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Order, OrderStatus, Address } from '../types'; // OrderStatus from local types
 import { supabase } from '@/integrations/supabase/client';
@@ -89,7 +90,19 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
             orderStatus = OrderStatus.PAID;
           } else if (order.order_status) {
             // Map Supabase order_status to our application OrderStatus
-            orderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+            const mappedStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+            
+            // Convert from supabaseTypes.OrderStatus string to our enum OrderStatus
+            switch(mappedStatus) {
+              case 'new': orderStatus = OrderStatus.NEW; break;
+              case 'confirmed': orderStatus = OrderStatus.CONFIRMED; break;
+              case 'make': orderStatus = OrderStatus.MAKE; break;
+              case 'ready': orderStatus = OrderStatus.READY; break;
+              case 'delivered': orderStatus = OrderStatus.DELIVERED; break;
+              case 'paid': orderStatus = OrderStatus.PAID; break;
+              case 'cancelled': orderStatus = OrderStatus.CANCELLED; break;
+              default: orderStatus = OrderStatus.NEW;
+            }
           } else {
             // Default fallback
             orderStatus = OrderStatus.NEW;
@@ -170,7 +183,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     const orderItemsJson = orderItemsForSupabase as unknown as Json;
 
     // Convert the OrderStatus.NEW to corresponding Supabase value 'pending'
-    const supabaseStatus = mapOrderStatusToSupabase('new');
+    const supabaseStatus = mapOrderStatusToSupabase(OrderStatus.NEW);
 
     const orderPayload = {
       user_id: currentUser.id,
@@ -208,7 +221,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
             quantity: ci.quantity,
             selectedOptions: ci.selectedOptions,
           })),
-          status: (insertedOrderData.order_status as unknown as OrderStatus) || OrderStatus.NEW,
+          status: OrderStatus.NEW,
           total: insertedOrderData.total_amount,
           createdAt: new Date(insertedOrderData.created_at),
           address: address || { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true },
