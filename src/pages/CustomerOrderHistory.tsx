@@ -7,7 +7,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { Order, OrderStatus, Profile } from '@/types/supabaseTypes';
+import { 
+  Order, 
+  OrderStatus, 
+  Profile, 
+  SupabaseOrderStatus,
+  mapSupabaseToOrderStatus 
+} from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
 import { ArrowLeft } from 'lucide-react';
 
@@ -70,11 +76,23 @@ const CustomerOrderHistory = () => {
       if (data) {
         // Transform the data to correctly handle the order_status
         const transformedOrders = data.map(order => {
+          let appOrderStatus: OrderStatus;
+          
           // Special handling for 'paid' orders
           if (order.payment_status === 'paid') {
-            order.order_status = 'paid' as OrderStatus;
+            appOrderStatus = 'paid';
+          } else if (order.order_status) {
+            // Map Supabase order_status to our application OrderStatus
+            appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+          } else {
+            // Default fallback
+            appOrderStatus = 'new';
           }
-          return order as Order;
+          
+          return {
+            ...order,
+            order_status: appOrderStatus
+          } as Order;
         });
         
         setOrders(transformedOrders);
@@ -90,7 +108,6 @@ const CustomerOrderHistory = () => {
   const getStatusColor = (status: OrderStatus | null) => {
     switch (status) {
       case 'new':
-      case 'pending':
         return "bg-red-500";
       case 'confirmed':
         return "bg-green-500";
@@ -99,7 +116,6 @@ const CustomerOrderHistory = () => {
       case 'ready':
         return "bg-orange-500";
       case 'delivered':
-      case 'completed':
         return "bg-blue-500";
       case 'paid':
         return "bg-green-700";

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -25,10 +24,9 @@ const OrderHistory = () => {
   
   const totalSpent = orders.reduce((total, order) => total + order.total, 0);
   
-  const getStatusColor = (status: OrderStatus | null) => { // Allow null status
+  const getStatusColor = (status: OrderStatus | null) => {
     switch (status) {
       case 'new':
-      case 'pending':
         return "bg-red-500"; // Consistent with dashboard 'new'
       case 'confirmed':
         return "bg-green-500";
@@ -37,7 +35,6 @@ const OrderHistory = () => {
       case 'ready':
         return "bg-orange-500";
       case 'delivered':
-      case 'completed':
         return "bg-blue-500";
       case 'paid':
         return "bg-green-700"; // Darker green for Paid

@@ -58,20 +58,23 @@ const OrdersDashboard = () => {
       if (data) {
         // Transform the data to ensure order_status is properly mapped to our application's OrderStatus
         const transformedOrders = data.map(order => {
-          // Map the Supabase order_status to our application's OrderStatus if needed
-          if (order.order_status) {
-            const supabaseStatus = order.order_status as SupabaseOrderStatus;
-            // Keep payment_status === 'paid' orders as 'paid' status
-            if (order.payment_status === 'paid') {
-              order.order_status = 'paid' as OrderStatus;
-            } 
-            // Otherwise map from Supabase status to our application status
-            else if (order.order_status !== 'paid') {
-              const appStatus = mapSupabaseToOrderStatus(supabaseStatus);
-              order.order_status = appStatus;
-            }
+          let appOrderStatus: OrderStatus;
+          
+          // Special handling for 'paid' orders
+          if (order.payment_status === 'paid') {
+            appOrderStatus = 'paid';
+          } else if (order.order_status) {
+            // Map from Supabase status to our application status
+            appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+          } else {
+            // Default fallback
+            appOrderStatus = 'new';
           }
-          return order as Order;
+          
+          return {
+            ...order,
+            order_status: appOrderStatus
+          } as Order;
         });
         
         setOrders(transformedOrders);
