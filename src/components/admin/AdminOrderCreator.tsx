@@ -62,25 +62,33 @@ const AdminOrderCreator = () => {
   const [quantity, setQuantity] = useState(1);
   const [tableNumber, setTableNumber] = useState('Take Away');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   // Fetch customers when search term changes
   useEffect(() => {
     const fetchCustomers = async () => {
-      if (!searchTerm) {
+      if (!searchTerm || searchTerm.length < 2) {
         setCustomers([]);
+        setIsSearching(false);
         return;
       }
 
+      setIsSearching(true);
       try {
+        console.log(`Searching for customers with term: ${searchTerm}`);
         const { data, error } = await supabase
           .from('profiles')
           .select('id, name, email')
           .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
           .order('name', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching customers:', error);
+          throw error;
+        }
+        console.log(`Found ${data?.length || 0} matching customers`, data);
         setCustomers(data || []);
       } catch (error: any) {
         console.error('Error fetching customers:', error);
@@ -89,6 +97,9 @@ const AdminOrderCreator = () => {
           description: `Failed to fetch customers: ${error.message}`,
           variant: "destructive"
         });
+        setCustomers([]);
+      } finally {
+        setIsSearching(false);
       }
     };
 
@@ -219,12 +230,15 @@ const AdminOrderCreator = () => {
       // Convert the order items to a format compatible with Json type
       const orderItemsJson = orderItems as unknown as Json;
 
+      // Use the proper Supabase order status
+      const supabaseStatus = 'pending' as SupabaseOrderStatus;
+
       const orderPayload = {
         user_id: selectedCustomer.id,
         customer_name: selectedCustomer.name || selectedCustomer.email,
         order_items: orderItemsJson,
         total_amount: calculateTotal(),
-        order_status: 'pending' as SupabaseOrderStatus, // Use the Supabase enum value directly
+        order_status: supabaseStatus,
         payment_status: 'unpaid' as PaymentStatus,
         fulfillment_status: 'unfulfilled' as FulfillmentStatus,
         table_number: tableNumber
@@ -294,12 +308,18 @@ const AdminOrderCreator = () => {
                     <div className="relative">
                       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Search customers by name or email"
+                        placeholder="Search customers by name or email (min 2 characters)"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-8"
                       />
                     </div>
+                    
+                    {isSearching && (
+                      <div className="text-center py-2 text-sm text-muted-foreground">
+                        Searching for customers...
+                      </div>
+                    )}
                     
                     {customers.length > 0 && (
                       <div className="border rounded-md max-h-[200px] overflow-y-auto">
@@ -319,8 +339,8 @@ const AdminOrderCreator = () => {
                       </div>
                     )}
 
-                    {searchTerm.length >= 2 && customers.length === 0 && (
-                      <p className="text-sm text-muted-foreground">No customers found</p>
+                    {searchTerm.length >= 2 && !isSearching && customers.length === 0 && (
+                      <p className="text-sm text-muted-foreground">No customers found. Try a different search term.</p>
                     )}
                   </div>
                 ) : (

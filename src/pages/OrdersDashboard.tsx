@@ -10,7 +10,8 @@ import { format } from 'date-fns';
 import { 
   Order as SupabaseOrder, 
   OrderStatus as OrderStatusType,
-  SupabaseOrderStatus 
+  SupabaseOrderStatus,
+  mapOrderStatusToSupabase
 } from '@/types/supabaseTypes';
 import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
@@ -72,18 +73,34 @@ const OrdersDashboard = () => {
 
   const updateOrderStatus = async (orderId: number, status: SupabaseOrderStatus) => {
     try {
+      console.log(`Updating order ${orderId} to status: ${status}`);
+      
       const { error } = await supabase
         .from('orders')
-        .update({ order_status: status, updated_at: new Date().toISOString() })
+        .update({ 
+          order_status: status, 
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', orderId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
+      
+      // Update the local state to reflect the change immediately
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? { ...order, order_status: status } : order
+        )
+      );
       
       toast({
         title: "Success",
         description: "Order status updated successfully",
       });
     } catch (error: any) {
+      console.error('Error updating order status:', error);
       toast({
         title: "Error",
         description: `Failed to update order status: ${error.message}`,
@@ -147,12 +164,9 @@ const OrdersDashboard = () => {
   
   const getStatusColorDot = (status: string | null) => {
     switch (status) {
-      case 'new': return "bg-red-500";
+      case 'pending': return "bg-red-500";
       case 'confirmed': return "bg-green-500";
-      case 'make': return "bg-yellow-500";
-      case 'ready': return "bg-orange-500";
-      case 'delivered': return "bg-blue-500";
-      case 'paid': return "bg-green-700";
+      case 'completed': return "bg-blue-500";
       case 'cancelled': return "bg-gray-500";
       default: return "bg-gray-300";
     }
@@ -242,7 +256,7 @@ const OrdersDashboard = () => {
                     
                     <div className="col-span-2">
                       <Select
-                        value={order.order_status || undefined}
+                        value={order.order_status || 'pending'}
                         onValueChange={(value: SupabaseOrderStatus) => updateOrderStatus(order.id, value)}
                       >
                         <SelectTrigger className="w-full h-9 text-xs flex items-center gap-1.5 py-1">
