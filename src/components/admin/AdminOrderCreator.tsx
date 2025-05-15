@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -278,6 +277,7 @@ const AdminOrderCreator = () => {
   };
 
   const selectCustomer = (customer: Profile) => {
+    console.log("Selected customer:", customer);
     setSelectedCustomer(customer);
     setSearchTerm('');
     setCustomers([]);

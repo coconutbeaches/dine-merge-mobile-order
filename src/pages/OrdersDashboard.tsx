@@ -202,13 +202,17 @@ const OrdersDashboard = () => {
   const getStatusColorDot = (status: string | null) => {
     switch (status) {
       case 'new':
-      case 'pending': return "bg-red-500";
-      case 'confirmed': return "bg-green-500";
+        return "bg-red-500";
+      case 'confirmed':
+        return "bg-green-500";
       case 'delivered':
-      case 'completed': return "bg-blue-500";
-      case 'paid': return "bg-green-700";
-      case 'cancelled': return "bg-gray-500";
-      default: return "bg-gray-300";
+        return "bg-blue-500";
+      case 'paid':
+        return "bg-green-700";
+      case 'cancelled':
+        return "bg-gray-500";
+      default:
+        return "bg-gray-300";
     }
   };
   

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -27,7 +28,7 @@ const OrderHistory = () => {
   const getStatusColor = (status: OrderStatus | null) => {
     switch (status) {
       case 'new':
-        return "bg-red-500"; // Consistent with dashboard 'new'
+        return "bg-red-500"; 
       case 'confirmed':
         return "bg-green-500";
       case 'make':

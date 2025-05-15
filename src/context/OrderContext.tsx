@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Order, OrderStatus, Address } from '../types'; // OrderStatus from local types
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +8,8 @@ import {
   OrderStatus as SupabaseOrderStatus, 
   PaymentStatus as SupabasePaymentStatus, 
   FulfillmentStatus as SupabaseFulfillmentStatus,
-  mapOrderStatusToSupabase
+  mapOrderStatusToSupabase,
+  mapSupabaseToOrderStatus
 } from '@/types/supabaseTypes'; 
 import { Tables } from '@/integrations/supabase/types';
 import { Json } from '@/integrations/supabase/types';
@@ -51,7 +51,8 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${currentUser.id}` },
-          () => {
+          (payload) => {
+            console.log("Real-time order update in context:", payload);
             fetchUserOrders(currentUser.id);
           }
         )
@@ -80,6 +81,20 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
 
       if (data && data.length > 0) {
         const formattedOrders = data.map(order => {
+          // Determine the correct OrderStatus
+          let orderStatus: OrderStatus;
+          
+          // Special handling for 'paid' orders
+          if (order.payment_status === 'paid') {
+            orderStatus = OrderStatus.PAID;
+          } else if (order.order_status) {
+            // Map Supabase order_status to our application OrderStatus
+            orderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+          } else {
+            // Default fallback
+            orderStatus = OrderStatus.NEW;
+          }
+
           // Assert order_items to be an array of the expected structure or handle parsing
           const orderItemsParsed: any[] = Array.isArray(order.order_items) 
             ? order.order_items 
@@ -108,7 +123,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
               quantity: item.quantity,
               selectedOptions: item.selectedOptions || {},
             })),
-            status: order.order_status as OrderStatus || OrderStatus.NEW, // Cast to local OrderStatus
+            status: orderStatus,
             total: order.total_amount,
             createdAt: new Date(order.created_at),
             // Address might be null if not applicable (e.g. for take away initially)

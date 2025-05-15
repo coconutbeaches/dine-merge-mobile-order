@@ -36,7 +36,8 @@ const CustomerOrderHistory = () => {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${customerId}` },
-          () => {
+          (payload) => {
+            console.log("Real-time order update:", payload);
             fetchCustomerOrders(customerId);
           }
         )
@@ -57,6 +58,7 @@ const CustomerOrderHistory = () => {
         .single();
         
       if (error) throw error;
+      console.log("Customer details:", data);
       setCustomer(data);
     } catch (error) {
       console.error('Error fetching customer details:', error);
@@ -72,6 +74,7 @@ const CustomerOrderHistory = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
+      console.log("Customer orders raw data:", data);
       
       if (data) {
         // Transform the data to correctly handle the order_status
@@ -89,12 +92,15 @@ const CustomerOrderHistory = () => {
             appOrderStatus = 'new';
           }
           
+          console.log(`Order ${order.id} - Supabase status: ${order.order_status}, App status: ${appOrderStatus}`);
+          
           return {
             ...order,
             order_status: appOrderStatus
           } as Order;
         });
         
+        console.log("Transformed orders:", transformedOrders);
         setOrders(transformedOrders);
       } else {
         setOrders([]);
