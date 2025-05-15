@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -66,9 +65,15 @@ const CustomerOrderHistory = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setOrders(data || []);
+      
+      if (data) {
+        setOrders(data as Order[]);
+      } else {
+        setOrders([]);
+      }
     } catch (error) {
       console.error('Error fetching customer orders:', error);
+      setOrders([]);
     }
   };
 

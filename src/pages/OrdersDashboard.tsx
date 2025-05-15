@@ -49,13 +49,19 @@ const OrdersDashboard = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
+      
+      if (data) {
+        setOrders(data as Order[]);
+      } else {
+        setOrders([]);
+      }
     } catch (error: any) {
       toast({
         title: "Error",
         description: `Failed to fetch orders: ${error.message}`,
         variant: "destructive"
       });
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }

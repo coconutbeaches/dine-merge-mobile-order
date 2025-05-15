@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -216,9 +215,9 @@ const Checkout = () => {
             <div className="mt-4 flex items-center space-x-2">
               <RadioGroupItem 
                 value="-1" 
-                id="tip-custom" 
+                id="tip-custom"
                 checked={tip === -1}
-                onCheckedChange={() => tip !== -1 && setTip(-1)} 
+                onClick={() => tip !== -1 && setTip(-1)}
               />
               <Label htmlFor="tip-custom">Custom:</Label>
               <Input

@@ -19,6 +19,7 @@ export interface Order extends Omit<Tables<"orders">, 'order_status'> {
   id: number;
   user_id: string | null;
   table_number: string;
+  tip?: number;
 }
 
 // Type for Profile

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
+import { OrderStatus, PaymentStatus, FulfillmentStatus } from '@/types/supabaseTypes';
 
 // Interface for profile data
 interface Profile {
@@ -213,9 +214,9 @@ const AdminOrderCreator = () => {
         customer_name: selectedCustomer.name || selectedCustomer.email,
         order_items: orderItems,
         total_amount: calculateTotal(),
-        order_status: 'new',
-        payment_status: 'unpaid',
-        fulfillment_status: 'unfulfilled',
+        order_status: 'new' as OrderStatus,
+        payment_status: 'unpaid' as PaymentStatus,
+        fulfillment_status: 'unfulfilled' as FulfillmentStatus,
         table_number: tableNumber
       };
 
