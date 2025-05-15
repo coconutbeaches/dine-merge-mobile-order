@@ -13,13 +13,14 @@ export type FulfillmentStatus = Database["public"]["Enums"]["fulfillment_status"
 export const mapOrderStatusToSupabase = (status: OrderStatus | AppOrderStatus): SupabaseOrderStatus => {
   // Handle string values from OrderStatus type
   if (typeof status === 'string') {
+    // Create a mapping for all possible OrderStatus values to Supabase statuses
     const map: Record<OrderStatus, SupabaseOrderStatus> = {
       'new': 'pending',
       'confirmed': 'confirmed',
-      'make': 'confirmed',
-      'ready': 'confirmed',
+      'make': 'confirmed',    // Map to 'confirmed' in Supabase
+      'ready': 'confirmed',   // Map to 'confirmed' in Supabase
       'delivered': 'completed',
-      'paid': 'completed', // Map "paid" to "completed" in Supabase
+      'paid': 'completed',    // Map "paid" to "completed" in Supabase
       'cancelled': 'cancelled'
     };
     return map[status as OrderStatus];

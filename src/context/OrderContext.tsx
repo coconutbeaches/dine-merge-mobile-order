@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Order, OrderStatus, Address } from '../types'; // OrderStatus from local types
 import { supabase } from '@/integrations/supabase/client';
@@ -122,7 +121,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
           return {
             id: order.id.toString(),
             userId: order.user_id || userId,
-            items: orderItemsParsed.map((item: any) => ({ // Type 'item' properly if possible
+            items: orderItemsParsed.map((item: any) => ({
               menuItem: {
                 id: item.menuItemId,
                 name: item.name,
