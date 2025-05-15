@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,9 +10,10 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { 
   Order as SupabaseOrder, 
-  OrderStatus as OrderStatusType,
+  OrderStatus,
   SupabaseOrderStatus,
-  mapOrderStatusToSupabase
+  mapOrderStatusToSupabase,
+  mapSupabaseToOrderStatus
 } from '@/types/supabaseTypes';
 import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
@@ -91,8 +93,10 @@ const OrdersDashboard = () => {
       // Update the local state to reflect the change immediately
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, order_status: status } : order
-        )
+          order.id === orderId 
+            ? { ...order, order_status: status } 
+            : order
+        ) as Order[]  // Cast the result back to Order[]
       );
       
       toast({
