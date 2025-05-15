@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Order, OrderStatus, Address } from '../types'; // OrderStatus from local types
 import { supabase } from '@/integrations/supabase/client';
@@ -189,7 +190,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       customer_name: currentUser.name || currentUser.email,
       order_items: orderItemsJson,
       total_amount: cartTotal + (tip || 0),
-      order_status: supabaseStatus, // Use 'pending' for Supabase
+      order_status: supabaseStatus, // Use the mapped Supabase-compatible value
       payment_status: 'unpaid' as SupabasePaymentStatus,
       fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
       table_number: tableNumberInput,
