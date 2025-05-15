@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +23,7 @@ import ProductsDashboard from "./pages/ProductsDashboard";
 import ProductForm from "./pages/ProductForm";
 import CategoriesManager from "./pages/CategoriesManager";
 import ProductsByCategory from "./pages/ProductsByCategory";
+import CustomerOrderHistory from "./pages/CustomerOrderHistory";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/admin/merge-accounts" element={<AdminMergeAccounts />} />
             <Route path="/categories-manager" element={<CategoriesManager />} />
             <Route path="/products-by-category/:categoryId" element={<ProductsByCategory />} />
+            <Route path="/customer/:customerId/orders" element={<CustomerOrderHistory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

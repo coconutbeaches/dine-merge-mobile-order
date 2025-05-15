@@ -9,10 +9,12 @@ import { format } from 'date-fns';
 import { Order as SupabaseOrder, OrderStatus as SupabaseOrderStatus } from '@/types/supabaseTypes';
 import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 type Order = SupabaseOrder;
 
 const OrdersDashboard = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,8 +31,6 @@ const OrdersDashboard = () => {
         (payload) => {
           console.log('Change received!', payload);
           // Re-fetch orders to get the latest state
-          // More sophisticated updates (new, update, delete) can be handled here
-          // For simplicity, just re-fetching now.
           fetchOrders(); 
         }
       )
@@ -75,11 +75,6 @@ const OrdersDashboard = () => {
         title: "Success",
         description: "Order status updated successfully",
       });
-      // Optimistic update or rely on real-time / re-fetch
-      // setOrders(prevOrders => prevOrders.map(order => 
-      //   order.id === orderId ? { ...order, order_status: status, updated_at: new Date().toISOString() } : order
-      // ));
-      // Real-time subscription should handle the update, or call fetchOrders() if not using real-time for this.
     } catch (error: any) {
       toast({
         title: "Error",
@@ -132,15 +127,11 @@ const OrdersDashboard = () => {
     }
   };
 
-  const formatOrderNumber = (id: number) => {
-    return `#${id.toString().padStart(4, '0')}`;
-  };
-
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
       const date = new Date(dateString);
-      return format(date, 'dd MMM yy HH:mm'); // Shorter date format
+      return format(date, 'dd MMM yy HH:mm');
     } catch (e) {
       return 'Invalid Date';
     }
@@ -159,14 +150,13 @@ const OrdersDashboard = () => {
     }
   };
   
-  // Define the order statuses for the dropdown
   const orderStatusOptions: SupabaseOrderStatus[] = ['new', 'confirmed', 'make', 'ready', 'delivered', 'paid', 'cancelled'];
 
   return (
     <Layout title="Orders Dashboard" showBackButton={false}>
       <div className="page-container p-4 md:p-6">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <h1 className="text-xl font-bold">Orders Dashboard</h1> {/* Increased font size slightly */}
+          <h1 className="text-xl font-bold">Orders Dashboard</h1>
           <div className="flex gap-2 flex-wrap">
             <Button 
               variant="destructive" 
@@ -183,20 +173,19 @@ const OrdersDashboard = () => {
         </div>
 
         <Card>
-          <CardHeader className="bg-muted/50 p-3"> {/* Reduced padding slightly */}
-            {/* Adjusted grid for new layout: Checkbox, Customer, Table, Amount, Date, Status */}
+          <CardHeader className="bg-muted/50 p-3">
             <div className="grid grid-cols-12 gap-x-2 md:gap-x-3 font-semibold text-sm">
               <div className="col-span-1 flex items-center">
                 <Checkbox 
-                  checked={selectedOrders.length === orders.length && orders.length > 0 && orders.length > 0} 
+                  checked={selectedOrders.length === orders.length && orders.length > 0} 
                   onCheckedChange={selectAllOrders}
                   disabled={orders.length === 0}
                   aria-label="Select all orders"
                 />
               </div>
-              <div className="col-span-3">Customer</div> {/* Increased span for customer */}
+              <div className="col-span-3">Customer</div>
               <div className="col-span-2">Table/Type</div>
-              <div className="col-span-2 text-right">Amount</div> {/* Amount before Date */}
+              <div className="col-span-2 text-right">Amount</div>
               <div className="col-span-2">Date</div>
               <div className="col-span-2">Status</div>
             </div>
@@ -221,9 +210,19 @@ const OrdersDashboard = () => {
                       />
                     </div>
                     <div className="col-span-3">
-                      <div className="font-medium truncate" title={order.customer_name || 'Anonymous'}>
-                        {order.customer_name || `Order #${order.id}`} {/* Show order id if no name */}
-                      </div>
+                      {order.user_id ? (
+                        <button
+                          onClick={() => navigate(`/customer/${order.user_id}/orders`)}
+                          className="font-medium text-left hover:underline truncate"
+                          title={order.customer_name || 'Anonymous'}
+                        >
+                          {order.customer_name || `Order #${order.id}`}
+                        </button>
+                      ) : (
+                        <div className="font-medium truncate" title={order.customer_name || 'Anonymous'}>
+                          {order.customer_name || `Order #${order.id}`}
+                        </div>
+                      )}
                     </div>
                     <div className="col-span-2 text-xs text-muted-foreground capitalize">
                       {(order as any).table_number ? ((order as any).table_number === 'Take Away' ? 'Take Away' : `Table ${(order as any).table_number}`) : 'N/A'}
@@ -233,7 +232,7 @@ const OrdersDashboard = () => {
                     
                     <div className="col-span-2">
                       <Select
-                        value={order.order_status || undefined} // Use value instead of defaultValue for controlled component if status can change
+                        value={order.order_status || undefined}
                         onValueChange={(value: SupabaseOrderStatus) => updateOrderStatus(order.id, value)}
                       >
                         <SelectTrigger className="w-full h-9 text-xs flex items-center gap-1.5 py-1">
