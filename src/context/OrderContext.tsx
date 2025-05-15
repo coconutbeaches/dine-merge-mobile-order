@@ -4,10 +4,11 @@ import { Order, OrderStatus, Address } from '../types'; // OrderStatus from loca
 import { supabase } from '@/integrations/supabase/client';
 import { useCartContext } from './CartContext';
 import { useUserContext } from './UserContext';
-// Import Supabase specific types carefully, assuming regeneration will update them
-import { OrderStatus as SupabaseOrderStatus, PaymentStatus as SupabasePaymentStatus, FulfillmentStatus as SupabaseFulfillmentStatus, Tables } from '@/types/supabaseTypes'; 
+// Import Supabase specific types
+import { OrderStatus as SupabaseOrderStatus, PaymentStatus as SupabasePaymentStatus, FulfillmentStatus as SupabaseFulfillmentStatus } from '@/types/supabaseTypes'; 
+import { Tables } from '@/integrations/supabase/types';
 
-type OrderRow = Tables<'orders'>; // Expecting this to have table_number after regeneration
+type OrderRow = Tables<'orders'>; // Using Tables type from supabase client types
 
 interface OrderContextType {
   placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string, tip?: number) => Promise<Order | null>;
@@ -37,6 +38,22 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
   useEffect(() => {
     if (currentUser) {
       fetchUserOrders(currentUser.id);
+      
+      // Setup real-time subscription for orders
+      const channel = supabase
+        .channel(`orders-${currentUser.id}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${currentUser.id}` },
+          () => {
+            fetchUserOrders(currentUser.id);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     } else {
       setOrders([]);
     }
@@ -87,7 +104,8 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
             // Address might be null if not applicable (e.g. for take away initially)
             address: { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true }, 
             paymentMethod: 'Cash on Delivery', // This might need to come from DB if variable
-            tableNumber: (order as OrderRow).table_number || 'Take Away', // Expect table_number from OrderRow
+            tableNumber: order.table_number || 'Take Away',
+            tip: order.tip || 0,
           };
         });
         setOrders(formattedOrders as Order[]);
@@ -128,10 +146,11 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       customer_name: currentUser.name || currentUser.email,
       order_items: orderItemsForSupabase,
       total_amount: cartTotal + (tip || 0),
-      order_status: 'new' as SupabaseOrderStatus, // Use SupabaseOrderStatus
-      payment_status: 'unpaid' as SupabasePaymentStatus, // Use SupabasePaymentStatus
-      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus, // Use SupabaseFulfillmentStatus
-      table_number: tableNumberInput // Add table_number to payload
+      order_status: 'new' as SupabaseOrderStatus,
+      payment_status: 'unpaid' as SupabasePaymentStatus,
+      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
+      table_number: tableNumberInput,
+      tip: tip || 0
     };
 
     try {
@@ -155,12 +174,12 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
             quantity: ci.quantity,
             selectedOptions: ci.selectedOptions,
           })),
-          status: (insertedOrderData.order_status as OrderStatus) || OrderStatus.NEW, // Cast to local OrderStatus
+          status: (insertedOrderData.order_status as OrderStatus) || OrderStatus.NEW,
           total: insertedOrderData.total_amount,
           createdAt: new Date(insertedOrderData.created_at),
           address: address || { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true },
           paymentMethod,
-          tableNumber: (insertedOrderData as OrderRow).table_number || tableNumberInput, // Expect table_number
+          tableNumber: insertedOrderData.table_number || tableNumberInput,
           tip,
         };
         
