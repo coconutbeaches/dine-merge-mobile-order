@@ -154,12 +154,15 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     // Convert to Json type for Supabase
     const orderItemsJson = orderItemsForSupabase as unknown as Json;
 
+    // Convert the OrderStatus.NEW to corresponding Supabase value 'pending'
+    const supabaseStatus = mapOrderStatusToSupabase('new');
+
     const orderPayload = {
       user_id: currentUser.id,
       customer_name: currentUser.name || currentUser.email,
       order_items: orderItemsJson,
       total_amount: cartTotal + (tip || 0),
-      order_status: 'pending' as SupabaseOrderStatus, // Use the Supabase enum value directly
+      order_status: supabaseStatus, // Use 'pending' for Supabase
       payment_status: 'unpaid' as SupabasePaymentStatus,
       fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
       table_number: tableNumberInput,

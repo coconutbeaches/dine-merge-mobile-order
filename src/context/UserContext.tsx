@@ -11,6 +11,7 @@ interface UserContextType {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
+  updateUser: (updatedUser: User) => void; // Add the updateUser method
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -104,6 +105,28 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     }
   };
 
+  // Add the updateUser method implementation
+  const updateUser = (updatedUser: User) => {
+    setCurrentUser(updatedUser);
+    
+    // Optionally, you could update the user profile in Supabase here
+    // This would persist the changes to the database
+    if (updatedUser.id) {
+      supabase
+        .from('profiles')
+        .update({
+          name: updatedUser.name,
+          phone: updatedUser.phone
+        })
+        .eq('id', updatedUser.id)
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error updating user profile:', error);
+          }
+        });
+    }
+  };
+
   // User Management Functions
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -165,7 +188,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     isLoading,
     login,
     signup,
-    logout
+    logout,
+    updateUser // Add the new method to the context value
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
