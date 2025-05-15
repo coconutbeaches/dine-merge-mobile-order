@@ -89,11 +89,11 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
           if (order.payment_status === 'paid') {
             orderStatus = OrderStatus.PAID;
           } else if (order.order_status) {
-            // Map Supabase order_status to our application OrderStatus
-            const mappedStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+            // Map Supabase order_status to our application OrderStatus string
+            const mappedStatusString = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
             
-            // Convert from supabaseTypes.OrderStatus string to our enum OrderStatus
-            switch(mappedStatus) {
+            // Convert from string to our enum OrderStatus
+            switch(mappedStatusString) {
               case 'new': orderStatus = OrderStatus.NEW; break;
               case 'confirmed': orderStatus = OrderStatus.CONFIRMED; break;
               case 'make': orderStatus = OrderStatus.MAKE; break;
