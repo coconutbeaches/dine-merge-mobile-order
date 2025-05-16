@@ -57,8 +57,7 @@ export function useOrders(userId: string | undefined) {
   const placeOrder = async (
     address: Address | null, 
     paymentMethod: string, 
-    tableNumberInput = 'Take Away', 
-    tip?: number
+    tableNumberInput = 'Take Away'
   ): Promise<Order | null> => {
     if (!userId) {
       console.error('User must be logged in to place an order');
@@ -76,8 +75,7 @@ export function useOrders(userId: string | undefined) {
         address, 
         paymentMethod, 
         cart: cart.length, 
-        tableNumberInput, 
-        tip 
+        tableNumberInput
       });
       
       // Use the first item's name or userId as customer name
@@ -88,8 +86,7 @@ export function useOrders(userId: string | undefined) {
         userName, 
         cart as CartItem[], 
         cartTotal, 
-        tableNumberInput, 
-        tip
+        tableNumberInput
       );
 
       if (!insertedOrderData) {
@@ -101,7 +98,6 @@ export function useOrders(userId: string | undefined) {
 
       // Use optional chaining to safely access properties
       const tableNumberValue = insertedOrderData.table_number || tableNumberInput;
-      const tipValue = insertedOrderData.tip || tip || 0;
 
       const newOrderForLocalState: Order = {
         id: insertedOrderData.id.toString(),
@@ -116,8 +112,7 @@ export function useOrders(userId: string | undefined) {
         createdAt: new Date(insertedOrderData.created_at),
         address: address || { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true },
         paymentMethod,
-        tableNumber: tableNumberValue,
-        tip: tipValue,
+        tableNumber: tableNumberValue
       };
       
       console.log("New order created for local state:", newOrderForLocalState);

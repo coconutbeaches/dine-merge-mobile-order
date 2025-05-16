@@ -5,7 +5,7 @@ import { useUserContext } from './UserContext';
 import { useOrders } from '@/hooks/useOrders';
 
 interface OrderContextType {
-  placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string, tip?: number) => Promise<Order | null>;
+  placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string) => Promise<Order | null>;
   getOrderHistory: () => Order[];
 }
 
@@ -31,16 +31,14 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
   const handlePlaceOrder = async (
     address: Address | null, 
     paymentMethod: string, 
-    tableNumber?: string, 
-    tip?: number
+    tableNumber?: string
   ): Promise<Order | null> => {
     try {
       console.log("OrderContext: Placing order with:", { 
         userId: currentUser?.id,
         address, 
         paymentMethod, 
-        tableNumber, 
-        tip 
+        tableNumber
       });
       
       if (!currentUser?.id) {
@@ -48,7 +46,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
         return null;
       }
       
-      const result = await placeOrder(address, paymentMethod, tableNumber, tip);
+      const result = await placeOrder(address, paymentMethod, tableNumber);
       console.log("OrderContext: Order placement result:", result);
       return result;
     } catch (error) {

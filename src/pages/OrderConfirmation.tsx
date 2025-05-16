@@ -42,7 +42,7 @@ const OrderConfirmation = () => {
                   <h3 className="font-medium text-lg mb-2">What's Next?</h3>
                   <p>
                     You can check the status of your order in your order history. 
-                    We'll notify you when your order is ready for pickup or on its way for delivery.
+                    We'll notify you when your order is ready for pickup or on its way.
                   </p>
                 </div>
               </div>
