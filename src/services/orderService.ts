@@ -77,9 +77,7 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
             : ((order.order_items as unknown as any) || []);
 
         // Use safer property access with optional chaining
-        // @ts-ignore - We know these properties might exist even if TypeScript doesn't
         const tableNumberValue = order.table_number || 'Take Away';
-        // @ts-ignore - We know these properties might exist even if TypeScript doesn't
         const tipValue = order.tip || 0;
 
         return {
