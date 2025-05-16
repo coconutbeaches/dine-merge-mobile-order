@@ -26,6 +26,8 @@ export type CartItem = {
 
 export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
   try {
+    console.log("Fetching orders for user:", userId);
+    
     const { data, error } = await supabase
       .from('orders')
       .select('*')
@@ -36,6 +38,8 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
       console.error('Error fetching orders:', error);
       return null;
     }
+
+    console.log("Orders fetched from Supabase:", data);
 
     if (data && data.length > 0) {
       const formattedOrders = data.map(order => {
@@ -70,11 +74,11 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
           ? order.order_items 
           : typeof order.order_items === 'string' 
             ? JSON.parse(order.order_items) 
-            : [];
+            : (order.order_items as any[] || []);
 
         // Use optional chaining to safely access properties
-        const tableNumberValue = (order as any).table_number || 'Take Away';
-        const tipValue = (order as any).tip || 0;
+        const tableNumberValue = order.table_number || 'Take Away';
+        const tipValue = order.tip || 0;
 
         return {
           id: order.id.toString(),
@@ -101,6 +105,8 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
           tip: tipValue,
         };
       });
+      
+      console.log("Formatted orders:", formattedOrders);
       return formattedOrders as Order[];
     }
     return [];
@@ -118,36 +124,52 @@ export async function placeOrderInSupabase(
   tableNumberInput: string = 'Take Away',
   tip?: number
 ): Promise<any | null> {
-  const orderItemsForSupabase = cartItems.map(cartItem => ({
-    menuItemId: cartItem.menuItem.id,
-    name: cartItem.menuItem.name,
-    quantity: cartItem.quantity,
-    unitPrice: cartItem.menuItem.price,
-    selectedOptions: cartItem.selectedOptions || {},
-    description: cartItem.menuItem.description,
-    image: cartItem.menuItem.image,
-    category: cartItem.menuItem.category,
-  }));
-
-  // Convert to Json type for Supabase
-  const orderItemsJson = orderItemsForSupabase as unknown as Json;
-
-  // Convert the OrderStatus.NEW to corresponding Supabase value using the mapping function
-  const supabaseStatus = mapOrderStatusToSupabase(OrderStatus.NEW);
-
-  const orderPayload = {
-    user_id: userId,
-    customer_name: userName || userId,
-    order_items: orderItemsJson,
-    total_amount: cartTotal + (tip || 0),
-    order_status: supabaseStatus as SupabaseOrderStatus, // Use the mapped Supabase-compatible value with type assertion
-    payment_status: 'unpaid' as SupabasePaymentStatus,
-    fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
-    table_number: tableNumberInput,
-    tip: tip || 0
-  };
+  console.log("Placing order in Supabase with:", {
+    userId,
+    userName,
+    cartItemsCount: cartItems.length,
+    cartTotal,
+    tableNumberInput,
+    tip
+  });
 
   try {
+    const orderItemsForSupabase = cartItems.map(cartItem => ({
+      menuItemId: cartItem.menuItem.id,
+      name: cartItem.menuItem.name,
+      quantity: cartItem.quantity,
+      unitPrice: cartItem.menuItem.price,
+      selectedOptions: cartItem.selectedOptions || {},
+      description: cartItem.menuItem.description,
+      image: cartItem.menuItem.image,
+      category: cartItem.menuItem.category,
+    }));
+
+    console.log("Prepared order items for Supabase:", orderItemsForSupabase);
+
+    // Convert to Json type for Supabase
+    const orderItemsJson = orderItemsForSupabase as unknown as Json;
+
+    // Convert the OrderStatus.NEW to corresponding Supabase value using the mapping function
+    const supabaseStatus = mapOrderStatusToSupabase(OrderStatus.NEW);
+
+    const tipAmount = tip || 0;
+    const totalWithTip = cartTotal + tipAmount;
+
+    const orderPayload = {
+      user_id: userId,
+      customer_name: userName || userId,
+      order_items: orderItemsJson,
+      total_amount: totalWithTip,
+      order_status: supabaseStatus as SupabaseOrderStatus, // Use the mapped Supabase-compatible value with type assertion
+      payment_status: 'unpaid' as SupabasePaymentStatus,
+      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
+      table_number: tableNumberInput,
+      tip: tipAmount
+    };
+
+    console.log("Order payload for Supabase:", orderPayload);
+
     const { data, error } = await supabase
       .from('orders')
       .insert(orderPayload)
@@ -159,6 +181,7 @@ export async function placeOrderInSupabase(
       return null;
     }
 
+    console.log("Order created in Supabase:", data);
     return data;
   } catch (error) {
     console.error('Unexpected error during placeOrder:', error);

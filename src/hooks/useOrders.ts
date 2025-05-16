@@ -4,9 +4,11 @@ import { Order, Address, OrderStatus } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useCartContext } from '@/context/CartContext';
 import { CartItem, fetchUserOrders, placeOrderInSupabase, getFilteredOrderHistory } from '@/services/orderService';
+import { toast } from 'sonner';
 
 export function useOrders(userId: string | undefined) {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { cart, cartTotal, clearCart } = useCartContext();
 
   // Fetch orders when userId changes
@@ -37,14 +39,27 @@ export function useOrders(userId: string | undefined) {
 
   // Load user orders
   const loadUserOrders = async (userId: string) => {
-    const userOrders = await fetchUserOrders(userId);
-    if (userOrders) {
-      setOrders(userOrders);
+    setIsLoading(true);
+    try {
+      const userOrders = await fetchUserOrders(userId);
+      if (userOrders) {
+        setOrders(userOrders);
+      }
+    } catch (error) {
+      console.error("Error loading user orders:", error);
+      toast.error("Failed to load your orders. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Place a new order
-  const placeOrder = async (address: Address | null, paymentMethod: string, tableNumberInput = 'Take Away', tip?: number): Promise<Order | null> => {
+  const placeOrder = async (
+    address: Address | null, 
+    paymentMethod: string, 
+    tableNumberInput = 'Take Away', 
+    tip?: number
+  ): Promise<Order | null> => {
     if (!userId) {
       console.error('User must be logged in to place an order');
       return null;
@@ -55,19 +70,38 @@ export function useOrders(userId: string | undefined) {
       return null;
     }
 
-    const userName = cart[0]?.menuItem?.name ? cart[0].menuItem.name : null;
-    const insertedOrderData = await placeOrderInSupabase(
-      userId, 
-      userName, 
-      cart as CartItem[], 
-      cartTotal, 
-      tableNumberInput, 
-      tip
-    );
+    try {
+      console.log("useOrders: Placing order with:", { 
+        userId, 
+        address, 
+        paymentMethod, 
+        cart: cart.length, 
+        tableNumberInput, 
+        tip 
+      });
+      
+      // Use the first item's name or userId as customer name
+      const userName = cart[0]?.menuItem?.name ? cart[0].menuItem.name : null;
+      
+      const insertedOrderData = await placeOrderInSupabase(
+        userId, 
+        userName, 
+        cart as CartItem[], 
+        cartTotal, 
+        tableNumberInput, 
+        tip
+      );
 
-    if (insertedOrderData) {
+      if (!insertedOrderData) {
+        console.error("Failed to insert order in Supabase");
+        return null;
+      }
+
+      console.log("Order inserted in Supabase:", insertedOrderData);
+
       // Use optional chaining to safely access properties
-      const tableNumberValue = (insertedOrderData as any).table_number || tableNumberInput;
+      const tableNumberValue = insertedOrderData.table_number || tableNumberInput;
+      const tipValue = insertedOrderData.tip || tip || 0;
 
       const newOrderForLocalState: Order = {
         id: insertedOrderData.id.toString(),
@@ -83,14 +117,16 @@ export function useOrders(userId: string | undefined) {
         address: address || { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true },
         paymentMethod,
         tableNumber: tableNumberValue,
-        tip,
+        tip: tipValue,
       };
       
+      console.log("New order created for local state:", newOrderForLocalState);
       setOrders(prevOrders => [newOrderForLocalState, ...prevOrders]);
-      clearCart();
       return newOrderForLocalState;
+    } catch (error) {
+      console.error('Error in placeOrder:', error);
+      return null;
     }
-    return null;
   };
   
   const getOrderHistory = () => {
@@ -99,6 +135,7 @@ export function useOrders(userId: string | undefined) {
 
   return {
     orders,
+    isLoading,
     placeOrder,
     getOrderHistory,
     loadUserOrders

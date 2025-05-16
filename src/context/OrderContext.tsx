@@ -27,8 +27,38 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
   const { currentUser } = useUserContext();
   const { placeOrder, getOrderHistory } = useOrders(currentUser?.id);
 
+  // Enhanced order placement function with better error handling
+  const handlePlaceOrder = async (
+    address: Address | null, 
+    paymentMethod: string, 
+    tableNumber?: string, 
+    tip?: number
+  ): Promise<Order | null> => {
+    try {
+      console.log("OrderContext: Placing order with:", { 
+        userId: currentUser?.id,
+        address, 
+        paymentMethod, 
+        tableNumber, 
+        tip 
+      });
+      
+      if (!currentUser?.id) {
+        console.error("OrderContext: No user ID available for order placement");
+        return null;
+      }
+      
+      const result = await placeOrder(address, paymentMethod, tableNumber, tip);
+      console.log("OrderContext: Order placement result:", result);
+      return result;
+    } catch (error) {
+      console.error("OrderContext: Error placing order:", error);
+      return null;
+    }
+  };
+
   const value = {
-    placeOrder,
+    placeOrder: handlePlaceOrder,
     getOrderHistory
   };
 
