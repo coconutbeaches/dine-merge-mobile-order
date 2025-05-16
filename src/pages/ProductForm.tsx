@@ -120,6 +120,7 @@ const ProductForm = () => {
         
         options.push({
           ...option,
+          selection_type: option.selection_type as "single" | "multiple", // Ensure correct typing
           choices: choicesData as ProductOptionChoice[]
         });
       }
@@ -218,7 +219,7 @@ const ProductForm = () => {
       // Insert options
       if (options.length > 0) {
         for (const option of options) {
-          // Create option
+          // Create option with properly typed selection_type
           const { data: newOption, error: optionError } = await supabase
             .from('product_options')
             .insert([{
@@ -313,7 +314,7 @@ const ProductForm = () => {
       // Insert updated options
       if (options.length > 0) {
         for (const option of options) {
-          // Create option
+          // Create option with properly typed selection_type
           const { data: newOption, error: optionError } = await supabase
             .from('product_options')
             .insert([{
@@ -381,7 +382,7 @@ const ProductForm = () => {
       name: `Option ${options.length + 1}`,
       required: false,
       enable_quantity: false,
-      selection_type: 'single',
+      selection_type: "single",  // Explicitly use string literal
       choices: [{
         id: `temp-${nanoid()}`,
         option_id: '',

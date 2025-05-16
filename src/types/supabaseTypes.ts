@@ -67,8 +67,8 @@ export interface Product {
   name: string;
   description?: string;
   price: number;
-  image_url?: string;
-  category_id?: string;
+  image_url?: string | null;
+  category_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,9 +80,11 @@ export interface ProductOption {
   name: string;
   required: boolean;
   enable_quantity: boolean;
-  selection_type: "single" | "multiple";
+  selection_type: "single" | "multiple";  // <-- Explicitly typed as union of literal types
   choices: ProductOptionChoice[];
   sort_order: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductOptionChoice {
@@ -91,4 +93,6 @@ export interface ProductOptionChoice {
   name: string;
   price_adjustment: number;
   sort_order: number;
+  created_at?: string;
+  updated_at?: string;
 }
