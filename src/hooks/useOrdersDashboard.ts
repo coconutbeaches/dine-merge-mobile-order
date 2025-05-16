@@ -71,11 +71,7 @@ export function useOrdersDashboard() {
         setOrders([]);
       }
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: `Failed to fetch orders: ${error.message}`,
-        variant: "destructive"
-      });
+      toast.error(`Failed to fetch orders: ${error.message}`);
       setOrders([]);
     } finally {
       setIsLoading(false);
@@ -121,17 +117,10 @@ export function useOrdersDashboard() {
         ) as Order[]
       );
       
-      toast({
-        title: "Success",
-        description: "Order status updated successfully",
-      });
+      toast.success("Order status updated successfully");
     } catch (error: any) {
       console.error('Error updating order status:', error);
-      toast({
-        title: "Error",
-        description: `Failed to update order status: ${error.message}`,
-        variant: "destructive"
-      });
+      toast.error(`Failed to update order status: ${error.message}`);
     }
   };
 
@@ -146,19 +135,12 @@ export function useOrdersDashboard() {
 
       if (error) throw error;
       
-      toast({
-        title: "Success",
-        description: `${selectedOrders.length} order(s) deleted successfully`,
-      });
+      toast.success(`${selectedOrders.length} order(s) deleted successfully`);
       
       setOrders(orders.filter(order => !selectedOrders.includes(order.id)));
       setSelectedOrders([]);
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: `Failed to delete orders: ${error.message}`,
-        variant: "destructive"
-      });
+      toast.error(`Failed to delete orders: ${error.message}`);
     }
   };
 
