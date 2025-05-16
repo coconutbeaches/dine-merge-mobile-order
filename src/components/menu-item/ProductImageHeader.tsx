@@ -3,6 +3,7 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { formatThaiCurrency } from '@/lib/utils';
 
 interface ProductImageHeaderProps {
   isLoading: boolean;
@@ -58,7 +59,7 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
         <p className="text-gray-600 mb-2">{productDescription}</p>
         
         {/* Base Price */}
-        <p className="text-xl font-bold">${productPrice.toFixed(2)}</p>
+        <p className="text-xl font-bold">{formatThaiCurrency(productPrice)}</p>
       </div>
     </>
   );

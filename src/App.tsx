@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AppProvider } from "./context/AppContext";
+import AppContextProvider from "./context/AppContextProvider";
 
 // Pages
 import Index from "./pages/Index";
@@ -29,14 +29,14 @@ function App() {
   return (
     <BrowserRouter>
       <TooltipProvider>
-        <AppProvider>
+        <AppContextProvider>
           <Toaster />
           <Sonner />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/menu" element={<Menu />} />
             <Route path="/menu/category/:categoryId" element={<ProductsByCategory />} />
-            <Route path="/menu/item/:itemId" element={<MenuItemDetail />} />
+            <Route path="/menu/item/:id" element={<MenuItemDetail />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/login" element={<Login />} />
@@ -53,7 +53,7 @@ function App() {
             <Route path="/admin/customer-orders/:customerId" element={<CustomerOrderHistory />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AppProvider>
+        </AppContextProvider>
       </TooltipProvider>
     </BrowserRouter>
   );

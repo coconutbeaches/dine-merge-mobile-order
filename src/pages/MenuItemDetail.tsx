@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -26,53 +27,72 @@ const MenuItemDetail = () => {
     queryFn: async () => {
       if (!id) throw new Error('Product ID is required');
       
-      const { data: productData, error: productError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-        
-      if (productError) throw productError;
-      if (!productData) throw new Error('Product not found');
-      
-      // Fetch product options
-      const { data: optionsData, error: optionsError } = await supabase
-        .from('product_options')
-        .select('*')
-        .eq('product_id', id)
-        .order('sort_order', { ascending: true });
-        
-      if (optionsError) throw optionsError;
-      
-      // Fetch option choices for all options
-      if (optionsData && optionsData.length > 0) {
-        const optionIds = optionsData.map(option => option.id);
-        const { data: choicesData, error: choicesError } = await supabase
-          .from('product_option_choices')
+      try {
+        const { data: productData, error: productError } = await supabase
+          .from('products')
           .select('*')
-          .in('option_id', optionIds)
+          .eq('id', id)
+          .single();
+          
+        if (productError) {
+          console.error("Error fetching product:", productError);
+          throw productError;
+        }
+        if (!productData) {
+          console.error("Product not found");
+          throw new Error('Product not found');
+        }
+        
+        // Fetch product options
+        const { data: optionsData, error: optionsError } = await supabase
+          .from('product_options')
+          .select('*')
+          .eq('product_id', id)
           .order('sort_order', { ascending: true });
           
-        if (choicesError) throw choicesError;
+        if (optionsError) {
+          console.error("Error fetching options:", optionsError);
+          throw optionsError;
+        }
         
-        // Attach choices to their corresponding options
-        const optionsWithChoices = optionsData.map(option => {
-          const choices = choicesData?.filter(choice => choice.option_id === option.id) || [];
+        // Fetch option choices for all options
+        if (optionsData && optionsData.length > 0) {
+          const optionIds = optionsData.map(option => option.id);
+          const { data: choicesData, error: choicesError } = await supabase
+            .from('product_option_choices')
+            .select('*')
+            .in('option_id', optionIds)
+            .order('sort_order', { ascending: true });
+            
+          if (choicesError) {
+            console.error("Error fetching choices:", choicesError);
+            throw choicesError;
+          }
+          
+          // Attach choices to their corresponding options
+          const optionsWithChoices = optionsData.map(option => {
+            const choices = choicesData?.filter(choice => choice.option_id === option.id) || [];
+            return {
+              ...option,
+              selection_type: option.selection_type as "single" | "multiple",
+              choices
+            };
+          });
+          
+          // Return product with options
           return {
-            ...option,
-            choices
-          };
-        });
+            ...productData,
+            options: optionsWithChoices
+          } as Product & { options: any[] }; // Cast to include options
+        }
         
-        // Return product with options
-        return {
-          ...productData,
-          options: optionsWithChoices
-        } as Product & { options: any[] }; // Cast to include options
+        return { ...productData, options: [] } as Product & { options: any[] }; // Cast to include options
+      } catch (err) {
+        console.error("Error in product query:", err);
+        throw err;
       }
-      
-      return { ...productData, options: [] } as Product & { options: any[] }; // Cast to include options
     },
+    retry: 1, // Only retry once on failure
   });
   
   const [quantity, setQuantity] = useState(1);
@@ -170,7 +190,6 @@ const MenuItemDetail = () => {
           error={error}
           productName={product?.name || ''}
           productDescription={product?.description}
-          // Use formatThaiCurrency for product price
           productPrice={product?.price ? parseFloat(product.price.toString()) : 0}
           imageUrl={product?.image_url}
         />
@@ -183,8 +202,6 @@ const MenuItemDetail = () => {
               onOptionChange={handleOptionChange}
               onCheckboxChange={handleCheckboxChange}
             />
-            
-            {/* SpecialInstructions component removed */}
             
             <QuantityAddToCart 
               quantity={quantity}

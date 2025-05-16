@@ -39,6 +39,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Auth state changed:", event, session);
         if (session) {
           setSupabaseSession(session);
           setSupabaseUser(session.user);
@@ -59,6 +60,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
 
     // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session check:", session);
       if (session) {
         setSupabaseSession(session);
         setSupabaseUser(session.user);
@@ -79,6 +81,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   // Fetch user profile from Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log("Fetching user profile for ID:", userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -91,6 +94,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       }
       
       if (data) {
+        console.log("User profile found:", data);
         setCurrentUser({
           id: data.id,
           email: data.email,
@@ -99,6 +103,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           addresses: [], 
           orderHistory: [] 
         });
+      } else {
+        console.log("No user profile found");
       }
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -130,6 +136,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   // User Management Functions
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log("Logging in user:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -140,6 +147,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         return false;
       }
 
+      console.log("Login successful:", data);
       return true;
     } catch (error) {
       console.error('Unexpected error during login:', error);
@@ -149,13 +157,15 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
+      console.log("Signing up user:", email);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name
-          }
+          },
+          emailRedirectTo: window.location.origin // Ensure proper redirect URL
         }
       });
       
@@ -164,6 +174,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         return false;
       }
       
+      console.log("Signup successful:", data);
       return true;
     } catch (error) {
       console.error('Unexpected error during signup:', error);

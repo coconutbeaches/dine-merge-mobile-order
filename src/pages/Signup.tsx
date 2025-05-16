@@ -6,9 +6,11 @@ import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [adminAccountCreated, setAdminAccountCreated] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
   
   // Create super admin account on component mount
   useEffect(() => {
@@ -41,7 +44,8 @@ const Signup = () => {
             data: {
               name: 'Super Admin',
               role: 'admin'
-            }
+            },
+            emailRedirectTo: window.location.origin
           }
         });
         
@@ -90,9 +94,9 @@ const Signup = () => {
       if (success) {
         toast({
           title: "Success",
-          description: "Your account has been created successfully"
+          description: "Your account has been created successfully. Please check your email to verify your account."
         });
-        navigate('/');
+        setSignupSuccess(true);
       } else {
         toast({
           title: "Error",
@@ -114,80 +118,109 @@ const Signup = () => {
   return (
     <Layout title="Create Account" showBackButton>
       <div className="page-container">
-        <Card>
-          <CardHeader className="text-center">
-            <CardTitle className="text-restaurant-primary text-2xl">Join Us</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSignup}>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input 
-                    id="name"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input 
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <Input 
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                
+        {signupSuccess ? (
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-restaurant-primary text-2xl">Check Your Email</CardTitle>
+              <CardDescription>
+                We've sent a verification link to your email address
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <InfoIcon className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  Please check your email inbox and click the verification link to complete your registration.
+                  You'll be redirected to the site afterward.
+                </AlertDescription>
+              </Alert>
+              <div className="text-center mt-4">
                 <Button 
-                  type="submit" 
-                  className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
-                  disabled={isLoading}
+                  onClick={() => navigate('/login')} 
+                  variant="outline"
+                  className="border-restaurant-primary text-restaurant-primary hover:bg-restaurant-primary/10"
                 >
-                  {isLoading ? "Creating account..." : "Sign Up"}
+                  Back to Login
                 </Button>
-                
-                <div className="text-center mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Already have an account?{" "}
-                    <Link to="/login" className="text-restaurant-primary hover:underline">
-                      Login
-                    </Link>
-                  </p>
-                </div>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-restaurant-primary text-2xl">Join Us</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSignup}>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
+                    <Input 
+                      id="name"
+                      placeholder="John Doe"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input 
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input 
+                      id="confirmPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={e => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Creating account..." : "Sign Up"}
+                  </Button>
+                  
+                  <div className="text-center mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Already have an account?{" "}
+                      <Link to="/login" className="text-restaurant-primary hover:underline">
+                        Login
+                      </Link>
+                    </p>
+                  </div>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

@@ -80,7 +80,7 @@ export interface ProductOption {
   name: string;
   required: boolean;
   enable_quantity: boolean;
-  selection_type: "single" | "multiple";  // <-- Explicitly typed as union of literal types
+  selection_type: "single" | "multiple";
   choices: ProductOptionChoice[];
   sort_order: number;
   created_at?: string;
