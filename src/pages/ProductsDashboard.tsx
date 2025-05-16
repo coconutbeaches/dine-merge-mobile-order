@@ -18,6 +18,7 @@ interface Category {
   name: string;
 }
 
+// Define the ProductWithCategory interface for this file only
 interface ProductWithCategory extends Product {
   categories?: Category;
 }

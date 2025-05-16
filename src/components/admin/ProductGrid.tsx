@@ -5,17 +5,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Plus } from 'lucide-react';
 import { formatThaiCurrency } from '@/lib/utils';
 import { NavigateFunction } from 'react-router-dom';
+import { Product } from '@/types/supabaseTypes';
 
 interface Category {
   id: string;
   name: string;
 }
 
-interface ProductWithCategory {
-  id: string;
-  name: string;
-  price: number;
-  image_url: string | null;
+interface ProductWithCategory extends Product {
   categories?: Category;
 }
 
