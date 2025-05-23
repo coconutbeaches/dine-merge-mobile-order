@@ -115,15 +115,17 @@ export async function placeOrderInSupabase(
   userName: string | null, 
   cartItems: CartItem[], 
   cartTotal: number,
-  tableNumberInput: string = 'Take Away'
+  tableNumberInput: string = 'Take Away' // Parameter still exists but won't be used in payload
 ): Promise<any | null> { 
-  console.log("Placing order in Supabase with:", {
+  console.log("Placing order in Supabase with (tableNumberInput will be ignored in payload):", {
     userId,
     userName,
     cartItemsCount: cartItems.length,
     cartTotal,
     tableNumberInput
   });
+
+  let orderPayload: any = {}; 
 
   try {
     const orderItemsForSupabase = cartItems.map(cartItem => ({
@@ -140,21 +142,20 @@ export async function placeOrderInSupabase(
     console.log("Prepared order items for Supabase:", orderItemsForSupabase);
 
     const orderItemsJson = orderItemsForSupabase as unknown as Json;
-
     const supabaseStatus = mapOrderStatusToSupabase(OrderStatus.NEW);
 
-    const orderPayload = {
+    orderPayload = {
       user_id: userId,
       customer_name: userName || userId,
       order_items: orderItemsJson,
       total_amount: cartTotal,
       order_status: supabaseStatus as SupabaseOrderStatus, 
       payment_status: 'unpaid' as SupabasePaymentStatus,
-      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
-      table_number: tableNumberInput
+      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus
+      // table_number: tableNumberInput, // MODIFIED: This line is removed
     };
 
-    console.log("Order payload for Supabase:", orderPayload);
+    console.log("Order payload for Supabase (before insert, table_number removed):", orderPayload);
 
     const { data, error } = await supabase
       .from('orders')
@@ -163,14 +164,27 @@ export async function placeOrderInSupabase(
       .single();
 
     if (error) {
-      console.error('Error placing order in Supabase:', error);
+      console.error('Error placing order in Supabase (Supabase client error):', error);
+      console.error('Supabase error message:', error.message);
+      if ('details' in error) console.error('Supabase error details:', error.details);
+      if ('code' in error) console.error('Supabase error code:', error.code);
+      if ('hint' in error) console.error('Supabase error hint:', error.hint);
+      console.log('Attempted orderPayload:', JSON.stringify(orderPayload, null, 2)); 
       return null;
     }
 
     console.log("Order created in Supabase:", data);
     return data;
-  } catch (error) {
-    console.error('Unexpected error during placeOrder:', error);
+  } catch (error) { 
+    console.error('Unexpected error during placeOrder (outer catch):', error);
+    console.log('Attempted orderPayload:', JSON.stringify(orderPayload, null, 2));
+    console.error('Full error object during order placement:', error);
+    if (error && typeof error === 'object') {
+      if ('message' in error) console.error('Error message:', (error as {message: string}).message);
+      if ('details' in error) console.error('Error details:', (error as {details: string}).details);
+      if ('code' in error) console.error('Error code:', (error as {code: string}).code);
+      if ('hint' in error) console.error('Error hint:', (error as {hint: string}).hint);
+    }
     return null;
   }
 }
