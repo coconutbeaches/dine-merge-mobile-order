@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { Address, Order, OrderStatus } from '@/types';
+// Import SelectedOptionsType from the canonical source
+import { Address, Order, OrderStatus, SelectedOptionsType } from '@/types'; 
 import { 
   SupabaseOrderStatus, 
   PaymentStatus as SupabasePaymentStatus, 
@@ -9,6 +9,8 @@ import {
   mapSupabaseToOrderStatus
 } from '@/types/supabaseTypes';
 import { Json } from '@/integrations/supabase/types';
+
+// Remove local definition of SelectedOptionsType as it's now imported
 
 export type CartItem = {
   menuItem: {
@@ -21,7 +23,7 @@ export type CartItem = {
     available: boolean;
   };
   quantity: number;
-  selectedOptions?: any;
+  selectedOptions?: SelectedOptionsType; // Now uses the imported type
 };
 
 export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
@@ -43,17 +45,12 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
 
     if (data && data.length > 0) {
       const formattedOrders = data.map(order => {
-        // Determine the correct OrderStatus
         let orderStatus: OrderStatus;
         
-        // Special handling for 'paid' orders
         if (order.payment_status === 'paid') {
           orderStatus = OrderStatus.PAID;
         } else if (order.order_status) {
-          // Map Supabase order_status to our application OrderStatus string
           const mappedStatusString = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
-          
-          // Convert from string to our enum OrderStatus
           switch(mappedStatusString) {
             case 'new': orderStatus = OrderStatus.NEW; break;
             case 'confirmed': orderStatus = OrderStatus.CONFIRMED; break;
@@ -65,18 +62,15 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
             default: orderStatus = OrderStatus.NEW;
           }
         } else {
-          // Default fallback
           orderStatus = OrderStatus.NEW;
         }
 
-        // Parse order items - fix type casting issue
         const orderItemsParsed = Array.isArray(order.order_items) 
           ? order.order_items 
           : typeof order.order_items === 'string' 
             ? JSON.parse(order.order_items) 
             : ((order.order_items as unknown as any) || []);
 
-        // Use safer property access with optional chaining
         const tableNumberValue = order.table_number || 'Take Away';
         const tipValue = order.tip || 0;
 
@@ -85,16 +79,16 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
           userId: order.user_id || userId,
           items: Array.isArray(orderItemsParsed) ? orderItemsParsed.map((item: any) => ({
             menuItem: {
-              id: item.menuItemId,
+              id: item.menu_item_id, 
               name: item.name,
-              price: item.unitPrice,
+              price: item.unit_price, 
               description: item.description || '',
               image: item.image || '',
               category: item.category || '',
               available: item.available !== undefined ? item.available : true,
             },
             quantity: item.quantity,
-            selectedOptions: item.selectedOptions || {},
+            selectedOptions: item.selected_options || {}, 
           })) : [],
           status: orderStatus,
           total: order.total_amount,
@@ -122,7 +116,7 @@ export async function placeOrderInSupabase(
   cartItems: CartItem[], 
   cartTotal: number,
   tableNumberInput: string = 'Take Away'
-): Promise<any | null> {
+): Promise<any | null> { 
   console.log("Placing order in Supabase with:", {
     userId,
     userName,
@@ -133,11 +127,11 @@ export async function placeOrderInSupabase(
 
   try {
     const orderItemsForSupabase = cartItems.map(cartItem => ({
-      menuItemId: cartItem.menuItem.id,
+      menu_item_id: cartItem.menuItem.id, 
       name: cartItem.menuItem.name,
       quantity: cartItem.quantity,
-      unitPrice: cartItem.menuItem.price,
-      selectedOptions: cartItem.selectedOptions || {},
+      unit_price: cartItem.menuItem.price, 
+      selected_options: cartItem.selectedOptions || {}, 
       description: cartItem.menuItem.description,
       image: cartItem.menuItem.image,
       category: cartItem.menuItem.category,
@@ -145,10 +139,8 @@ export async function placeOrderInSupabase(
 
     console.log("Prepared order items for Supabase:", orderItemsForSupabase);
 
-    // Convert to Json type for Supabase
     const orderItemsJson = orderItemsForSupabase as unknown as Json;
 
-    // Convert the OrderStatus.NEW to corresponding Supabase value using the mapping function
     const supabaseStatus = mapOrderStatusToSupabase(OrderStatus.NEW);
 
     const orderPayload = {
@@ -156,7 +148,7 @@ export async function placeOrderInSupabase(
       customer_name: userName || userId,
       order_items: orderItemsJson,
       total_amount: cartTotal,
-      order_status: supabaseStatus as SupabaseOrderStatus, // Use the mapped Supabase-compatible value with type assertion
+      order_status: supabaseStatus as SupabaseOrderStatus, 
       payment_status: 'unpaid' as SupabasePaymentStatus,
       fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
       table_number: tableNumberInput

@@ -1,9 +1,8 @@
-
 export interface User {
   id: string;
   email: string;
   name: string;
-  phone: string;  // Changed from optional to required
+  phone: string;
   addresses: Address[];
   orderHistory: Order[];
 }
@@ -40,12 +39,15 @@ export interface MenuItemOption {
   multiSelect: boolean;
 }
 
+// Define the new SelectedOptionsType
+export type SelectedOptionsType = {
+  [optionName: string]: string[] | string;
+};
+
 export interface CartItem {
   menuItem: MenuItem;
   quantity: number;
-  selectedOptions?: {
-    [optionName: string]: string[] | string;
-  };
+  selectedOptions?: SelectedOptionsType; // MODIFIED to use the named type
   specialInstructions?: string;
 }
 
@@ -57,10 +59,10 @@ export interface Order {
   total: number;
   createdAt: Date;
   estimatedDeliveryTime?: Date;
-  address: Address; // For delivery orders, if applicable
+  address: Address; 
   paymentMethod: string;
   tip?: number;
-  tableNumber?: string; // Added for table number or "Take Away"
+  tableNumber?: string; 
 }
 
 export enum OrderStatus {

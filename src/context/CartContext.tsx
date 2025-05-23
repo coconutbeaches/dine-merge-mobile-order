@@ -1,11 +1,12 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CartItem, MenuItem } from '../types';
+// Import CartItem, MenuItem, and the canonical SelectedOptionsType from ../types
+import { CartItem, MenuItem, SelectedOptionsType } from '../types'; 
 import { useUserContext } from './UserContext';
+// Remove the import from '../services/orderService' as SelectedOptionsType is now from '../types'
 
 interface CartContextType {
-  cart: CartItem[];
-  addToCart: (item: MenuItem, quantity: number, selectedOptions?: any) => void;
+  cart: CartItem[]; // CartItem now uses SelectedOptionsType from ../types
+  addToCart: (item: MenuItem, quantity: number, selectedOptions?: SelectedOptionsType) => void;
   removeFromCart: (itemId: string) => void;
   updateCartItemQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -30,7 +31,6 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const { isLoading: userIsLoading, isLoggedIn } = useUserContext();
 
-  // Load cart from localStorage on mount
   useEffect(() => {
     const storedCart = localStorage.getItem('cart');
     if (storedCart) {
@@ -38,30 +38,27 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     }
   }, []);
 
-  // Listen for user login/logout to clear cart
   useEffect(() => {
     if (isLoggedIn) {
-      // Clear cart when user logs in
       clearCart();
     }
   }, [isLoggedIn]);
   
-  // Save cart to localStorage when it changes
   useEffect(() => {
     if (!userIsLoading) {
       localStorage.setItem('cart', JSON.stringify(cart));
     }
   }, [cart, userIsLoading]);
   
-  // Calculate cart total
   const cartTotal = cart.reduce((total, item) => {
     let itemPrice = item.menuItem.price;
     
-    // Add option prices if there are any
     if (item.selectedOptions && item.menuItem.options) {
+      // item.selectedOptions is now correctly typed via CartItem from ../types
+      const currentItemOptions = item.selectedOptions; 
       item.menuItem.options.forEach(option => {
         if (option.multiSelect) {
-          const selectedValues = item.selectedOptions?.[option.name] as string[] || [];
+          const selectedValues = currentItemOptions?.[option.name] as string[] || [];
           selectedValues.forEach(value => {
             const choice = option.choices.find(c => c.name === value);
             if (choice) {
@@ -69,7 +66,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
             }
           });
         } else {
-          const selectedValue = item.selectedOptions?.[option.name] as string;
+          const selectedValue = currentItemOptions?.[option.name] as string;
           const choice = option.choices?.find(c => c.name === selectedValue);
           if (choice) {
             itemPrice += choice.price;
@@ -81,11 +78,10 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     return total + (itemPrice * item.quantity);
   }, 0);
   
-  // Cart Management Functions
   const addToCart = (
     item: MenuItem, 
     quantity: number, 
-    selectedOptions?: any
+    selectedOptions?: SelectedOptionsType 
   ) => {
     const existingCartItemIndex = cart.findIndex(
       cartItem => cartItem.menuItem.id === item.id && 
@@ -97,12 +93,13 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       updatedCart[existingCartItemIndex].quantity += quantity;
       setCart(updatedCart);
     } else {
+      // CartItem.selectedOptions from ../types is now SelectedOptionsType, so this is type-consistent
       setCart([
         ...cart,
         {
           menuItem: item,
           quantity,
-          selectedOptions
+          selectedOptions 
         }
       ]);
     }
