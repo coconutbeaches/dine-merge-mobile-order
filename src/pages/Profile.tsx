@@ -164,6 +164,11 @@ const Profile = () => {
 
         {/* Removed Saved Addresses section as per Photo 7 */}
 
+        {/* Suggested placement for "My Orders" button */}
+        <div className="mt-4 text-center"> {/* Adjust margin as needed */}
+          <Button onClick={() => navigate('/order-history')}>My Orders</Button>
+        </div>
+
         <div className="mt-8 text-center">
           <Button variant="link" onClick={handleLogout} className="text-destructive hover:text-destructive/80">
             Log Out
