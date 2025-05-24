@@ -40,13 +40,9 @@ export type Database = {
         Row: {
           created_at: string
           customer_name: string | null
-          fulfillment_status:
-            | Database["public"]["Enums"]["fulfillment_status"]
-            | null
           id: number
           order_items: Json | null
           order_status: Database["public"]["Enums"]["order_status"] | null
-          payment_status: Database["public"]["Enums"]["payment_status"] | null
           total_amount: number
           updated_at: string
           user_id: string | null
@@ -54,13 +50,9 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_name?: string | null
-          fulfillment_status?:
-            | Database["public"]["Enums"]["fulfillment_status"]
-            | null
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
-          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           total_amount: number
           updated_at?: string
           user_id?: string | null
@@ -68,13 +60,9 @@ export type Database = {
         Update: {
           created_at?: string
           customer_name?: string | null
-          fulfillment_status?:
-            | Database["public"]["Enums"]["fulfillment_status"]
-            | null
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
-          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           total_amount?: number
           updated_at?: string
           user_id?: string | null
@@ -242,18 +230,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      fulfillment_status:
-        | "unfulfilled"
-        | "ready"
-        | "out_for_delivery"
-        | "fulfilled"
-      order_status: "pending" | "confirmed" | "completed" | "cancelled"
-      payment_status:
-        | "unpaid"
-        | "confirming_payment"
-        | "partially_paid"
+      order_status:
+        | "new"
+        | "confirmed"
+        | "completed"
+        | "delivered"
         | "paid"
-        | "refunded"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -369,19 +352,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      fulfillment_status: [
-        "unfulfilled",
-        "ready",
-        "out_for_delivery",
-        "fulfilled",
-      ],
-      order_status: ["pending", "confirmed", "completed", "cancelled"],
-      payment_status: [
-        "unpaid",
-        "confirming_payment",
-        "partially_paid",
+      order_status: [
+        "new",
+        "confirmed",
+        "completed",
+        "delivered",
         "paid",
-        "refunded",
+        "cancelled",
       ],
     },
   },

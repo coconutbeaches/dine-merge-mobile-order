@@ -66,8 +66,7 @@ export interface Order {
 export enum OrderStatus {
   NEW = "new",
   CONFIRMED = "confirmed",
-  MAKE = "make",
-  READY = "ready",
+  COMPLETED = "completed",
   DELIVERED = "delivered",
   PAID = "paid",
   CANCELLED = "cancelled",

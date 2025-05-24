@@ -2,9 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Address, Order, OrderStatus } from '@/types';
 import { 
-  SupabaseOrderStatus, 
-  PaymentStatus as SupabasePaymentStatus, 
-  FulfillmentStatus as SupabaseFulfillmentStatus,
+  SupabaseOrderStatus,
   mapOrderStatusToSupabase,
   mapSupabaseToOrderStatus
 } from '@/types/supabaseTypes';
@@ -46,10 +44,7 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
         // Determine the correct OrderStatus
         let orderStatus: OrderStatus;
         
-        // Special handling for 'paid' orders
-        if (order.payment_status === 'paid') {
-          orderStatus = OrderStatus.PAID;
-        } else if (order.order_status) {
+        if (order.order_status) {
           // Map Supabase order_status to our application OrderStatus string
           const mappedStatusString = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
           
@@ -57,12 +52,11 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
           switch(mappedStatusString) {
             case 'new': orderStatus = OrderStatus.NEW; break;
             case 'confirmed': orderStatus = OrderStatus.CONFIRMED; break;
-            case 'make': orderStatus = OrderStatus.MAKE; break;
-            case 'ready': orderStatus = OrderStatus.READY; break;
+            case 'completed': orderStatus = OrderStatus.COMPLETED; break;
             case 'delivered': orderStatus = OrderStatus.DELIVERED; break;
             case 'paid': orderStatus = OrderStatus.PAID; break;
             case 'cancelled': orderStatus = OrderStatus.CANCELLED; break;
-            default: orderStatus = OrderStatus.NEW;
+            default: orderStatus = OrderStatus.NEW; // Or handle as an error
           }
         } else {
           // Default fallback
@@ -157,8 +151,6 @@ export async function placeOrderInSupabase(
       order_items: orderItemsJson,
       total_amount: cartTotal,
       order_status: supabaseStatus as SupabaseOrderStatus, // Use the mapped Supabase-compatible value with type assertion
-      payment_status: 'unpaid' as SupabasePaymentStatus,
-      fulfillment_status: 'unfulfilled' as SupabaseFulfillmentStatus,
       table_number: tableNumberInput
     };
 
