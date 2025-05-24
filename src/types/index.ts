@@ -4,6 +4,7 @@ export interface User {
   email: string;
   name: string;
   phone: string;  // Changed from optional to required
+  role?: string; // Add role field
   addresses: Address[];
   orderHistory: Order[];
 }

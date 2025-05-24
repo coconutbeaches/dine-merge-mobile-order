@@ -84,7 +84,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       console.log("Fetching user profile for ID:", userId);
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, role') // Ensure role is fetched
         .eq('id', userId)
         .maybeSingle();
       
@@ -100,6 +100,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           email: data.email,
           name: data.name || data.email.split('@')[0],
           phone: data.phone || "",
+          role: data.role || 'customer', // Store the role, default to 'customer'
           addresses: [], 
           orderHistory: [] 
         });
