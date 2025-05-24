@@ -89,10 +89,11 @@ const CustomerOrderHistory = () => {
             appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
           } else {
             // Default fallback
+            console.warn(`Order ${order.id} - order_status from DB is null or empty. Defaulting to 'new'. DB value: `, order.order_status);
             appOrderStatus = 'new';
           }
           
-          console.log(`Order ${order.id} - Supabase status: ${order.order_status}, App status: ${appOrderStatus}`);
+          console.log(`Order ${order.id} - DB order_status: ${order.order_status}, DB payment_status: ${order.payment_status}, Calculated app_status: ${appOrderStatus}`);
           
           return {
             ...order,

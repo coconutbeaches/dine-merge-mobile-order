@@ -40,7 +40,7 @@ export function mapSupabaseToOrderStatus(status: SupabaseOrderStatus): OrderStat
   switch (status) {
     case "pending": return "new";
     case "confirmed": return "confirmed";
-    case "completed": return "delivered"; // Note: could be either delivered or paid
+    case "completed": return "delivered"; // Note: 'completed' from DB typically maps to 'delivered'. If payment_status is 'paid', calling functions usually override this to 'paid'.
     case "cancelled": return "cancelled";
     default: return "new";
   }
