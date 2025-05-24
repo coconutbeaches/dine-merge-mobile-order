@@ -120,6 +120,15 @@ const Login = () => {
                     required
                   />
                 </div>
+
+                <div className="text-right">
+                  <Link 
+                    to="/forgot-password" 
+                    className="text-sm text-restaurant-primary hover:underline"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
                 
                 <Button 
                   type="submit" 
