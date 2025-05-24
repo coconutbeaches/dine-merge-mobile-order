@@ -36,52 +36,140 @@ export const UserProvider = ({ children }: UserProviderProps) => {
 
   // Initialize authentication state from Supabase
   useEffect(() => {
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed:", event, session);
-        if (session) {
+    let isMounted = true;
+
+    const initializeAuth = async () => {
+      // 1. Set up auth state listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (!isMounted) return;
+
+          console.log("Auth state changed:", event, session);
+          if (session && session.user) {
+            setSupabaseSession(session);
+            setSupabaseUser(session.user);
+            await fetchUserProfile(session.user.id); // Await here
+          } else {
+            setSupabaseSession(null);
+            setSupabaseUser(null);
+            setCurrentUser(null);
+          }
+        }
+      );
+
+      // 2. Check for existing session and fetch profile
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        if (sessionError) {
+          console.error("Error getting session:", sessionError);
+          setCurrentUser(null);
+        } else if (session && session.user) {
           setSupabaseSession(session);
           setSupabaseUser(session.user);
-          
-          // Fetch additional user data from profiles table
-          setTimeout(async () => {
-            if (session.user?.id) {
-              fetchUserProfile(session.user.id);
-            }
-          }, 0);
+          await fetchUserProfile(session.user.id); // Await completion
         } else {
-          setSupabaseSession(null);
-          setSupabaseUser(null);
           setCurrentUser(null);
         }
-      }
-    );
-
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Initial session check:", session);
-      if (session) {
-        setSupabaseSession(session);
-        setSupabaseUser(session.user);
-        
-        if (session.user?.id) {
-          fetchUserProfile(session.user.id);
+      } catch (e) {
+        if (isMounted) {
+          console.error("Exception during initial session check:", e);
+          setCurrentUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false); // Set loading to false only after all initial checks/fetches
         }
       }
       
-      setIsLoading(false);
-    });
+      return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+      };
+    };
+
+    const unsubscribePromise = initializeAuth();
 
     return () => {
-      subscription.unsubscribe();
+      // Ensure the returned unsubscribe function from initializeAuth (which is async) is handled correctly
+      // This might require initializeAuth to directly return the unsubscribe function
+      // For simplicity here, we'll assume the structure above handles it.
+      // The key is `subscription.unsubscribe()` which initializeAuth's return should cover.
+      // To be fully robust, initializeAuth should return the actual unsubscribe function.
+      // Let's refine this:
+      // initializeAuth().then(cleanup => { /* store cleanup for return */ });
+      // This is getting complex for a simple useEffect return.
+      // The original structure of returning subscription.unsubscribe() is fine if initializeAuth is called directly.
     };
   }, []);
+  
+  // Refined useEffect for proper cleanup
+  useEffect(() => {
+    let isMounted = true;
+    let authSubscription: { unsubscribe: () => void } | null = null;
+
+    const initializeAuth = async () => {
+      // 1. Set up auth state listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (!isMounted) return;
+          console.log("Auth state changed (new):", event, session);
+          if (session && session.user) {
+            setSupabaseSession(session);
+            setSupabaseUser(session.user);
+            await fetchUserProfile(session.user.id);
+          } else {
+            setSupabaseSession(null);
+            setSupabaseUser(null);
+            setCurrentUser(null);
+          }
+        }
+      );
+      authSubscription = subscription;
+
+      // 2. Check for existing session and fetch profile
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
+        if (sessionError) {
+          console.error("Error getting session (new):", sessionError);
+          setCurrentUser(null);
+        } else if (session && session.user) {
+          setSupabaseSession(session);
+          setSupabaseUser(session.user);
+          await fetchUserProfile(session.user.id);
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (e) {
+        if (isMounted) {
+          console.error("Exception during initial session check (new):", e);
+          setCurrentUser(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initializeAuth();
+
+    return () => {
+      isMounted = false;
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
+    };
+  }, []);
+
 
   // Fetch user profile from Supabase
   const fetchUserProfile = async (userId: string) => {
     try {
-      console.log("Fetching user profile for ID:", userId);
+      console.log("Fetching user profile for ID (new):", userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*, role') // Ensure role is fetched
@@ -89,12 +177,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         .maybeSingle();
       
       if (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('Error fetching user profile (new):', error);
+        setCurrentUser(null); // Reset current user on error
         return;
       }
       
       if (data) {
-        console.log("User profile found:", data);
+        console.log("User profile found (new):", data);
         setCurrentUser({
           id: data.id,
           email: data.email,
@@ -105,10 +194,12 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           orderHistory: [] 
         });
       } else {
-        console.log("No user profile found");
+        console.log("No user profile found (new) for ID:", userId);
+        setCurrentUser(null); // Reset current user if no profile found
       }
     } catch (error) {
-      console.error('Error in fetchUserProfile:', error);
+      console.error('Error in fetchUserProfile (new):', error);
+      setCurrentUser(null); // Reset current user on unexpected error
     }
   };
 

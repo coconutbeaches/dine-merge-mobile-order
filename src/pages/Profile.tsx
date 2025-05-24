@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom'; // Added Link
 import Layout from '@/components/layout/Layout';
-import { useAppContext } from '@/context/AppContext';
+import { useUserContext } from '@/context/UserContext'; // Changed to useUserContext
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,25 +12,31 @@ import { toast } from 'sonner';
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { currentUser, isLoggedIn, isLoading: isLoadingAppContext, logout } = useAppContext();
+  // Switched to useUserContext
+  const { currentUser, isLoggedIn, isLoading: isLoadingUserContext, logout } = useUserContext(); 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // This is for page-specific loading like profile updates
 
   useEffect(() => {
-    if (!isLoadingAppContext && !isLoggedIn) {
+    // Use isLoadingUserContext for the initial auth check
+    if (!isLoadingUserContext && !isLoggedIn) {
       navigate('/login', { state: { returnTo: '/profile' } });
     }
     if (currentUser) {
       setName(currentUser.name || '');
       setEmail(currentUser.email || '');
-      // Assuming phone is directly on currentUser, or fetched via profiles
-      // For now, let's fetch it from profiles table
-      fetchProfileDetails();
+      // Phone is now directly on currentUser from UserContext's fetchUserProfile
+      setPhone(currentUser.phone || ''); 
     }
-  }, [currentUser, isLoggedIn, isLoadingAppContext, navigate]);
+  }, [currentUser, isLoggedIn, isLoadingUserContext, navigate]);
+
+  // Removed fetchProfileDetails as phone is now expected to be on currentUser
+  // If phone needs to be fetched/updated separately, that logic would remain,
+  // but for this task, assuming UserContext provides it.
+  // If not, fetchProfileDetails would need to be reinstated and potentially adjusted.
 
   const fetchProfileDetails = async () => {
     if (!currentUser) return;
@@ -89,7 +95,8 @@ const Profile = () => {
     navigate('/');
   };
 
-  if (isLoadingAppContext || (!currentUser && isLoggedIn)) {
+  // Use isLoadingUserContext for the main loading check
+  if (isLoadingUserContext) {
     return (
       <Layout title="My Profile" showBackButton>
         <div className="page-container text-center py-10">Loading profile...</div>
@@ -98,7 +105,8 @@ const Profile = () => {
   }
 
   if (!isLoggedIn || !currentUser) {
-     // Should have been redirected by useEffect, but as a fallback
+    // This condition should ideally be caught by the useEffect redirect earlier
+    // if isLoadingUserContext is false and user is not logged in.
     return (
       <Layout title="My Profile" showBackButton>
         <div className="page-container text-center py-10">Please log in to view your profile.</div>
@@ -165,8 +173,14 @@ const Profile = () => {
         {/* Removed Saved Addresses section as per Photo 7 */}
 
         {/* Suggested placement for "My Orders" button */}
-        <div className="mt-4 text-center"> {/* Adjust margin as needed */}
-          <Button onClick={() => navigate('/order-history')}>My Orders</Button>
+        <div className="mt-6 text-center space-y-3"> {/* Added space-y-3 for button spacing */}
+          <Button onClick={() => navigate('/order-history')} className="w-full sm:w-auto">My Orders</Button>
+          
+          {currentUser?.role === 'admin' && (
+            <Link to="/admin" className="block sm:inline-block sm:ml-3">
+              <Button variant="outline" className="w-full sm:w-auto">Admin Dashboard</Button>
+            </Link>
+          )}
         </div>
 
         <div className="mt-8 text-center">
