@@ -42,9 +42,11 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
     if (data && data.length > 0) {
       const formattedOrders = data.map(order => {
         // Determine the correct OrderStatus
-        let orderStatus: OrderStatus;
-        
-        if (order.order_status) {
+        let orderStatus: OrderStatus; // This is the enum from '@/types'
+
+        if (order.payment_status === 'paid') {
+          orderStatus = OrderStatus.PAID;
+        } else if (order.order_status) {
           // Map Supabase order_status to our application OrderStatus string
           const mappedStatusString = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
           
@@ -54,7 +56,9 @@ export async function fetchUserOrders(userId: string): Promise<Order[] | null> {
             case 'confirmed': orderStatus = OrderStatus.CONFIRMED; break;
             case 'completed': orderStatus = OrderStatus.COMPLETED; break;
             case 'delivered': orderStatus = OrderStatus.DELIVERED; break;
-            case 'paid': orderStatus = OrderStatus.PAID; break;
+            // 'paid' case here is now less likely to be hit directly if payment_status is authoritative,
+            // but keep for robustness if an order could be 'paid' via order_status without payment_status being 'paid'.
+            case 'paid': orderStatus = OrderStatus.PAID; break; 
             case 'cancelled': orderStatus = OrderStatus.CANCELLED; break;
             default: orderStatus = OrderStatus.NEW; // Or handle as an error
           }
