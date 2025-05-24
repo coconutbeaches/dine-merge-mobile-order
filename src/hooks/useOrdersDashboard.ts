@@ -44,29 +44,66 @@ export function useOrdersDashboard() {
 
       if (error) throw error;
       
-      if (data) {
-        // Transform the data to ensure order_status is properly mapped to our application's OrderStatus
-        const transformedOrders = data.map(order => {
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(order => order.user_id).filter(id => id != null))] as string[];
+        let profilesMap = new Map<string, { name?: string; email?: string }>();
+
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, name, email')
+            .in('id', userIds);
+
+          if (profilesError) {
+            console.error('Error fetching profiles:', profilesError);
+            // Continue without profile data if there's an error
+          } else if (profilesData) {
+            profilesData.forEach(profile => {
+              profilesMap.set(profile.id, { name: profile.name, email: profile.email });
+            });
+          }
+        }
+
+        const enrichedOrders = data.map(order => {
           let appOrderStatus: OrderStatus;
-          
-          // Special handling for 'paid' orders
           if (order.payment_status === 'paid') {
             appOrderStatus = 'paid';
           } else if (order.order_status) {
-            // Map from Supabase status to our application status
             appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
           } else {
-            // Default fallback
             appOrderStatus = 'new';
+          }
+
+          let customerNameFromProfile: string | undefined = undefined;
+          let customerEmailFromProfile: string | undefined = undefined;
+
+          if (order.user_id) {
+            const profile = profilesMap.get(order.user_id);
+            if (profile) {
+              customerNameFromProfile = profile.name || 'Unnamed Profile';
+              customerEmailFromProfile = profile.email || 'No Email';
+            } else {
+              customerNameFromProfile = 'Unknown Customer (Profile Not Found)';
+              customerEmailFromProfile = 'N/A';
+            }
+          } else if (order.customer_name) {
+            // Fallback to existing customer_name if user_id is null but customer_name exists
+            customerNameFromProfile = order.customer_name; 
+            customerEmailFromProfile = 'N/A (Guest Order)';
+          } else {
+            customerNameFromProfile = 'Guest Order';
+            customerEmailFromProfile = 'N/A';
           }
           
           return {
             ...order,
-            order_status: appOrderStatus
+            order_status: appOrderStatus,
+            customer_name_from_profile: customerNameFromProfile,
+            customer_email_from_profile: customerEmailFromProfile,
           } as Order;
         });
         
-        setOrders(transformedOrders);
+        setOrders(enrichedOrders);
       } else {
         setOrders([]);
       }

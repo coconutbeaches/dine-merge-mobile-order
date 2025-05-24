@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus } from 'lucide-react';
+import { Plus, UserPlus } from 'lucide-react'; // Added UserPlus
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -18,6 +18,9 @@ const AdminOrderCreator = () => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [isCreatingGuest, setIsCreatingGuest] = useState(false);
   const [open, setOpen] = useState(false);
 
   // Fetch all customers when the dialog opens
@@ -74,35 +77,119 @@ const AdminOrderCreator = () => {
     // For now, just redirect to customer orders page
     // In a real implementation, you'd create a new order for this customer
     window.location.href = `/admin/customer-orders/${customerId}`;
-    setOpen(false);
+    setOpen(false); // Close main dialog
+  };
+
+  const handleSaveGuest = async () => {
+    if (!guestName.trim()) {
+      toast.error('Guest name cannot be empty.');
+      return;
+    }
+    setIsCreatingGuest(true);
+    try {
+      const uniqueEmail = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@throwaway.com`;
+      const { data: newGuest, error } = await supabase
+        .from('profiles')
+        .insert({
+          name: guestName,
+          email: uniqueEmail,
+          role: 'guest', // Assuming 'guest' is a valid role
+        })
+        .select('id, name, email')
+        .single();
+
+      if (error) throw error;
+
+      if (newGuest) {
+        const formattedNewGuest = {
+          id: newGuest.id,
+          name: newGuest.name || 'Unnamed Guest',
+          email: newGuest.email,
+        };
+        // Add to local state to avoid re-fetch, ensure it's at the top for immediate visibility
+        setCustomers(prev => [formattedNewGuest, ...prev]);
+        // If search is active, new guest might not appear unless it matches search
+        // So, we also add to filteredCustomers or clear search
+        setFilteredCustomers(prev => [formattedNewGuest, ...prev]); // Simplest way: add to current filter
+        setSearchQuery(''); // Clear search to ensure new guest is visible
+
+        toast.success(`Guest "${formattedNewGuest.name}" created successfully.`);
+        setIsGuestModalOpen(false);
+        setGuestName('');
+        // Optional: Automatically select this new guest for order creation
+        // handleCreateOrder(formattedNewGuest.id);
+      }
+    } catch (error: any) {
+      console.error('Error creating guest customer:', error);
+      toast.error(`Failed to create guest: ${error.message}`);
+    } finally {
+      setIsCreatingGuest(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          <Plus className="mr-2 h-4 w-4" /> New Order For Customer
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+    <> {/* Added React.Fragment because we now have two sibling Dialogs */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline">
+            <Plus className="mr-2 h-4 w-4" /> New Order For Customer
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create Order For Customer</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div>
-            <h3 className="text-sm font-medium mb-2">Step 1: Select Customer</h3>
-            <div className="relative">
+            <h3 className="text-sm font-medium mb-2">Step 1: Select or Create Customer</h3>
+            <div className="flex gap-2 mb-2">
               <Input
                 type="search"
-                placeholder="Search customers..."
+                placeholder="Search existing customers..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full"
               />
+              {/* Guest Customer Dialog Trigger and Content */}
+              <Dialog open={isGuestModalOpen} onOpenChange={setIsGuestModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" title="Create New Guest Customer">
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-xs">
+                  <DialogHeader>
+                    <DialogTitle>New Guest Customer</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-3 py-3">
+                    <Input
+                      placeholder="Guest Name"
+                      value={guestName}
+                      onChange={(e) => setGuestName(e.target.value)}
+                      disabled={isCreatingGuest}
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsGuestModalOpen(false)}
+                      disabled={isCreatingGuest}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleSaveGuest} 
+                      disabled={isCreatingGuest || !guestName.trim()}
+                    >
+                      {isCreatingGuest ? 'Saving...' : 'Save Guest'}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-60 overflow-y-auto border rounded-md">
             {isLoading ? (
               <p className="text-center text-sm text-muted-foreground py-4">Loading customers...</p>
             ) : filteredCustomers.length > 0 ? (
@@ -110,7 +197,7 @@ const AdminOrderCreator = () => {
                 {filteredCustomers.map((customer) => (
                   <li 
                     key={customer.id} 
-                    className="py-2 px-1 hover:bg-muted/50 cursor-pointer"
+                    className="py-2 px-3 hover:bg-muted/50 cursor-pointer" // Added px-3 for better spacing
                     onClick={() => handleCreateOrder(customer.id)}
                   >
                     <p className="font-medium">{customer.name}</p>
@@ -120,22 +207,23 @@ const AdminOrderCreator = () => {
               </ul>
             ) : searchQuery ? (
               <p className="text-center text-sm text-muted-foreground py-4">
-                No customers found. Try a different search term.
+                No customers found for your search. Try a different term, or check if some customer profiles are missing names (search works best with names or full email addresses). You can also create a new guest.
               </p>
             ) : (
               <p className="text-center text-sm text-muted-foreground py-4">
-                No customers available in the system.
+                No customers available. Create a new guest to start.
               </p>
             )}
           </div>
         </div>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end"> {/* Removed gap-2 as only one button now */}
           <DialogClose asChild>
-            <Button variant="secondary">Cancel</Button>
+            <Button variant="secondary">Close</Button> {/* Changed from Cancel to Close */}
           </DialogClose>
         </div>
       </DialogContent>
     </Dialog>
+    </> // Closing the React.Fragment
   );
 };
 

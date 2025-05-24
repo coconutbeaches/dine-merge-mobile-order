@@ -45,15 +45,24 @@ const OrdersList = ({
               <Link 
                 to={`/admin/customer-orders/${order.user_id}`} 
                 className="font-medium text-primary hover:underline truncate block"
-                title={order.customer_name || 'Anonymous'}
+                title={`${order.customer_name_from_profile || 'N/A'} (${order.customer_email_from_profile || 'No Email'})`}
               >
-                {order.customer_name || `Order #${order.id}`}
+                {order.customer_name_from_profile || `Order #${order.id}`}
               </Link>
             ) : (
-              <div className="font-medium truncate" title={order.customer_name || 'Anonymous'}>
-                {order.customer_name || `Order #${order.id}`}
+              // For orders without a user_id (e.g., older guest orders not yet using profiles system fully)
+              // or if customer_name_from_profile is somehow still undefined
+              <div 
+                className="font-medium truncate" 
+                title={`${order.customer_name_from_profile || order.customer_name || 'Guest'} (${order.customer_email_from_profile || 'N/A'})`}
+              >
+                {order.customer_name_from_profile || order.customer_name || `Order #${order.id}`}
               </div>
             )}
+            {/* Optionally, display email directly if space allows and it's desired */}
+            {/* <div className="text-xs text-muted-foreground truncate" title={order.customer_email_from_profile || 'No Email'}>
+              {order.customer_email_from_profile || 'No Email'}
+            </div> */}
           </div>
           <div className="col-span-2 text-xs text-muted-foreground capitalize">
             {order.table_number ? (order.table_number === 'Take Away' ? 'Take Away' : `Table ${order.table_number}`) : 'N/A'}

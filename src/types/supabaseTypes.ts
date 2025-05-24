@@ -13,6 +13,9 @@ export interface Order {
   order_items?: any;
   table_number?: string;
   tip?: number;
+  // Added fields for profile information
+  customer_name_from_profile?: string; 
+  customer_email_from_profile?: string;
 }
 
 // Ensure the OrderStatus type is correctly defined

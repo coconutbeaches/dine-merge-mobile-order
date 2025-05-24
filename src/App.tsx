@@ -25,6 +25,7 @@ import ProductForm from "./pages/ProductForm";
 import CategoriesManager from "./pages/CategoriesManager";
 import ProductsByCategory from "./pages/ProductsByCategory";
 import CustomerOrderHistory from "./pages/CustomerOrderHistory";
+import ProtectedAdminRoute from "./components/layout/ProtectedAdminRoute"; // Import ProtectedAdminRoute
 
 function App() {
   return (
@@ -45,14 +46,19 @@ function App() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/order-history" element={<OrderHistory />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/merge-accounts" element={<AdminMergeAccounts />} />
-            <Route path="/products-dashboard" element={<ProductsDashboard />} />
-            <Route path="/products/new" element={<ProductForm />} />
-            <Route path="/products/edit/:productId" element={<ProductForm />} />
-            <Route path="/orders-dashboard" element={<OrdersDashboard />} />
-            <Route path="/categories-manager" element={<CategoriesManager />} />
-            <Route path="/admin/customer-orders/:customerId" element={<CustomerOrderHistory />} />
+
+            {/* Admin Protected Routes */}
+            <Route element={<ProtectedAdminRoute />}>
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/merge-accounts" element={<AdminMergeAccounts />} />
+              <Route path="/products-dashboard" element={<ProductsDashboard />} />
+              <Route path="/products/new" element={<ProductForm />} />
+              <Route path="/products/edit/:productId" element={<ProductForm />} />
+              <Route path="/orders-dashboard" element={<OrdersDashboard />} />
+              <Route path="/categories-manager" element={<CategoriesManager />} />
+              <Route path="/admin/customer-orders/:customerId" element={<CustomerOrderHistory />} />
+            </Route>
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppContextProvider>
