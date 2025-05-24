@@ -10,45 +10,40 @@ export interface Order {
   created_at: string;
   updated_at: string;
   order_status: OrderStatus;
-  payment_status?: PaymentStatus;
-  fulfillment_status?: FulfillmentStatus;
   order_items?: any;
   table_number?: string;
   tip?: number;
 }
 
 // Ensure the OrderStatus type is correctly defined
-export type OrderStatus = "new" | "confirmed" | "make" | "ready" | "delivered" | "paid" | "cancelled";
+export type OrderStatus = "new" | "confirmed" | "completed" | "delivered" | "paid" | "cancelled";
 
 // Map between Supabase enum values and our app's OrderStatus values
-export type SupabaseOrderStatus = "pending" | "confirmed" | "completed" | "cancelled";
+export type SupabaseOrderStatus = "new" | "confirmed" | "completed" | "delivered" | "paid" | "cancelled";
 
 export function mapOrderStatusToSupabase(status: OrderStatus): SupabaseOrderStatus {
   switch (status) {
-    case "new": return "pending";
+    case "new": return "new";
     case "confirmed": return "confirmed";
-    case "make": return "confirmed";
-    case "ready": return "confirmed";
-    case "delivered": return "completed";
-    case "paid": return "completed";
-    case "cancelled": return "cancelled";
-    default: return "pending";
-  }
-}
-
-export function mapSupabaseToOrderStatus(status: SupabaseOrderStatus): OrderStatus {
-  switch (status) {
-    case "pending": return "new";
-    case "confirmed": return "confirmed";
-    case "completed": return "delivered"; // Note: 'completed' from DB typically maps to 'delivered'. If payment_status is 'paid', calling functions usually override this to 'paid'.
+    case "completed": return "completed";
+    case "delivered": return "delivered";
+    case "paid": return "paid";
     case "cancelled": return "cancelled";
     default: return "new";
   }
 }
 
-// Payment and Fulfillment Status types
-export type PaymentStatus = "unpaid" | "confirming_payment" | "partially_paid" | "paid" | "refunded";
-export type FulfillmentStatus = "unfulfilled" | "ready" | "out_for_delivery" | "fulfilled";
+export function mapSupabaseToOrderStatus(status: SupabaseOrderStatus): OrderStatus {
+  switch (status) {
+    case "new": return "new";
+    case "confirmed": return "confirmed";
+    case "completed": return "completed";
+    case "delivered": return "delivered";
+    case "paid": return "paid";
+    case "cancelled": return "cancelled";
+    default: return "new";
+  }
+}
 
 // Profile type
 export interface Profile {

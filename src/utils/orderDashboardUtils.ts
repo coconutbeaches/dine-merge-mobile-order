@@ -15,14 +15,16 @@ export const formatDate = (dateString: string | null) => {
 };
 
 // Get the appropriate color for status indicators
-export const getStatusColorDot = (status: string | null) => {
+export const getStatusColorDot = (status: OrderStatus | null) => {
   switch (status) {
     case 'new':
       return "bg-red-500";
     case 'confirmed':
-      return "bg-green-500";
-    case 'delivered':
+      return "bg-yellow-500";
+    case 'completed':
       return "bg-blue-500";
+    case 'delivered':
+      return "bg-green-500";
     case 'paid':
       return "bg-green-700";
     case 'cancelled':
@@ -33,4 +35,4 @@ export const getStatusColorDot = (status: string | null) => {
 };
 
 // Define the order statuses for the dropdown
-export const orderStatusOptions: OrderStatus[] = ['new', 'confirmed', 'delivered', 'paid', 'cancelled'];
+export const orderStatusOptions: OrderStatus[] = ['new', 'confirmed', 'completed', 'delivered', 'paid', 'cancelled'];
