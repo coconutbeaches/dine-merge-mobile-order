@@ -5,16 +5,16 @@ import { ReduxProvider } from '@/store/provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'react-hot-toast';
 
-// Load Thai-compatible fonts
+// Load fonts with supported subsets only
 const notoSans = Noto_Sans({
-  subsets: ['latin', 'thai'],
+  subsets: ['latin', 'latin-ext'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-noto-sans',
 });
 
 const prompt = Prompt({
-  subsets: ['latin', 'thai'],
+  subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-prompt',
@@ -23,11 +23,11 @@ const prompt = Prompt({
 // App metadata
 export const metadata: Metadata = {
   title: {
-    default: 'Coconut Beach Restaurant | โคโคนัท บีช เรสเตอรองต์',
+    default: 'Coconut Beach Restaurant',
     template: '%s | Coconut Beach Restaurant',
   },
-  description: 'Mobile restaurant ordering system for Coconut Beach Restaurant in Thailand | ระบบสั่งอาหารออนไลน์สำหรับร้านอาหารโคโคนัท บีช',
-  keywords: ['restaurant', 'food ordering', 'thai food', 'coconut beach', 'mobile ordering', 'thailand'],
+  description: 'Mobile restaurant ordering system for Coconut Beach Restaurant',
+  keywords: ['restaurant', 'food ordering', 'coconut beach', 'mobile ordering'],
   authors: [{ name: 'Coconut Beach Restaurant' }],
   creator: 'Coconut Beach Restaurant',
   publisher: 'Coconut Beach Restaurant',
@@ -42,15 +42,13 @@ export const metadata: Metadata = {
     canonical: '/',
     languages: {
       'en-US': '/en',
-      'th-TH': '/',
     },
   },
   openGraph: {
     type: 'website',
-    locale: 'th_TH',
-    alternateLocale: 'en_US',
-    title: 'Coconut Beach Restaurant | โคโคนัท บีช เรสเตอรองต์',
-    description: 'Mobile restaurant ordering system for Coconut Beach Restaurant in Thailand',
+    locale: 'en_US',
+    title: 'Coconut Beach Restaurant',
+    description: 'Mobile restaurant ordering system for Coconut Beach Restaurant',
     siteName: 'Coconut Beach Restaurant',
     images: [
       {
@@ -63,8 +61,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Coconut Beach Restaurant | โคโคนัท บีช เรสเตอรองต์',
-    description: 'Mobile restaurant ordering system for Coconut Beach Restaurant in Thailand',
+    title: 'Coconut Beach Restaurant',
+    description: 'Mobile restaurant ordering system for Coconut Beach Restaurant',
     images: ['/images/twitter-image.jpg'],
   },
   manifest: '/manifest.json',
@@ -105,7 +103,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="th" className={`${notoSans.variable} ${prompt.variable}`}>
+    <html lang="en" className={`${notoSans.variable} ${prompt.variable}`}>
       <body className="min-h-screen bg-coconut-light text-coconut-dark font-sans antialiased overflow-x-hidden">
         <ReduxProvider>
           <ThemeProvider>
