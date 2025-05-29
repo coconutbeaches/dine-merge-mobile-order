@@ -151,7 +151,7 @@ const nextConfig = {
   i18n: {
     locales: ['en', 'th'],
     defaultLocale: 'th',
-    localeDetection: true,
+    localeDetection: false, // Fixed: Set to boolean false instead of true
   },
   experimental: {
     optimizeCss: true,
