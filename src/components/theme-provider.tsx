@@ -1,138 +1,121 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import * as React from "react";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { type ThemeProviderProps } from "next-themes/dist/types";
 
-// Define theme types
-type Theme = 'light' | 'dark' | 'system';
-type Language = 'th' | 'en';
-
-// Theme context type
-type ThemeContextType = {
-  theme: Theme;
-  language: Language;
-  setTheme: (theme: Theme) => void;
-  setLanguage: (language: Language) => void;
-  systemTheme?: Theme;
-};
-
-// Create context with default values
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'system',
-  language: 'th', // Default to Thai language
-  setTheme: () => null,
-  setLanguage: () => null,
-  systemTheme: 'light',
-});
-
-// Provider props
-interface ThemeProviderProps {
-  children: ReactNode;
-  defaultTheme?: Theme;
-  defaultLanguage?: Language;
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
 }
 
-export function ThemeProvider({
-  children,
-  defaultTheme = 'system',
-  defaultLanguage = 'th',
-}: ThemeProviderProps) {
-  // Initialize theme state from localStorage or default
-  const [theme, setThemeState] = useState<Theme>(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme') as Theme;
-      return savedTheme || defaultTheme;
-    }
-    return defaultTheme;
-  });
+type Theme = "dark" | "light" | "system";
 
-  // Initialize language state from localStorage or default
-  const [language, setLanguageState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const savedLanguage = localStorage.getItem('language') as Language;
-      return savedLanguage || defaultLanguage;
-    }
-    return defaultLanguage;
-  });
+export interface ThemeToggleProps extends React.HTMLAttributes<HTMLDivElement> {
+  align?: "center" | "start" | "end";
+  side?: "top" | "bottom";
+  sideOffset?: number;
+}
 
-  // Track system theme preference
-  const [systemTheme, setSystemTheme] = useState<Theme>('light');
+export interface UseThemeProps {
+  /** Current theme */
+  theme: Theme;
+  /** Whether the theme is ready to be used (avoid hydration mismatch) */
+  isReady: boolean;
+  /** Set the theme */
+  setTheme: (theme: Theme) => void;
+  /** Force the light theme */
+  setLightTheme: () => void;
+  /** Force the dark theme */
+  setDarkTheme: () => void;
+  /** Toggle between light and dark themes */
+  toggleTheme: () => void;
+  /** Resolved theme: 'light' or 'dark'. If theme === 'system', this will be the system theme */
+  resolvedTheme: "light" | "dark";
+  /** System theme from the prefers-color-scheme media query */
+  systemTheme: "light" | "dark" | undefined;
+  /** Forced theme name for the current page (from _document) */
+  forcedTheme: Theme | undefined;
+  /** Whether the current theme is the system theme */
+  isSystemTheme: boolean;
+  /** Whether the current theme is the light theme */
+  isLightTheme: boolean;
+  /** Whether the current theme is the dark theme */
+  isDarkTheme: boolean;
+}
 
-  // Update theme in localStorage and document
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('theme', newTheme);
-    }
-  };
+/**
+ * Get the current theme and utilities to change it.
+ * This is a wrapper around next-themes' useTheme hook.
+ */
+export const useTheme = (): UseThemeProps => {
+  const [isClient, setIsClient] = React.useState(false);
+  const {
+    theme,
+    setTheme,
+    forcedTheme,
+    resolvedTheme,
+    systemTheme,
+  } = React.useContext(
+    // @ts-expect-error - ThemeContext is not exported from next-themes
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    require("next-themes").ThemeContext
+  );
 
-  // Update language in localStorage
-  const setLanguage = (newLanguage: Language) => {
-    setLanguageState(newLanguage);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('language', newLanguage);
-      // Update html lang attribute
-      document.documentElement.lang = newLanguage;
-    }
-  };
-
-  // Effect to handle system theme changes and apply theme
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    // Set initial system theme
-    setSystemTheme(mediaQuery.matches ? 'dark' : 'light');
-    
-    // Update system theme when preference changes
-    const handleChange = (e: MediaQueryListEvent) => {
-      setSystemTheme(e.matches ? 'dark' : 'light');
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+  React.useEffect(() => {
+    setIsClient(true);
   }, []);
 
-  // Apply theme to document
-  useEffect(() => {
-    const root = document.documentElement;
-    const isDark = theme === 'dark' || (theme === 'system' && systemTheme === 'dark');
-    
-    if (isDark) {
-      root.classList.add('dark');
-      document.body.dataset.theme = 'dark';
-    } else {
-      root.classList.remove('dark');
-      document.body.dataset.theme = 'light';
-    }
-  }, [theme, systemTheme]);
-
-  // Set html lang attribute on initial load
-  useEffect(() => {
-    document.documentElement.lang = language;
-  }, [language]);
-
-  // Provide theme context to children
-  return (
-    <ThemeContext.Provider value={{ theme, language, setTheme, setLanguage, systemTheme }}>
-      {children}
-    </ThemeContext.Provider>
+  const _resolvedTheme = resolveTheme(
+    theme as Theme,
+    systemTheme as Theme | undefined
   );
-}
 
-// Hook to use theme context
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  
-  return context;
+  const setLightTheme = React.useCallback(() => {
+    setTheme("light");
+  }, [setTheme]);
+
+  const setDarkTheme = React.useCallback(() => {
+    setTheme("dark");
+  }, [setTheme]);
+
+  const toggleTheme = React.useCallback(() => {
+    if (_resolvedTheme === "dark") {
+      setLightTheme();
+    } else {
+      setDarkTheme();
+    }
+  }, [_resolvedTheme, setLightTheme, setDarkTheme]);
+
+  return {
+    theme: theme as Theme,
+    isReady: isClient,
+    setTheme: setTheme as (theme: Theme) => void,
+    setLightTheme,
+    setDarkTheme,
+    toggleTheme,
+    resolvedTheme: _resolvedTheme,
+    systemTheme: systemTheme as "light" | "dark" | undefined,
+    forcedTheme: forcedTheme as Theme | undefined,
+    isSystemTheme: theme === "system",
+    isLightTheme: _resolvedTheme === "light",
+    isDarkTheme: _resolvedTheme === "dark",
+  };
 };
 
-// Utility function to get current theme (light/dark)
+/**
+ * Resolve the theme to either 'light' or 'dark'.
+ * If the theme is 'system', use the system theme.
+ * If the system theme is not available, use 'light'.
+ */
 export const resolveTheme = (theme: Theme, systemTheme?: Theme): 'light' | 'dark' => {
   if (theme === 'system') {
-    return systemTheme || 'light';
+    // If systemTheme is 'system' or undefined, return 'light' as fallback
+    if (!systemTheme || systemTheme === 'system') {
+      return 'light';
+    }
+    // Otherwise return the system theme (which must be 'light' or 'dark')
+    return systemTheme;
   }
-  return theme;
+  // If theme is not 'system', it must be 'light' or 'dark'
+  return theme === 'dark' ? 'dark' : 'light';
 };
