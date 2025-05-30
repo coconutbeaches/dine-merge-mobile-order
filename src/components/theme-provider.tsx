@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { type ThemeProviderProps } from "next-themes/dist/types";
+import { useTheme as useNextTheme } from "next-themes";
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
@@ -54,12 +55,8 @@ export const useTheme = (): UseThemeProps => {
     setTheme,
     forcedTheme,
     resolvedTheme,
-    systemTheme,
-  } = React.useContext(
-    // @ts-expect-error - ThemeContext is not exported from next-themes
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    require("next-themes").ThemeContext
-  );
+    systemTheme
+  } = useNextTheme();
 
   React.useEffect(() => {
     setIsClient(true);
