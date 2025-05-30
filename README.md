@@ -215,4 +215,4 @@ To enable this workflow, you need to add the following **GitHub Repository Secre
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-<!-- Testing automated build monitoring -->
+<!-- Testing with new Vercel API token -->
