@@ -1,318 +1,95 @@
+// src/lib/api/categories.ts
 import { prisma } from '@/lib/db';
-import { Category } from '@prisma/client';
-import { cache } from 'react';
-import { redis } from '@/lib/redis';
+import { redisClient } from '@/lib/redis'; // Corrected import
 
-// Types
-export type CategoryWithItemCount = Category & {
-  _count: {
-    items: number;
-  };
-};
-
-export type CreateCategoryInput = {
-  name: string;
-  nameEn?: string;
-  image?: string;
-  order?: number;
-  isActive?: boolean;
-};
-
-export type UpdateCategoryInput = Partial<CreateCategoryInput> & {
+// Define a type for Category, aligning with Prisma schema
+interface Category {
   id: string;
-};
-
-// Cache duration in seconds
-const CACHE_TTL = 60 * 60; // 1 hour
-
-/**
- * Get all categories
- * 
- * Cached with React cache() for server components
- * Also cached in Redis for API routes
- */
-export const getCategories = cache(async (options?: {
-  includeInactive?: boolean;
-  includeItemCount?: boolean;
-}): Promise<Category[] | CategoryWithItemCount[]> => {
-  const { includeInactive = false, includeItemCount = false } = options || {};
-  
-  const cacheKey = `categories:all:${includeInactive}:${includeItemCount}`;
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  // Query database if not in cache
-  const categories = await prisma.category.findMany({
-    where: {
-      isActive: includeInactive ? undefined : true,
-    },
-    ...(includeItemCount ? {
-      include: {
-        _count: {
-          select: {
-            items: true,
-          },
-        },
-      },
-    } : {}),
-    orderBy: {
-      order: 'asc',
-    },
-  });
-  
-  // Store in Redis cache
-  try {
-    await redis.set(cacheKey, JSON.stringify(categories), 'EX', CACHE_TTL);
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  return categories;
-});
-
-/**
- * Get a category by ID
- */
-export const getCategory = cache(async (id: string): Promise<Category | null> => {
-  if (!id) return null;
-  
-  const cacheKey = `category:${id}`;
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  // Query database if not in cache
-  const category = await prisma.category.findUnique({
-    where: { id },
-  });
-  
-  // Store in Redis cache
-  if (category) {
-    try {
-      await redis.set(cacheKey, JSON.stringify(category), 'EX', CACHE_TTL);
-    } catch (error) {
-      console.error('Redis cache error:', error);
-    }
-  }
-  
-  return category;
-});
-
-/**
- * Get a category by ID with item count
- */
-export const getCategoryWithItemCount = cache(async (id: string): Promise<CategoryWithItemCount | null> => {
-  if (!id) return null;
-  
-  const cacheKey = `category:${id}:with-item-count`;
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  // Query database if not in cache
-  const category = await prisma.category.findUnique({
-    where: { id },
-    include: {
-      _count: {
-        select: {
-          items: true,
-        },
-      },
-    },
-  });
-  
-  // Store in Redis cache
-  if (category) {
-    try {
-      await redis.set(cacheKey, JSON.stringify(category), 'EX', CACHE_TTL);
-    } catch (error) {
-      console.error('Redis cache error:', error);
-    }
-  }
-  
-  return category;
-});
-
-/**
- * Create a new category
- */
-export async function createCategory(data: CreateCategoryInput): Promise<Category> {
-  // Get the highest order value to place new category at the end
-  const highestOrder = await prisma.category.findFirst({
-    orderBy: {
-      order: 'desc',
-    },
-    select: {
-      order: true,
-    },
-  });
-  
-  const nextOrder = (highestOrder?.order || 0) + 1;
-  
-  const category = await prisma.category.create({
-    data: {
-      name: data.name,
-      nameEn: data.nameEn,
-      image: data.image,
-      order: data.order ?? nextOrder,
-      isActive: data.isActive ?? true,
-    },
-  });
-  
-  // Invalidate caches
-  try {
-    await redis.del('categories:all:true:true');
-    await redis.del('categories:all:true:false');
-    await redis.del('categories:all:false:true');
-    await redis.del('categories:all:false:false');
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return category;
+  name: string;
+  description?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  // Add any other relevant fields from your Category model
 }
 
 /**
- * Update a category
+ * Fetches all categories from the database, with caching.
  */
-export async function updateCategory(data: UpdateCategoryInput): Promise<Category> {
-  const { id, ...updateData } = data;
-  
-  const category = await prisma.category.update({
-    where: { id },
-    data: updateData,
-  });
-  
-  // Invalidate caches
-  try {
-    await redis.del(`category:${id}`);
-    await redis.del(`category:${id}:with-item-count`);
-    await redis.del('categories:all:true:true');
-    await redis.del('categories:all:true:false');
-    await redis.del('categories:all:false:true');
-    await redis.del('categories:all:false:false');
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return category;
-}
+export async function getCategories(): Promise<Category[]> {
+  const cacheKey = 'all_categories';
 
-/**
- * Delete a category
- */
-export async function deleteCategory(id: string): Promise<Category> {
-  // Check if category has menu items
-  const categoryWithItems = await prisma.category.findUnique({
-    where: { id },
-    include: {
-      _count: {
-        select: {
-          items: true,
-        },
+  try {
+    // Try to get from Redis cache
+    if (redisClient.status === 'ready') {
+      try {
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+          console.log('Serving categories from cache');
+          const parsedData: Category[] = JSON.parse(cachedData);
+          // Ensure dates are properly handled if needed after parsing
+          return parsedData.map(category => ({
+            ...category,
+            createdAt: new Date(category.createdAt),
+            updatedAt: new Date(category.updatedAt),
+          }));
+        }
+      } catch (cacheError) {
+        console.error('Redis cache read error for categories:', cacheError);
+        // Proceed to fetch from source if cache fails
+      }
+    } else {
+      console.warn('Redis client not ready for categories, fetching from source.');
+    }
+
+    // If not in cache or Redis is not ready, fetch from database
+    console.log('Fetching categories from database');
+    const categories = await prisma.category.findMany({
+      orderBy: {
+        name: 'asc', // Or any other preferred order
       },
-    },
-  });
-  
-  if (categoryWithItems?._count.items && categoryWithItems._count.items > 0) {
-    throw new Error('Cannot delete category with menu items');
-  }
-  
-  const category = await prisma.category.delete({
-    where: { id },
-  });
-  
-  // Invalidate caches
-  try {
-    await redis.del(`category:${id}`);
-    await redis.del(`category:${id}:with-item-count`);
-    await redis.del('categories:all:true:true');
-    await redis.del('categories:all:true:false');
-    await redis.del('categories:all:false:true');
-    await redis.del('categories:all:false:false');
+    });
+
+    // Store in Redis cache if client is ready
+    if (redisClient.status === 'ready') {
+      try {
+        await redisClient.set(cacheKey, JSON.stringify(categories), 'EX', 3600); // Cache for 1 hour
+        console.log('Categories cached in Redis');
+      } catch (cacheSetError) {
+        console.error('Redis cache write error for categories:', cacheSetError);
+      }
+    }
+
+    return categories;
   } catch (error) {
-    console.error('Redis cache invalidation error:', error);
+    console.error('Error fetching categories:', error);
+    return []; // Return empty array on error
   }
-  
-  return category;
 }
 
 /**
- * Reorder categories
- * 
- * @param categoryIds - Array of category IDs in the desired order
+ * Fetches a single category by its ID from the database.
+ * (Example function, implement caching if needed, similar to getCategories or getMenuItemById)
+ * @param id The ID of the category to fetch.
  */
-export async function reorderCategories(categoryIds: string[]): Promise<Category[]> {
-  // Update each category with its new order
-  const updatePromises = categoryIds.map((id, index) => {
-    return prisma.category.update({
+export async function getCategoryById(id: string): Promise<Category | null> {
+  if (!id) {
+    console.error('getCategoryById: ID is required');
+    return null;
+  }
+  // Note: Caching for single category not implemented in this example, add if needed
+  try {
+    console.log(`Fetching category ${id} from database`);
+    const category = await prisma.category.findUnique({
       where: { id },
-      data: { order: index },
     });
-  });
-  
-  const categories = await prisma.$transaction(updatePromises);
-  
-  // Invalidate caches
-  try {
-    categoryIds.forEach(id => {
-      redis.del(`category:${id}`);
-      redis.del(`category:${id}:with-item-count`);
-    });
-    
-    await redis.del('categories:all:true:true');
-    await redis.del('categories:all:true:false');
-    await redis.del('categories:all:false:true');
-    await redis.del('categories:all:false:false');
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return categories;
-}
 
-/**
- * Toggle category active status
- */
-export async function toggleCategoryActive(id: string, isActive: boolean): Promise<Category> {
-  const category = await prisma.category.update({
-    where: { id },
-    data: { isActive },
-  });
-  
-  // Invalidate caches
-  try {
-    await redis.del(`category:${id}`);
-    await redis.del(`category:${id}:with-item-count`);
-    await redis.del('categories:all:true:true');
-    await redis.del('categories:all:true:false');
-    await redis.del('categories:all:false:true');
-    await redis.del('categories:all:false:false');
+    if (!category) {
+      console.warn(`Category with ID ${id} not found.`);
+      return null;
+    }
+    return category;
   } catch (error) {
-    console.error('Redis cache invalidation error:', error);
+    console.error(`Error fetching category ${id}:`, error);
+    return null;
   }
-  
-  return category;
 }

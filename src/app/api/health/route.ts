@@ -1,90 +1,61 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { isRedisAvailable } from '@/lib/redis';
+import { isRedisAvailable, redisClient } from '@/lib/redis'; // Correctly import isRedisAvailable and redisClient
 
 /**
  * Health check endpoint
- * 
- * Verifies database and Redis connections
- * Returns 200 OK if all systems are operational
- * Returns 503 Service Unavailable if any system is down
- * 
- * @route GET /api/health
+ * Checks the status of the database and Redis connections.
  */
 export async function GET() {
+  let dbStatus = 'unavailable';
+  let redisStatus = 'unavailable';
+  const errors: string[] = [];
+
+  // Check database connection
   try {
-    // Check system components
-    const [databaseStatus, redisStatus] = await Promise.allSettled([
-      checkDatabase(),
-      checkRedis(),
-    ]);
+    await prisma.$connect(); // Simple way to check if DB is reachable
+    await prisma.$queryRaw`SELECT 1`; // More robust check
+    dbStatus = 'available';
+  } catch (e: any) {
+    console.error('Database health check failed:', e.message);
+    errors.push(`Database connection failed: ${e.message}`);
+  } finally {
+    await prisma.$disconnect();
+  }
 
-    // Determine overall status
-    const isHealthy = 
-      databaseStatus.status === 'fulfilled' && databaseStatus.value &&
-      redisStatus.status === 'fulfilled' && redisStatus.value;
+  // Check Redis connection
+  try {
+    if (isRedisAvailable()) { // Use the imported function
+      await redisClient.ping(); // Check if Redis server responds to ping
+      redisStatus = 'available';
+    } else {
+      redisStatus = `unavailable (status: ${redisClient.status})`;
+      errors.push(`Redis client not ready (status: ${redisClient.status})`);
+    }
+  } catch (e: any) {
+    console.error('Redis health check failed:', e.message);
+    errors.push(`Redis connection failed: ${e.message}`);
+  }
 
-    // Prepare response
-    const response = {
-      status: isHealthy ? 'healthy' : 'unhealthy',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
-      components: {
-        database: {
-          status: databaseStatus.status === 'fulfilled' && databaseStatus.value ? 'up' : 'down',
-        },
-        redis: {
-          status: redisStatus.status === 'fulfilled' && redisStatus.value ? 'up' : 'down',
-        },
-      },
-    };
+  const overallHealth = dbStatus === 'available' && redisStatus === 'available';
 
-    // Return appropriate status code
-    return NextResponse.json(
-      response,
-      { status: isHealthy ? 200 : 503 }
-    );
-  } catch (error) {
-    console.error('Health check failed:', error);
-    
+  if (!overallHealth) {
     return NextResponse.json(
       {
-        status: 'error',
+        status: 'unhealthy',
+        database: dbStatus,
+        redis: redisStatus,
+        errors: errors,
         timestamp: new Date().toISOString(),
-        error: 'Health check failed',
       },
-      { status: 500 }
+      { status: 503 }
     );
   }
-}
 
-/**
- * Check database connection
- * 
- * @returns Promise<boolean> - true if database is connected
- */
-async function checkDatabase(): Promise<boolean> {
-  try {
-    // Execute a simple query to check database connection
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch (error) {
-    console.error('Database health check failed:', error);
-    return false;
-  }
-}
-
-/**
- * Check Redis connection
- * 
- * @returns Promise<boolean> - true if Redis is connected
- */
-async function checkRedis(): Promise<boolean> {
-  try {
-    return await isRedisAvailable();
-  } catch (error) {
-    console.error('Redis health check failed:', error);
-    return false;
-  }
+  return NextResponse.json({
+    status: 'healthy',
+    database: dbStatus,
+    redis: redisStatus,
+    timestamp: new Date().toISOString(),
+  });
 }

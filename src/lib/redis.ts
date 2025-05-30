@@ -43,5 +43,11 @@ redisClient.on('end', () => {
     console.log('Redis client connection has ended.');
 });
 
-// Export the client as a named export
+/**
+ * Checks if the Redis client is connected and ready for operations.
+ * @returns {boolean} True if Redis is ready, false otherwise.
+ */
+export const isRedisAvailable = (): boolean => redisClient.status === 'ready';
+
+// Export the client and the availability check function as named exports
 export { redisClient };

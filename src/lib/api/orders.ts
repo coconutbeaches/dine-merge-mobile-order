@@ -1,611 +1,283 @@
+// src/lib/api/orders.ts
 import { prisma } from '@/lib/db';
-import { Order, OrderItem, OrderStatus, PaymentStatus } from '@prisma/client';
-import { cache } from 'react';
-import { redis } from '@/lib/redis';
+import { redisClient } from '@/lib/redis'; // Corrected import
+import type { Order, OrderItem as PrismaOrderItem, Customer } from '@prisma/client';
 
-// Types
-export type OrderWithItems = Order & {
-  items: (OrderItem & {
-    menuItem: {
-      id: string;
-      name: string;
-      image: string | null;
-    } | null;
-  })[];
-};
+// Define a more specific type for OrderItem if needed, or use Prisma's
+interface OrderItemInput {
+  menuItemId: string;
+  quantity: number;
+  price: number; // Price at the time of order
+  name: string; // Name at the time of order
+  // Add any other relevant fields like options chosen
+}
 
-export type OrderWithCustomer = Order & {
-  customer: {
-    id: string;
-    name: string | null;
-    phone: string;
-    totalOrders: number;
-    totalSpent: number;
-  } | null;
-};
-
-export type OrderWithItemsAndCustomer = OrderWithItems & OrderWithCustomer;
-
-export type OrdersResponse = {
-  orders: OrderWithItems[];
-  totalOrders: number;
-  totalPages: number;
-};
-
-export type CreateOrderInput = {
+interface CreateOrderInput {
+  customerId?: string; // Optional if creating a new customer
   customerName: string;
   customerPhone: string;
-  items: {
-    menuItemId: string;
-    name: string;
-    price: number;
-    quantity: number;
-  }[];
-  tableNumber?: number | null;
-  isTakeAway?: boolean;
-  notes?: string;
-  whatsappSent?: boolean;
-};
-
-export type UpdateOrderStatusInput = {
-  id: string;
-  status: OrderStatus;
-};
-
-export type UpdateOrderPaymentStatusInput = {
-  id: string;
-  paymentStatus: PaymentStatus;
-};
-
-// Cache duration in seconds
-const CACHE_TTL = 60 * 5; // 5 minutes (shorter than menu items since orders change frequently)
-
-/**
- * Get all orders with filtering options
- * 
- * @param options - Filter and pagination options
- * @returns Orders with pagination info
- */
-export async function getOrders(options?: {
-  status?: string;
-  search?: string;
-  page?: number;
-  limit?: number;
-  customerId?: string;
-  startDate?: Date;
-  endDate?: Date;
-}): Promise<OrdersResponse> {
-  const {
-    status,
-    search = '',
-    page = 1,
-    limit = 20,
-    customerId,
-    startDate,
-    endDate,
-  } = options || {};
-  
-  // Calculate pagination
-  const skip = (page - 1) * limit;
-  
-  // Build where clause based on filters
-  const where: any = {};
-  
-  // Filter by status
-  if (status && status !== 'all') {
-    if (status === 'unpaid') {
-      where.paymentStatus = 'UNPAID';
-    } else if (status === 'paid') {
-      where.paymentStatus = 'PAID';
-    } else if (status === 'confirming') {
-      where.status = 'CONFIRMED';
-      where.paymentStatus = 'UNPAID';
-    } else if (['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].includes(status.toUpperCase())) {
-      where.status = status.toUpperCase();
-    }
-  }
-  
-  // Filter by customer ID
-  if (customerId) {
-    where.customerId = customerId;
-  }
-  
-  // Filter by date range
-  if (startDate) {
-    where.createdAt = {
-      ...(where.createdAt || {}),
-      gte: startDate,
-    };
-  }
-  
-  if (endDate) {
-    where.createdAt = {
-      ...(where.createdAt || {}),
-      lte: endDate,
-    };
-  }
-  
-  // Search by customer name, phone, or order number
-  if (search) {
-    where.OR = [
-      { customerName: { contains: search, mode: 'insensitive' } },
-      { customerPhone: { contains: search } },
-      { orderNumber: isNaN(parseInt(search)) ? undefined : parseInt(search) },
-    ].filter(Boolean);
-  }
-  
-  // Query for orders count (for pagination)
-  const totalOrders = await prisma.order.count({ where });
-  const totalPages = Math.ceil(totalOrders / limit);
-  
-  // Query for orders with items
-  const orders = await prisma.order.findMany({
-    where,
-    include: {
-      items: {
-        include: {
-          menuItem: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    skip,
-    take: limit,
-  });
-  
-  return {
-    orders,
-    totalOrders,
-    totalPages,
-  };
-}
-
-/**
- * Get an order by ID
- * 
- * Cached with React cache() for server components
- */
-export const getOrderById = cache(async (id: string): Promise<OrderWithItemsAndCustomer | null> => {
-  if (!id) return null;
-  
-  const cacheKey = `order:${id}`;
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  // Query database if not in cache
-  const order = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      items: {
-        include: {
-          menuItem: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-      },
-      customer: {
-        select: {
-          id: true,
-          name: true,
-          phone: true,
-          totalOrders: true,
-          totalSpent: true,
-        },
-      },
-    },
-  });
-  
-  // Store in Redis cache (short TTL for orders)
-  if (order) {
-    try {
-      await redis.set(cacheKey, JSON.stringify(order), 'EX', CACHE_TTL);
-    } catch (error) {
-      console.error('Redis cache error:', error);
-    }
-  }
-  
-  return order;
-});
-
-/**
- * Get orders by customer phone number
- */
-export async function getOrdersByCustomerPhone(phone: string): Promise<Order[]> {
-  if (!phone) return [];
-  
-  const orders = await prisma.order.findMany({
-    where: {
-      customerPhone: phone,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-  
-  return orders;
-}
-
-/**
- * Get orders by customer ID
- */
-export async function getOrdersByCustomerId(customerId: string): Promise<Order[]> {
-  if (!customerId) return [];
-  
-  const orders = await prisma.order.findMany({
-    where: {
-      customerId,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-  
-  return orders;
-}
-
-/**
- * Get today's orders
- */
-export async function getTodayOrders(): Promise<Order[]> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  const orders = await prisma.order.findMany({
-    where: {
-      createdAt: {
-        gte: today,
-        lt: tomorrow,
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  });
-  
-  return orders;
-}
-
-/**
- * Create a new order
- * 
- * This function:
- * 1. Creates the order
- * 2. Updates or creates the customer record
- * 3. Updates customer's total orders and spending
- */
-export async function createOrder(data: CreateOrderInput): Promise<OrderWithItems> {
-  // Calculate total based on items
-  const total = data.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  
-  // Find or create customer by phone number
-  let customerId: string | null = null;
-  
-  if (data.customerPhone) {
-    const existingCustomer = await prisma.customer.findUnique({
-      where: { phone: data.customerPhone },
-    });
-    
-    if (existingCustomer) {
-      customerId = existingCustomer.id;
-      
-      // Update customer stats (will be done after order creation)
-    } else {
-      // Create new customer
-      const newCustomer = await prisma.customer.create({
-        data: {
-          name: data.customerName,
-          phone: data.customerPhone,
-          totalOrders: 1,
-          totalSpent: total,
-          lastOrderDate: new Date(),
-        },
-      });
-      
-      customerId = newCustomer.id;
-    }
-  }
-  
-  // Create the order with items
-  const order = await prisma.order.create({
-    data: {
-      customerName: data.customerName,
-      customerPhone: data.customerPhone,
-      customerId,
-      total,
-      tableNumber: data.tableNumber,
-      isTakeAway: data.isTakeAway ?? false,
-      notes: data.notes,
-      whatsappSent: data.whatsappSent ?? false,
-      items: {
-        create: data.items.map(item => ({
-          menuItemId: item.menuItemId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          subtotal: item.price * item.quantity,
-        })),
-      },
-    },
-    include: {
-      items: {
-        include: {
-          menuItem: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-            },
-          },
-        },
-      },
-    },
-  });
-  
-  // Update existing customer stats if needed
-  if (customerId && data.customerPhone) {
-    await prisma.customer.update({
-      where: { id: customerId },
-      data: {
-        totalOrders: { increment: 1 },
-        totalSpent: { increment: total },
-        lastOrderDate: new Date(),
-      },
-    });
-  }
-  
-  // Update popular items tracking
-  try {
-    for (const item of data.items) {
-      await prisma.popularItem.upsert({
-        where: { menuItemId: item.menuItemId },
-        update: {
-          orderCount: { increment: item.quantity },
-          lastOrdered: new Date(),
-        },
-        create: {
-          menuItemId: item.menuItemId,
-          orderCount: item.quantity,
-          lastOrdered: new Date(),
-        },
-      });
-    }
-  } catch (error) {
-    console.error('Error updating popular items:', error);
-    // Don't fail the order creation if this fails
-  }
-  
-  // Invalidate any relevant caches
-  try {
-    // We don't cache the full orders list, but we do cache individual orders
-    // and potentially customer data
-    if (customerId) {
-      await redis.del(`customer:${customerId}`);
-    }
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return order;
-}
-
-/**
- * Update an order's status
- */
-export async function updateOrderStatus({ id, status }: UpdateOrderStatusInput): Promise<Order> {
-  const order = await prisma.order.update({
-    where: { id },
-    data: { status },
-  });
-  
-  // Invalidate cache for this order
-  try {
-    await redis.del(`order:${id}`);
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return order;
-}
-
-/**
- * Update an order's payment status
- */
-export async function updateOrderPaymentStatus({ id, paymentStatus }: UpdateOrderPaymentStatusInput): Promise<Order> {
-  const order = await prisma.order.update({
-    where: { id },
-    data: { paymentStatus },
-  });
-  
-  // Invalidate cache for this order
-  try {
-    await redis.del(`order:${id}`);
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return order;
-}
-
-/**
- * Mark an order as sent via WhatsApp
- */
-export async function markOrderAsWhatsappSent(id: string): Promise<Order> {
-  const order = await prisma.order.update({
-    where: { id },
-    data: { whatsappSent: true },
-  });
-  
-  // Invalidate cache for this order
-  try {
-    await redis.del(`order:${id}`);
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return order;
-}
-
-/**
- * Add notes to an order
- */
-export async function addOrderNotes(id: string, notes: string): Promise<Order> {
-  const order = await prisma.order.update({
-    where: { id },
-    data: { notes },
-  });
-  
-  // Invalidate cache for this order
-  try {
-    await redis.del(`order:${id}`);
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return order;
-}
-
-/**
- * Delete an order (typically only for testing or admin cleanup)
- */
-export async function deleteOrder(id: string): Promise<Order> {
-  // Get the order first to access customer data for updates
-  const order = await prisma.order.findUnique({
-    where: { id },
-    select: {
-      customerId: true,
-      total: true,
-    },
-  });
-  
-  // Delete the order (this will cascade delete order items due to Prisma schema)
-  const deletedOrder = await prisma.order.delete({
-    where: { id },
-  });
-  
-  // Update customer stats if needed
-  if (order?.customerId) {
-    await prisma.customer.update({
-      where: { id: order.customerId },
-      data: {
-        totalOrders: { decrement: 1 },
-        totalSpent: { decrement: order.total },
-      },
-    });
-    
-    // Invalidate customer cache
-    try {
-      await redis.del(`customer:${order.customerId}`);
-    } catch (error) {
-      console.error('Redis cache invalidation error:', error);
-    }
-  }
-  
-  // Invalidate order cache
-  try {
-    await redis.del(`order:${id}`);
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return deletedOrder;
-}
-
-/**
- * Get order statistics for dashboard
- */
-export async function getOrderStats(period: 'today' | 'week' | 'month' | 'year' = 'today'): Promise<{
-  totalOrders: number;
-  totalRevenue: number;
-  averageOrderValue: number;
-  pendingOrders: number;
-  completedOrders: number;
-}> {
-  // Calculate date range based on period
-  const now = new Date();
-  let startDate = new Date();
-  
-  if (period === 'today') {
-    startDate.setHours(0, 0, 0, 0);
-  } else if (period === 'week') {
-    startDate.setDate(now.getDate() - 7);
-  } else if (period === 'month') {
-    startDate.setMonth(now.getMonth() - 1);
-  } else if (period === 'year') {
-    startDate.setFullYear(now.getFullYear() - 1);
-  }
-  
-  // Get orders within date range
-  const orders = await prisma.order.findMany({
-    where: {
-      createdAt: {
-        gte: startDate,
-      },
-    },
-    select: {
-      total: true,
-      status: true,
-    },
-  });
-  
-  // Calculate statistics
-  const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-  const pendingOrders = orders.filter(order => order.status === 'PENDING').length;
-  const completedOrders = orders.filter(order => order.status === 'COMPLETED').length;
-  
-  return {
-    totalOrders,
-    totalRevenue,
-    averageOrderValue,
-    pendingOrders,
-    completedOrders,
-  };
-}
-
-/**
- * Get popular items from orders
- */
-export async function getPopularOrderItems(limit: number = 5): Promise<{
-  menuItemId: string;
-  name: string;
-  count: number;
+  items: OrderItemInput[];
   total: number;
-}[]> {
-  const popularItems = await prisma.$queryRaw`
-    SELECT 
-      "menuItemId",
-      MAX("name") as name,
-      SUM("quantity") as count,
-      SUM("subtotal") as total
-    FROM "OrderItem"
-    GROUP BY "menuItemId"
-    ORDER BY count DESC
-    LIMIT ${limit}
-  `;
-  
-  return popularItems as any;
+  tableNumber?: number | null;
+  isTakeAway: boolean;
+  // Any other fields like notes, etc.
 }
+
+// Type for Order with its items, aligning with Prisma relations
+export type OrderWithItems = Order & {
+  items: PrismaOrderItem[];
+  customer?: Customer | null;
+};
+
+/**
+ * Creates a new order.
+ * @param orderData Data for the new order.
+ */
+export async function createOrder(orderData: CreateOrderInput): Promise<OrderWithItems | null> {
+  try {
+    let customerId = orderData.customerId;
+
+    // Find or create customer
+    if (!customerId) {
+      let customer = await prisma.customer.findUnique({
+        where: { phone: orderData.customerPhone },
+      });
+      if (!customer) {
+        customer = await prisma.customer.create({
+          data: {
+            name: orderData.customerName,
+            phone: orderData.customerPhone,
+          },
+        });
+      }
+      customerId = customer.id;
+    } else {
+      // Optionally update customer name if provided for an existing customer
+      await prisma.customer.update({
+        where: { id: customerId },
+        data: { name: orderData.customerName },
+      });
+    }
+    
+
+    const order = await prisma.order.create({
+      data: {
+        customerId: customerId,
+        customerName: orderData.customerName, // Store for quick access
+        customerPhone: orderData.customerPhone, // Store for quick access
+        total: orderData.total,
+        tableNumber: orderData.tableNumber,
+        isTakeAway: orderData.isTakeAway,
+        isTableService: !orderData.isTakeAway,
+        status: 'PENDING', // Default status
+        items: {
+          create: orderData.items.map(item => ({
+            menuItemId: item.menuItemId,
+            name: item.name, // Store name at time of order
+            price: item.price, // Store price at time of order
+            quantity: item.quantity,
+          })),
+        },
+      },
+      include: {
+        items: true,
+        customer: true,
+      },
+    });
+
+    // Invalidate relevant caches after creating an order
+    if (redisClient.status === 'ready') {
+      try {
+        await redisClient.del(`orders_customer_${customerId}`);
+        await redisClient.del('all_orders_admin'); // If admin fetches all orders
+        console.log(`Cache invalidated for customer ${customerId} and admin orders after new order.`);
+      } catch (cacheError) {
+        console.error('Redis cache invalidation error after creating order:', cacheError);
+      }
+    }
+
+    return order;
+  } catch (error) {
+    console.error('Error creating order:', error);
+    return null;
+  }
+}
+
+/**
+ * Fetches a single order by its ID.
+ * @param id The ID of the order to fetch.
+ */
+export async function getOrderById(id: string): Promise<OrderWithItems | null> {
+  const cacheKey = `order_${id}`;
+  try {
+    if (redisClient.status === 'ready') {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        console.log(`Serving order ${id} from cache`);
+        const parsedData: OrderWithItems = JSON.parse(cachedData);
+        return {
+          ...parsedData,
+          createdAt: new Date(parsedData.createdAt),
+          updatedAt: new Date(parsedData.updatedAt),
+          items: parsedData.items.map(item => ({
+            ...item,
+            // Ensure any nested dates in items are also converted if necessary
+          }))
+        };
+      }
+    }
+
+    const order = await prisma.order.findUnique({
+      where: { id },
+      include: { items: true, customer: true },
+    });
+
+    if (order && redisClient.status === 'ready') {
+      await redisClient.set(cacheKey, JSON.stringify(order), 'EX', 3600); // Cache for 1 hour
+    }
+    return order;
+  } catch (error) {
+    console.error(`Error fetching order ${id}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Fetches all orders for a specific customer.
+ * @param customerId The ID of the customer.
+ */
+export async function getOrdersByCustomerId(customerId: string): Promise<OrderWithItems[]> {
+  const cacheKey = `orders_customer_${customerId}`;
+  try {
+    if (redisClient.status === 'ready') {
+      const cachedData = await redisClient.get(cacheKey);
+      if (cachedData) {
+        console.log(`Serving orders for customer ${customerId} from cache`);
+        const parsedData: OrderWithItems[] = JSON.parse(cachedData);
+        return parsedData.map(order => ({
+          ...order,
+          createdAt: new Date(order.createdAt),
+          updatedAt: new Date(order.updatedAt),
+          items: order.items.map(item => ({
+            ...item,
+          }))
+        }));
+      }
+    }
+
+    const orders = await prisma.order.findMany({
+      where: { customerId },
+      include: { items: true, customer: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (redisClient.status === 'ready') {
+      await redisClient.set(cacheKey, JSON.stringify(orders), 'EX', 3600); // Cache for 1 hour
+    }
+    return orders;
+  } catch (error) {
+    console.error(`Error fetching orders for customer ${customerId}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetches all orders for the admin dashboard (could be paginated in a real app).
+ */
+export async function getAllOrdersForAdmin(): Promise<OrderWithItems[]> {
+    const cacheKey = 'all_orders_admin'; // Example cache key
+    try {
+      if (redisClient.status === 'ready') {
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+          console.log('Serving all admin orders from cache');
+          const parsedData: OrderWithItems[] = JSON.parse(cachedData);
+           return parsedData.map(order => ({
+            ...order,
+            createdAt: new Date(order.createdAt),
+            updatedAt: new Date(order.updatedAt),
+            // Potentially transform items if needed
+          }));
+        }
+      }
+  
+      const orders = await prisma.order.findMany({
+        include: { items: true, customer: true }, // Include customer details
+        orderBy: { createdAt: 'desc' },
+      });
+  
+      if (redisClient.status === 'ready') {
+        await redisClient.set(cacheKey, JSON.stringify(orders), 'EX', 600); // Cache for 10 minutes
+      }
+      return orders;
+    } catch (error) {
+      console.error('Error fetching all orders for admin:', error);
+      return [];
+    }
+  }
+
+/**
+ * Updates the status of an order.
+ * @param orderId The ID of the order to update.
+ * @param status The new status.
+ */
+export async function updateOrderStatus(orderId: string, status: Order['status']): Promise<OrderWithItems | null> {
+  try {
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { status },
+      include: { items: true, customer: true },
+    });
+
+    // Invalidate relevant caches
+    if (redisClient.status === 'ready') {
+      try {
+        await redisClient.del(`order_${orderId}`);
+        if (updatedOrder.customerId) {
+          await redisClient.del(`orders_customer_${updatedOrder.customerId}`);
+        }
+        await redisClient.del('all_orders_admin');
+        console.log(`Cache invalidated for order ${orderId} and related views after status update.`);
+      } catch (cacheError) {
+         console.error('Redis cache invalidation error after updating order status:', cacheError);
+      }
+    }
+    return updatedOrder;
+  } catch (error) {
+    console.error(`Error updating status for order ${orderId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Updates the payment status of an order.
+ * @param orderId The ID of the order to update.
+ * @param paymentStatus The new payment status.
+ */
+export async function updateOrderPaymentStatus(orderId: string, isPaid: boolean): Promise<OrderWithItems | null> {
+    try {
+      const updatedOrder = await prisma.order.update({
+        where: { id: orderId },
+        data: { isPaid }, // Assuming your Prisma schema has an `isPaid` field
+        include: { items: true, customer: true },
+      });
+  
+      // Invalidate relevant caches
+      if (redisClient.status === 'ready') {
+        try {
+          await redisClient.del(`order_${orderId}`);
+          if (updatedOrder.customerId) {
+            await redisClient.del(`orders_customer_${updatedOrder.customerId}`);
+          }
+          await redisClient.del('all_orders_admin');
+          console.log(`Cache invalidated for order ${orderId} and related views after payment status update.`);
+        } catch (cacheError) {
+           console.error('Redis cache invalidation error after updating payment status:', cacheError);
+        }
+      }
+      return updatedOrder;
+    } catch (error) {
+      console.error(`Error updating payment status for order ${orderId}:`, error);
+      return null;
+    }
+  }
