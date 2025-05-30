@@ -1,135 +1,97 @@
-import { notFound } from 'next/navigation';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Metadata } from 'next';
-import { FiArrowLeft, FiShare2 } from 'react-icons/fi';
+"use client";
 
-// Components
-import AddToCartButton from '@/components/cart/add-to-cart-button';
-import QuantitySelector from '@/components/ui/quantity-selector';
-import { getMenuItem } from '@/lib/api/menu-items';
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
+import { useParams } from "next/navigation";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { addItem } from "@/store/cart-slice";
+import { getMenuItemById } from "@/lib/api/menu-items";
+import { formatThaiCurrency } from "@/lib/utils/format-thai-currency";
+import { QuantitySelector } from "@/components/ui/quantity-selector"; // Changed from default to named import
+import { Skeleton } from "@/components/ui/skeleton";
+import { useRouter } from "next/navigation";
 
-// Types
-type MenuItemPageProps = {
-  params: {
-    id: string;
+export default function MenuItemDetailPage() {
+  const router = useRouter();
+  const params = useParams();
+  const menuItemId = params.id as string;
+  const dispatch = useAppDispatch();
+  const cartItems = useAppSelector((state) => state.cart.items);
+
+  const [menuItem, setMenuItem] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    async function fetchMenuItem() {
+      setLoading(true);
+      const item = await getMenuItemById(menuItemId);
+      setMenuItem(item);
+      setLoading(false);
+    }
+    fetchMenuItem();
+  }, [menuItemId]);
+
+  const handleAddToCart = () => {
+    if (menuItem) {
+      dispatch(
+        addItem({
+          id: menuItem.id,
+          name: menuItem.name,
+          price: menuItem.price,
+          quantity,
+          image: menuItem.image,
+        })
+      );
+      router.push("/menu"); // Navigate back to the menu after adding
+    }
   };
-};
 
-// Generate metadata for the page
-export async function generateMetadata({ params }: MenuItemPageProps): Promise<Metadata> {
-  const menuItem = await getMenuItem(params.id);
-
-  if (!menuItem) {
-    return {
-      title: 'Item Not Found',
-    };
+  if (loading) {
+    return (
+      <div className="p-4">
+        <Skeleton className="w-full h-64 rounded-lg mb-4" />
+        <Skeleton className="h-8 w-3/4 mb-2" />
+        <Skeleton className="h-6 w-1/2 mb-4" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
   }
 
-  return {
-    title: `${menuItem.name} | ${menuItem.price} ฿`,
-    description: menuItem.description || `Order ${menuItem.name} from Coconut Beach Restaurant`,
-    openGraph: {
-      images: [
-        {
-          url: menuItem.image || '/images/placeholder.png',
-          width: 1200,
-          height: 630,
-          alt: menuItem.name,
-        },
-      ],
-    },
-  };
-}
-
-export default async function MenuItemPage({ params }: MenuItemPageProps) {
-  const menuItem = await getMenuItem(params.id);
-
   if (!menuItem) {
-    notFound();
+    return <div className="p-4 text-center">Menu item not found.</div>;
   }
 
   return (
-    <div className="flex flex-col min-h-screen pb-24">
-      {/* Header with back button */}
-      <header className="sticky top-0 z-10 bg-white">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/menu" className="p-2" aria-label="Back to menu">
-            <FiArrowLeft size={24} />
-          </Link>
-          
-          <button className="p-2" aria-label="Share">
-            <FiShare2 size={22} />
-          </button>
-        </div>
-      </header>
-
-      {/* Main content */}
-      <main className="flex-1 px-4">
-        {/* Product image */}
-        <div className="flex justify-center mb-6 mt-4">
-          <Image
-            src={menuItem.image || '/images/placeholder.png'}
-            alt={menuItem.name}
-            width={300}
-            height={300}
-            className="object-contain max-h-[300px]"
-            priority
-          />
-        </div>
-
-        {/* Product details */}
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold">{menuItem.name}</h1>
-            {menuItem.nameEn && menuItem.nameEn !== menuItem.name && (
-              <p className="text-secondary-500 text-sm">{menuItem.nameEn}</p>
-            )}
-          </div>
-
-          <div>
-            <h2 className="text-lg font-medium mb-2">Price</h2>
-            <p className="text-2xl font-semibold">฿{menuItem.price.toFixed(2)}</p>
-          </div>
-
-          {menuItem.description && (
-            <div>
-              <h2 className="text-lg font-medium mb-2">Description</h2>
-              <p className="text-secondary-600">{menuItem.description}</p>
-              {menuItem.descriptionEn && menuItem.descriptionEn !== menuItem.description && (
-                <p className="text-secondary-500 text-sm mt-1">{menuItem.descriptionEn}</p>
-              )}
-            </div>
-          )}
-
-          {/* Quantity selector */}
-          <div>
-            <h2 className="text-lg font-medium mb-2">Quantity</h2>
-            <QuantitySelector
-              id={menuItem.id}
-              minValue={1}
-              maxValue={99}
-              defaultValue={1}
-              clientOnly
-            />
-          </div>
-        </div>
-      </main>
-
-      {/* Add to cart button (fixed at bottom) */}
-      <div className="fixed bottom-6 left-0 right-0 px-4">
-        <AddToCartButton
-          item={{
-            id: menuItem.id,
-            name: menuItem.name,
-            price: menuItem.price,
-            image: menuItem.image || '/images/placeholder.png',
-          }}
-          fullWidth
-          showPrice
-          clientOnly
+    <div className="p-4 max-w-md mx-auto">
+      <div className="relative w-full h-64 rounded-lg overflow-hidden mb-4">
+        <Image
+          src={menuItem.image || "/placeholder.png"}
+          alt={menuItem.name}
+          layout="fill"
+          objectFit="cover"
+          className="rounded-lg"
         />
       </div>
+      <h1 className="text-3xl font-bold mb-2">{menuItem.name}</h1>
+      <p className="text-2xl text-gray-700 mb-4">
+        {formatThaiCurrency(menuItem.price)}
+      </p>
+      {menuItem.description && (
+        <p className="text-gray-600 mb-6">{menuItem.description}</p>
+      )}
+
+      <div className="flex items-center justify-between mb-6">
+        <span className="text-lg font-medium">Quantity:</span>
+        <QuantitySelector value={quantity} onChange={setQuantity} min={1} />
+      </div>
+
+      <button
+        onClick={handleAddToCart}
+        className="w-full bg-black text-white py-3 rounded-lg text-lg font-semibold hover:bg-gray-800 transition-colors duration-200"
+      >
+        Add to Cart
+      </button>
     </div>
   );
 }
