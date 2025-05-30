@@ -1,7 +1,7 @@
 // src/lib/api/orders.ts
 import { prisma } from '@/lib/db';
-import { redisClient } from '@/lib/redis'; // Corrected import
-import type { Order, OrderItem as PrismaOrderItem, Customer } from '@prisma/client';
+import { redisClient, isRedisAvailable } from '@/lib/redis'; // Corrected import
+import type { Order, OrderItem as PrismaOrderItem, Customer, OrderStatus } from '@prisma/client';
 
 // Define a more specific type for OrderItem if needed, or use Prisma's
 interface OrderItemInput {
@@ -20,6 +20,7 @@ interface CreateOrderInput {
   total: number;
   tableNumber?: number | null;
   isTakeAway: boolean;
+  notes?: string | null; // Added notes to input
   // Any other fields like notes, etc.
 }
 
@@ -70,6 +71,8 @@ export async function createOrder(orderData: CreateOrderInput): Promise<OrderWit
         isTakeAway: orderData.isTakeAway,
         isTableService: !orderData.isTakeAway,
         status: 'PENDING', // Default status
+        notes: orderData.notes, // Save notes if provided
+        whatsappMessageGenerated: false, // Default to false
         items: {
           create: orderData.items.map(item => ({
             menuItemId: item.menuItemId,
@@ -86,7 +89,7 @@ export async function createOrder(orderData: CreateOrderInput): Promise<OrderWit
     });
 
     // Invalidate relevant caches after creating an order
-    if (redisClient.status === 'ready') {
+    if (isRedisAvailable()) {
       try {
         await redisClient.del(`orders_customer_${customerId}`);
         await redisClient.del('all_orders_admin'); // If admin fetches all orders
@@ -110,7 +113,7 @@ export async function createOrder(orderData: CreateOrderInput): Promise<OrderWit
 export async function getOrderById(id: string): Promise<OrderWithItems | null> {
   const cacheKey = `order_${id}`;
   try {
-    if (redisClient.status === 'ready') {
+    if (isRedisAvailable()) {
       const cachedData = await redisClient.get(cacheKey);
       if (cachedData) {
         console.log(`Serving order ${id} from cache`);
@@ -132,7 +135,7 @@ export async function getOrderById(id: string): Promise<OrderWithItems | null> {
       include: { items: true, customer: true },
     });
 
-    if (order && redisClient.status === 'ready') {
+    if (order && isRedisAvailable()) {
       await redisClient.set(cacheKey, JSON.stringify(order), 'EX', 3600); // Cache for 1 hour
     }
     return order;
@@ -149,7 +152,7 @@ export async function getOrderById(id: string): Promise<OrderWithItems | null> {
 export async function getOrdersByCustomerId(customerId: string): Promise<OrderWithItems[]> {
   const cacheKey = `orders_customer_${customerId}`;
   try {
-    if (redisClient.status === 'ready') {
+    if (isRedisAvailable()) {
       const cachedData = await redisClient.get(cacheKey);
       if (cachedData) {
         console.log(`Serving orders for customer ${customerId} from cache`);
@@ -171,7 +174,7 @@ export async function getOrdersByCustomerId(customerId: string): Promise<OrderWi
       orderBy: { createdAt: 'desc' },
     });
 
-    if (redisClient.status === 'ready') {
+    if (isRedisAvailable()) {
       await redisClient.set(cacheKey, JSON.stringify(orders), 'EX', 3600); // Cache for 1 hour
     }
     return orders;
@@ -187,7 +190,7 @@ export async function getOrdersByCustomerId(customerId: string): Promise<OrderWi
 export async function getAllOrdersForAdmin(): Promise<OrderWithItems[]> {
     const cacheKey = 'all_orders_admin'; // Example cache key
     try {
-      if (redisClient.status === 'ready') {
+      if (isRedisAvailable()) {
         const cachedData = await redisClient.get(cacheKey);
         if (cachedData) {
           console.log('Serving all admin orders from cache');
@@ -206,7 +209,7 @@ export async function getAllOrdersForAdmin(): Promise<OrderWithItems[]> {
         orderBy: { createdAt: 'desc' },
       });
   
-      if (redisClient.status === 'ready') {
+      if (isRedisAvailable()) {
         await redisClient.set(cacheKey, JSON.stringify(orders), 'EX', 600); // Cache for 10 minutes
       }
       return orders;
@@ -221,7 +224,7 @@ export async function getAllOrdersForAdmin(): Promise<OrderWithItems[]> {
  * @param orderId The ID of the order to update.
  * @param status The new status.
  */
-export async function updateOrderStatus(orderId: string, status: Order['status']): Promise<OrderWithItems | null> {
+export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<OrderWithItems | null> {
   try {
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
@@ -230,7 +233,7 @@ export async function updateOrderStatus(orderId: string, status: Order['status']
     });
 
     // Invalidate relevant caches
-    if (redisClient.status === 'ready') {
+    if (isRedisAvailable()) {
       try {
         await redisClient.del(`order_${orderId}`);
         if (updatedOrder.customerId) {
@@ -263,7 +266,7 @@ export async function updateOrderPaymentStatus(orderId: string, isPaid: boolean)
       });
   
       // Invalidate relevant caches
-      if (redisClient.status === 'ready') {
+      if (isRedisAvailable()) {
         try {
           await redisClient.del(`order_${orderId}`);
           if (updatedOrder.customerId) {
@@ -281,3 +284,105 @@ export async function updateOrderPaymentStatus(orderId: string, isPaid: boolean)
       return null;
     }
   }
+
+/**
+ * Adds or updates notes for an order.
+ * @param orderId The ID of the order.
+ * @param notes The notes to add/update.
+ */
+export async function addOrderNotes(orderId: string, notes: string): Promise<OrderWithItems | null> {
+  try {
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { notes },
+      include: { items: true, customer: true },
+    });
+
+    // Invalidate relevant caches
+    if (isRedisAvailable()) {
+      try {
+        await redisClient.del(`order_${orderId}`);
+        if (updatedOrder.customerId) {
+          await redisClient.del(`orders_customer_${updatedOrder.customerId}`);
+        }
+        await redisClient.del('all_orders_admin'); // If admin views might show notes
+        console.log(`Cache invalidated for order ${orderId} after updating notes.`);
+      } catch (cacheError) {
+        console.error('Redis cache invalidation error after updating order notes:', cacheError);
+      }
+    }
+    return updatedOrder;
+  } catch (error) {
+    console.error(`Error adding notes to order ${orderId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Marks an order as WhatsApp message generated.
+ * @param orderId The ID of the order.
+ */
+export async function markOrderAsWhatsappSent(orderId: string): Promise<OrderWithItems | null> {
+  try {
+    const updatedOrder = await prisma.order.update({
+      where: { id: orderId },
+      data: { whatsappMessageGenerated: true },
+      include: { items: true, customer: true },
+    });
+
+    // Invalidate relevant caches
+    if (isRedisAvailable()) {
+      try {
+        await redisClient.del(`order_${orderId}`);
+        if (updatedOrder.customerId) {
+          await redisClient.del(`orders_customer_${updatedOrder.customerId}`);
+        }
+        await redisClient.del('all_orders_admin');
+        console.log(`Cache invalidated for order ${orderId} after marking as WhatsApp sent.`);
+      } catch (cacheError) {
+        console.error('Redis cache invalidation error after marking order as WhatsApp sent:', cacheError);
+      }
+    }
+    return updatedOrder;
+  } catch (error) {
+    console.error(`Error marking order ${orderId} as WhatsApp sent:`, error);
+    return null;
+  }
+}
+
+/**
+ * Deletes an order.
+ * @param orderId The ID of the order to delete.
+ * @returns True if deletion was successful, false otherwise.
+ */
+export async function deleteOrder(orderId: string): Promise<boolean> {
+  try {
+    // Fetch customerId before deleting for cache invalidation
+    const orderToDelete = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { customerId: true }
+    });
+
+    await prisma.order.delete({
+      where: { id: orderId },
+    });
+
+    // Invalidate relevant caches
+    if (isRedisAvailable()) {
+      try {
+        await redisClient.del(`order_${orderId}`);
+        if (orderToDelete?.customerId) {
+          await redisClient.del(`orders_customer_${orderToDelete.customerId}`);
+        }
+        await redisClient.del('all_orders_admin');
+        console.log(`Cache invalidated for order ${orderId} and related views after deletion.`);
+      } catch (cacheError) {
+        console.error('Redis cache invalidation error after deleting order:', cacheError);
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error(`Error deleting order ${orderId}:`, error);
+    return false;
+  }
+}
