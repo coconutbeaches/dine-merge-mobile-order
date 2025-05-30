@@ -26,31 +26,93 @@ jobs:
       - name: Wait for Vercel Deployment
         id: wait_for_deployment
         run: |
-          # Get the current commit SHA
+          # Get the current commit SHA and branch name
           COMMIT_SHA=$(git rev-parse HEAD)
-          echo "Monitoring deployment for commit: $COMMIT_SHA"
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "Monitoring deployment for commit: $COMMIT_SHA on branch: $BRANCH_NAME"
           
-          # Poll for deployment status
-          MAX_ATTEMPTS=30
+          # Increase timeout values
+          MAX_ATTEMPTS=60 # 10 minutes total wait time (60 * 10s)
           ATTEMPT=0
           DEPLOYMENT_ID=""
           DEPLOYMENT_URL=""
           DEPLOYMENT_STATE=""
           
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            # Get latest deployments
-            DEPLOYMENTS=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
-              "https://api.vercel.com/v6/deployments?teamId=${{ secrets.VERCEL_ORG_ID }}&projectId=${{ secrets.VERCEL_PROJECT_ID }}&meta-githubCommitSha=$COMMIT_SHA&limit=1")
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS: Checking for deployment..."
             
-            # Check if we found a deployment
-            DEPLOYMENT_COUNT=$(echo $DEPLOYMENTS | jq '.deployments | length')
+            # Approach 1: Try to find deployment by commit SHA
+            echo "Approach 1: Searching by commit SHA..."
+            DEPLOYMENTS_RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              "https://api.vercel.com/v6/deployments?teamId=${{ secrets.VERCEL_ORG_ID }}&projectId=${{ secrets.VERCEL_PROJECT_ID }}&meta-githubCommitSha=$COMMIT_SHA&limit=5")
             
-            if [ "$DEPLOYMENT_COUNT" -gt 0 ]; then
-              DEPLOYMENT_ID=$(echo $DEPLOYMENTS | jq -r '.deployments[0].id')
-              DEPLOYMENT_URL=$(echo $DEPLOYMENTS | jq -r '.deployments[0].url')
-              DEPLOYMENT_STATE=$(echo $DEPLOYMENTS | jq -r '.deployments[0].state')
+            echo "Raw API response (by SHA): $DEPLOYMENTS_RESPONSE"
+            
+            # Check if the response is valid JSON and has deployments
+            if echo "$DEPLOYMENTS_RESPONSE" | jq -e '.deployments' > /dev/null 2>&1; then
+              DEPLOYMENT_COUNT=$(echo "$DEPLOYMENTS_RESPONSE" | jq '.deployments | length')
+              echo "Found $DEPLOYMENT_COUNT deployments by commit SHA"
               
-              echo "Found deployment: $DEPLOYMENT_ID, State: $DEPLOYMENT_STATE"
+              if [ "$DEPLOYMENT_COUNT" -gt 0 ]; then
+                DEPLOYMENT_ID=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].id')
+                DEPLOYMENT_URL=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].url')
+                DEPLOYMENT_STATE=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].state')
+                echo "Found deployment by SHA: ID=$DEPLOYMENT_ID, URL=$DEPLOYMENT_URL, State=$DEPLOYMENT_STATE"
+              fi
+            else
+              echo "Invalid response or no deployments found by commit SHA"
+            fi
+            
+            # If no deployment found by SHA, try approach 2: Get latest deployments
+            if [ -z "$DEPLOYMENT_ID" ]; then
+              echo "Approach 2: Searching latest deployments..."
+              LATEST_DEPLOYMENTS=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                "https://api.vercel.com/v6/deployments?teamId=${{ secrets.VERCEL_ORG_ID }}&projectId=${{ secrets.VERCEL_PROJECT_ID }}&limit=10")
+              
+              echo "Raw API response (latest): $LATEST_DEPLOYMENTS"
+              
+              # Check if the response is valid JSON and has deployments
+              if echo "$LATEST_DEPLOYMENTS" | jq -e '.deployments' > /dev/null 2>&1; then
+                # Try to find a deployment with matching commit SHA in metadata
+                MATCHING_DEPLOYMENT=$(echo "$LATEST_DEPLOYMENTS" | jq --arg sha "$COMMIT_SHA" '.deployments[] | select(.meta.githubCommitSha == $sha or .meta["githubCommitSha"] == $sha)')
+                
+                if [ -n "$MATCHING_DEPLOYMENT" ]; then
+                  DEPLOYMENT_ID=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.id')
+                  DEPLOYMENT_URL=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.url')
+                  DEPLOYMENT_STATE=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.state')
+                  echo "Found matching deployment in latest: ID=$DEPLOYMENT_ID, URL=$DEPLOYMENT_URL, State=$DEPLOYMENT_STATE"
+                else
+                  echo "No matching deployment found in latest deployments"
+                  
+                  # Try to find by branch name (approach 3)
+                  echo "Approach 3: Searching by branch name..."
+                  BRANCH_DEPLOYMENT=$(echo "$LATEST_DEPLOYMENTS" | jq --arg branch "$BRANCH_NAME" '.deployments[] | select(.meta.githubBranch == $branch or .meta["githubBranch"] == $branch) | select(.state == "READY" or .state == "BUILDING" or .state == "INITIALIZING")')
+                  
+                  if [ -n "$BRANCH_DEPLOYMENT" ]; then
+                    DEPLOYMENT_ID=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.id')
+                    DEPLOYMENT_URL=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.url')
+                    DEPLOYMENT_STATE=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.state')
+                    echo "Found deployment by branch: ID=$DEPLOYMENT_ID, URL=$DEPLOYMENT_URL, State=$DEPLOYMENT_STATE"
+                  else
+                    # Last resort: Just take the most recent deployment
+                    echo "Approach 4: Taking most recent deployment..."
+                    if [ "$(echo "$LATEST_DEPLOYMENTS" | jq '.deployments | length')" -gt 0 ]; then
+                      DEPLOYMENT_ID=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].id')
+                      DEPLOYMENT_URL=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].url')
+                      DEPLOYMENT_STATE=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].state')
+                      DEPLOYMENT_COMMIT=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].meta.githubCommitSha // "unknown"')
+                      echo "Using most recent deployment: ID=$DEPLOYMENT_ID, URL=$DEPLOYMENT_URL, State=$DEPLOYMENT_STATE, Commit=$DEPLOYMENT_COMMIT"
+                    fi
+                  fi
+                fi
+              else
+                echo "Invalid response or no deployments found in latest"
+              fi
+            fi
+            
+            # If we found a deployment, check if it's ready or has error
+            if [ -n "$DEPLOYMENT_ID" ]; then
+              echo "Checking deployment state: $DEPLOYMENT_STATE"
               
               if [ "$DEPLOYMENT_STATE" = "READY" ]; then
                 echo "Deployment is ready!"
@@ -58,22 +120,43 @@ jobs:
               elif [ "$DEPLOYMENT_STATE" = "ERROR" ]; then
                 echo "Deployment failed!"
                 break
+              else
+                echo "Deployment state is $DEPLOYMENT_STATE, waiting for it to complete..."
+                
+                # Refresh the deployment state
+                DEPLOYMENT_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID?teamId=${{ secrets.VERCEL_ORG_ID }}")
+                
+                if echo "$DEPLOYMENT_INFO" | jq -e '.' > /dev/null 2>&1; then
+                  DEPLOYMENT_STATE=$(echo "$DEPLOYMENT_INFO" | jq -r '.state // "UNKNOWN"')
+                  echo "Updated deployment state: $DEPLOYMENT_STATE"
+                  
+                  if [ "$DEPLOYMENT_STATE" = "READY" ] || [ "$DEPLOYMENT_STATE" = "ERROR" ]; then
+                    echo "Deployment state changed to $DEPLOYMENT_STATE"
+                    break
+                  fi
+                fi
               fi
             fi
             
             ATTEMPT=$((ATTEMPT+1))
-            echo "Waiting for deployment... Attempt $ATTEMPT of $MAX_ATTEMPTS"
+            echo "Waiting for deployment... Attempt $ATTEMPT of $MAX_ATTEMPTS. Sleeping 10s."
             sleep 10
           done
           
-          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
-            echo "Timed out waiting for deployment"
+          # Final check and output
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            echo "Error: Could not find any deployment after $MAX_ATTEMPTS attempts."
+            echo "DEPLOYMENT_ID=null" >> $GITHUB_OUTPUT
+            echo "DEPLOYMENT_URL=unknown" >> $GITHUB_OUTPUT
+            echo "DEPLOYMENT_STATE=unknown" >> $GITHUB_OUTPUT
             exit 1
+          else
+            echo "Final deployment details: ID=$DEPLOYMENT_ID, URL=$DEPLOYMENT_URL, State=$DEPLOYMENT_STATE"
+            echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+            echo "DEPLOYMENT_URL=https://$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+            echo "DEPLOYMENT_STATE=$DEPLOYMENT_STATE" >> $GITHUB_OUTPUT
           fi
-          
-          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
-          echo "DEPLOYMENT_URL=https://$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
-          echo "DEPLOYMENT_STATE=$DEPLOYMENT_STATE" >> $GITHUB_OUTPUT
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -82,20 +165,46 @@ jobs:
       - name: Fetch Vercel Build Logs
         id: fetch_logs
         run: |
-          # Fetch logs for the specific deployment ID
-          if [ -n "${{ steps.wait_for_deployment.outputs.DEPLOYMENT_ID }}" ]; then
-            vercel logs ${{ steps.wait_for_deployment.outputs.DEPLOYMENT_ID }} --token ${{ secrets.VERCEL_TOKEN }} > deployment_logs.txt
+          DEPLOYMENT_ID="${{ steps.wait_for_deployment.outputs.DEPLOYMENT_ID }}"
+          DEPLOYMENT_STATE="${{ steps.wait_for_deployment.outputs.DEPLOYMENT_STATE }}"
+          
+          echo "Deployment ID: $DEPLOYMENT_ID"
+          echo "Deployment State: $DEPLOYMENT_STATE"
+          
+          if [ -n "$DEPLOYMENT_ID" ] && [ "$DEPLOYMENT_ID" != "null" ]; then
+            echo "Fetching logs for deployment ID: $DEPLOYMENT_ID"
+            # Use --token directly with vercel logs command
+            vercel logs "$DEPLOYMENT_ID" --token ${{ secrets.VERCEL_TOKEN }} > deployment_logs.txt
             
-            # Check if deployment failed
-            if [ "${{ steps.wait_for_deployment.outputs.DEPLOYMENT_STATE }}" = "ERROR" ]; then
+            # Check if logs were successfully fetched
+            if [ $? -eq 0 ]; then
+              echo "Successfully fetched logs"
+              cat deployment_logs.txt | head -20  # Show first 20 lines for debugging
+            else
+              echo "Failed to fetch logs with vercel CLI, trying API fallback"
+              # Fallback: Try to get logs via API
+              curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                "https://api.vercel.com/v2/deployments/$DEPLOYMENT_ID/events?teamId=${{ secrets.VERCEL_ORG_ID }}" > api_logs.json
+              
+              # Extract log messages from API response
+              if [ -s api_logs.json ]; then
+                echo "API logs fetched, extracting messages"
+                jq -r '.events[] | "\(.date): \(.text)"' api_logs.json > deployment_logs.txt
+              else
+                echo "Failed to fetch logs from API as well"
+                echo "Error: Could not fetch logs for deployment $DEPLOYMENT_ID" > deployment_logs.txt
+              fi
+            fi
+            
+            if [ "$DEPLOYMENT_STATE" = "ERROR" ]; then
               echo "HAS_ERRORS=true" >> $GITHUB_OUTPUT
             else
               echo "HAS_ERRORS=false" >> $GITHUB_OUTPUT
             fi
           else
-            echo "No deployment ID found. Cannot fetch logs."
+            echo "No valid deployment ID found from previous step. Cannot fetch logs."
             echo "HAS_ERRORS=true" >> $GITHUB_OUTPUT
-            echo "No deployment found for the current commit. Please check your Vercel project settings." > deployment_logs.txt
+            echo "Error: No valid deployment found for the current commit. Please check your Vercel project settings and ensure the deployment was triggered." > deployment_logs.txt
           fi
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
