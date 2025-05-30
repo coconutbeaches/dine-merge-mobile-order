@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { redisClient } from '@/lib/redis'; // Changed to named import
+import redisClient from '@/lib/redis'; // Changed to default import
 
 // Define a type for recommended items for clarity
 interface RecommendedItem {
