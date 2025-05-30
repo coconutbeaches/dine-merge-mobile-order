@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import redisClient from '@/lib/redis'; // Changed to default import
+import { redisClient } from '@/lib/redis'; // Changed back to named import
 
 // Define a type for recommended items for clarity
 interface RecommendedItem {
@@ -46,8 +46,8 @@ export async function GET() {
       console.log('Fetching recommendations from source');
       recommendedItems = await fetchRecommendationsFromSource();
       
-      // Store in Redis cache if client is ready
-      if (redisClient.status === 'ready' && recommendedItems) {
+      // Store in Redis cache if client is ready and items were fetched
+      if (redisClient.status === 'ready' && recommendedItems && recommendedItems.length > 0) {
         try {
           await redisClient.set(cacheKey, JSON.stringify(recommendedItems), 'EX', 3600); // Cache for 1 hour
           console.log('Recommendations cached in Redis');
@@ -57,9 +57,8 @@ export async function GET() {
       }
     }
 
-    if (!recommendedItems) {
-      // This case should ideally not be hit if fetchRecommendationsFromSource always returns data
-      // or throws an error that's caught.
+    if (!recommendedItems || recommendedItems.length === 0) {
+      // This case handles when source also returns no items or there was an issue
       return NextResponse.json({ error: 'No recommendations found' }, { status: 404 });
     }
 

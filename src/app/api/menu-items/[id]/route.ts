@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db'; // Correctly a named import
-import redisClient from '@/lib/redis'; // Changed to default import
+import { redisClient } from '@/lib/redis'; // Changed back to named import
 
 // Define a more specific type for a single MenuItem, aligning with Prisma schema
 interface MenuItem {
