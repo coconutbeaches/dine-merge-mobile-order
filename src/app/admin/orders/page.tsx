@@ -2,15 +2,50 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getAllOrdersForAdmin, OrderWithItems } from '@/lib/api/orders'; // Changed getOrders to getAllOrdersForAdmin
+// Removed: import { getAllOrdersForAdmin, OrderWithItems } from '@/lib/api/orders';
 import AdminHeader from '@/components/admin/admin-header';
 import { formatThaiCurrency } from '@/lib/utils/format-thai-currency';
 import { formatDate } from '@/lib/utils/format-date';
 import { Skeleton } from '@/components/ui/skeleton';
-// import AdminOrderCreator from '@/components/admin/AdminOrderCreator'; // This was deleted, ensure it's not used or reimplement if needed
+import type { OrderStatus, Customer as PrismaCustomer, OrderItem as PrismaOrderItem, MenuItem as PrismaMenuItem } from '@prisma/client';
+
+// Define types locally for this component based on expected API response
+// This mirrors the structure of OrderWithDetails from the backend
+interface MenuItemForOrder {
+  id: string;
+  name: string;
+  image?: string | null;
+  // Add other menu item fields if needed for display
+}
+
+interface EnrichedOrderItem extends PrismaOrderItem {
+  menuItem: MenuItemForOrder | null; 
+}
+
+interface OrderWithDetails {
+  id: string;
+  customerName: string | null;
+  customerPhone: string | null;
+  total: number;
+  status: OrderStatus;
+  isPaid: boolean;
+  createdAt: string | Date; // API might return string, convert to Date if needed
+  updatedAt: string | Date;
+  items: EnrichedOrderItem[];
+  customer?: {
+    id: string;
+    name: string | null;
+    phone: string;
+  } | null;
+  tableNumber?: number | null;
+  isTakeAway: boolean;
+  notes?: string | null;
+  whatsappMessageGenerated: boolean;
+}
+
 
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<OrderWithItems[]>([]);
+  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -20,17 +55,25 @@ export default function AdminOrdersPage() {
       setLoading(true);
       setError(null);
       try {
-        const fetchedOrders = await getAllOrdersForAdmin(); // Changed getOrders to getAllOrdersForAdmin
-        if (fetchedOrders) {
-          setOrders(fetchedOrders);
-        } else {
-          setError('Failed to fetch orders.');
-          setOrders([]); // Ensure orders is an empty array on failure
+        const response = await fetch('/api/orders'); // Fetch from API endpoint
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to fetch orders: ${response.status}`);
         }
+        const fetchedOrders: OrderWithDetails[] = await response.json();
+        
+        // Convert date strings to Date objects if necessary
+        const processedOrders = fetchedOrders.map(order => ({
+          ...order,
+          createdAt: new Date(order.createdAt),
+          updatedAt: new Date(order.updatedAt),
+        }));
+        setOrders(processedOrders);
       } catch (err) {
         console.error("Error fetching orders:", err);
-        setError('An error occurred while fetching orders.');
-        setOrders([]); // Ensure orders is an empty array on error
+        const errorMessage = err instanceof Error ? err.message : 'An error occurred while fetching orders.';
+        setError(errorMessage);
+        setOrders([]);
       } finally {
         setLoading(false);
       }
@@ -38,7 +81,7 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }, []);
 
-  // const handleOrderCreated = (newOrder: OrderWithItems) => {
+  // const handleOrderCreated = (newOrder: OrderWithDetails) => {
   //   setOrders(prevOrders => [newOrder, ...prevOrders]);
   //   setIsCreateModalOpen(false);
   // };
