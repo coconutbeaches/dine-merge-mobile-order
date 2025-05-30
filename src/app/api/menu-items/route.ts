@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/db';
-import redisClient from '@/lib/redis';
+import { prisma } from '@/lib/db'; // Changed to named import
+import { redisClient } from '@/lib/redis'; // Changed to named import
 
 interface MenuItem {
   id: string;
