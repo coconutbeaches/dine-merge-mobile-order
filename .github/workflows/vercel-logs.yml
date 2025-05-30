@@ -1,0 +1,124 @@
+name: Vercel Deployment Monitor
+
+on:
+  push:
+    branches:
+      - droid/initial-setup
+      - main
+      - master
+
+jobs:
+  monitor-deployment:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Wait for Vercel Deployment
+        id: wait_for_deployment
+        run: |
+          # Get the current commit SHA
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "Monitoring deployment for commit: $COMMIT_SHA"
+          
+          # Poll for deployment status
+          MAX_ATTEMPTS=30
+          ATTEMPT=0
+          DEPLOYMENT_ID=""
+          DEPLOYMENT_URL=""
+          DEPLOYMENT_STATE=""
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            # Get latest deployments
+            DEPLOYMENTS=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+              "https://api.vercel.com/v6/deployments?teamId=${{ secrets.VERCEL_ORG_ID }}&projectId=${{ secrets.VERCEL_PROJECT_ID }}&meta-githubCommitSha=$COMMIT_SHA&limit=1")
+            
+            # Check if we found a deployment
+            DEPLOYMENT_COUNT=$(echo $DEPLOYMENTS | jq '.deployments | length')
+            
+            if [ "$DEPLOYMENT_COUNT" -gt 0 ]; then
+              DEPLOYMENT_ID=$(echo $DEPLOYMENTS | jq -r '.deployments[0].id')
+              DEPLOYMENT_URL=$(echo $DEPLOYMENTS | jq -r '.deployments[0].url')
+              DEPLOYMENT_STATE=$(echo $DEPLOYMENTS | jq -r '.deployments[0].state')
+              
+              echo "Found deployment: $DEPLOYMENT_ID, State: $DEPLOYMENT_STATE"
+              
+              if [ "$DEPLOYMENT_STATE" = "READY" ]; then
+                echo "Deployment is ready!"
+                break
+              elif [ "$DEPLOYMENT_STATE" = "ERROR" ]; then
+                echo "Deployment failed!"
+                break
+              fi
+            fi
+            
+            ATTEMPT=$((ATTEMPT+1))
+            echo "Waiting for deployment... Attempt $ATTEMPT of $MAX_ATTEMPTS"
+            sleep 10
+          done
+          
+          if [ $ATTEMPT -eq $MAX_ATTEMPTS ]; then
+            echo "Timed out waiting for deployment"
+            exit 1
+          fi
+          
+          echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+          echo "DEPLOYMENT_URL=https://$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+          echo "DEPLOYMENT_STATE=$DEPLOYMENT_STATE" >> $GITHUB_OUTPUT
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Fetch Vercel Build Logs
+        id: fetch_logs
+        run: |
+          # Fetch logs for the specific deployment ID
+          if [ -n "${{ steps.wait_for_deployment.outputs.DEPLOYMENT_ID }}" ]; then
+            vercel logs ${{ steps.wait_for_deployment.outputs.DEPLOYMENT_ID }} --token ${{ secrets.VERCEL_TOKEN }} > deployment_logs.txt
+            
+            # Check if deployment failed
+            if [ "${{ steps.wait_for_deployment.outputs.DEPLOYMENT_STATE }}" = "ERROR" ]; then
+              echo "HAS_ERRORS=true" >> $GITHUB_OUTPUT
+            else
+              echo "HAS_ERRORS=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No deployment ID found. Cannot fetch logs."
+            echo "HAS_ERRORS=true" >> $GITHUB_OUTPUT
+            echo "No deployment found for the current commit. Please check your Vercel project settings." > deployment_logs.txt
+          fi
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Create GitHub Issue for Errors
+        if: steps.fetch_logs.outputs.HAS_ERRORS == 'true'
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: "Vercel Deployment Failed: ${{ github.ref_name }} @ ${{ github.sha }}"
+          content-filepath: ./deployment_logs.txt
+          labels: |
+            bug
+            vercel-deployment
+
+      - name: Create Success Commit Comment
+        if: steps.fetch_logs.outputs.HAS_ERRORS == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `✅ Vercel deployment successful!\n\nDeployment URL: ${{ steps.wait_for_deployment.outputs.DEPLOYMENT_URL }}`
+            });
