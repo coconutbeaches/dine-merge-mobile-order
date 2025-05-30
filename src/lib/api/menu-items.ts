@@ -1,400 +1,106 @@
-import { prisma } from '@/lib/db';
-import { MenuItem } from '@prisma/client';
-import { cache } from 'react';
-import { redis } from '@/lib/redis';
+// src/lib/api/menu-items.ts
 
-// Types
-export type MenuItemWithCategory = MenuItem & {
-  category: {
-    id: string;
-    name: string;
-    nameEn?: string | null;
-  };
-};
+// Define types to match the expected API response structures
+// This ensures consistency between frontend and backend data shapes.
 
-export type CreateMenuItemInput = {
-  name: string;
-  nameEn?: string;
-  description?: string;
-  descriptionEn?: string;
-  price: number;
-  image?: string;
-  isActive?: boolean;
-  isAvailable?: boolean;
-  categoryId: string;
-};
-
-export type UpdateMenuItemInput = Partial<CreateMenuItemInput> & {
+interface MenuItem {
   id: string;
-};
+  name: string;
+  price: number;
+  description?: string | null;
+  image?: string | null;
+  categoryId: string;
+  // Assuming options might be complex, using 'any' for now, but could be more specific
+  // e.g., options: Array<{ name: string; choices: Array<{ name: string; priceModifier?: number }> }>;
+  options: any[]; 
+  isPopular: boolean;
+  isNew: boolean;
+  availability: string; // e.g., 'AVAILABLE', 'SOLD_OUT'
+  createdAt: Date; // Prisma typically returns Date objects, JSON will be string
+  updatedAt: Date; // Prisma typically returns Date objects, JSON will be string
+}
 
-// Cache duration in seconds
-const CACHE_TTL = 60 * 60; // 1 hour
-
-/**
- * Get all menu items
- * 
- * Cached with React cache() for server components
- * Also cached in Redis for API routes
- */
-export const getMenuItems = cache(async (options?: {
-  includeInactive?: boolean;
-  categoryId?: string;
-}): Promise<MenuItem[]> => {
-  const { includeInactive = false, categoryId } = options || {};
-  
-  const cacheKey = `menu-items:all:${includeInactive}:${categoryId || 'all'}`;
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  // Query database if not in cache
-  const menuItems = await prisma.menuItem.findMany({
-    where: {
-      isActive: includeInactive ? undefined : true,
-      categoryId: categoryId ? categoryId : undefined,
-    },
-    orderBy: [
-      {
-        category: {
-          order: 'asc',
-        },
-      },
-      {
-        name: 'asc',
-      },
-    ],
-  });
-  
-  // Store in Redis cache
-  try {
-    await redis.set(cacheKey, JSON.stringify(menuItems), 'EX', CACHE_TTL);
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  return menuItems;
-});
-
-/**
- * Get menu items with their categories
- */
-export const getMenuItemsWithCategories = cache(async (): Promise<MenuItemWithCategory[]> => {
-  const cacheKey = 'menu-items:with-categories';
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  // Query database if not in cache
-  const menuItems = await prisma.menuItem.findMany({
-    where: {
-      isActive: true,
-    },
-    include: {
-      category: {
-        select: {
-          id: true,
-          name: true,
-          nameEn: true,
-        },
-      },
-    },
-    orderBy: [
-      {
-        category: {
-          order: 'asc',
-        },
-      },
-      {
-        name: 'asc',
-      },
-    ],
-  });
-  
-  // Store in Redis cache
-  try {
-    await redis.set(cacheKey, JSON.stringify(menuItems), 'EX', CACHE_TTL);
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  return menuItems;
-});
-
-/**
- * Get a menu item by ID
- */
-export const getMenuItem = cache(async (id: string): Promise<MenuItem | null> => {
-  if (!id) return null;
-  
-  const cacheKey = `menu-item:${id}`;
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  // Query database if not in cache
-  const menuItem = await prisma.menuItem.findUnique({
-    where: { id },
-  });
-  
-  // Store in Redis cache
-  if (menuItem) {
-    try {
-      await redis.set(cacheKey, JSON.stringify(menuItem), 'EX', CACHE_TTL);
-    } catch (error) {
-      console.error('Redis cache error:', error);
-    }
-  }
-  
-  return menuItem;
-});
-
-/**
- * Get a menu item by ID with category
- */
-export const getMenuItemWithCategory = cache(async (id: string): Promise<MenuItemWithCategory | null> => {
-  if (!id) return null;
-  
-  const cacheKey = `menu-item:${id}:with-category`;
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
-    }
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  // Query database if not in cache
-  const menuItem = await prisma.menuItem.findUnique({
-    where: { id },
-    include: {
-      category: {
-        select: {
-          id: true,
-          name: true,
-          nameEn: true,
-        },
-      },
-    },
-  });
-  
-  // Store in Redis cache
-  if (menuItem) {
-    try {
-      await redis.set(cacheKey, JSON.stringify(menuItem), 'EX', CACHE_TTL);
-    } catch (error) {
-      console.error('Redis cache error:', error);
-    }
-  }
-  
-  return menuItem;
-});
-
-/**
- * Create a new menu item
- */
-export async function createMenuItem(data: CreateMenuItemInput): Promise<MenuItem> {
-  const menuItem = await prisma.menuItem.create({
-    data: {
-      name: data.name,
-      nameEn: data.nameEn,
-      description: data.description,
-      descriptionEn: data.descriptionEn,
-      price: data.price,
-      image: data.image,
-      isActive: data.isActive ?? true,
-      isAvailable: data.isAvailable ?? true,
-      categoryId: data.categoryId,
-    },
-  });
-  
-  // Invalidate caches
-  try {
-    await redis.del('menu-items:all:true:all');
-    await redis.del('menu-items:all:false:all');
-    await redis.del(`menu-items:all:true:${data.categoryId}`);
-    await redis.del(`menu-items:all:false:${data.categoryId}`);
-    await redis.del('menu-items:with-categories');
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return menuItem;
+interface CategoryWithMenuItems {
+  id: string;
+  name: string;
+  description?: string | null;
+  createdAt: Date; // Prisma typically returns Date objects, JSON will be string
+  updatedAt: Date; // Prisma typically returns Date objects, JSON will be string
+  menuItems: MenuItem[];
 }
 
 /**
- * Update a menu item
+ * Fetches all menu items, grouped by category, from the API.
+ * The API route `/api/menu-items` handles caching internally.
  */
-export async function updateMenuItem(data: UpdateMenuItemInput): Promise<MenuItem> {
-  const { id, ...updateData } = data;
-  
-  const menuItem = await prisma.menuItem.update({
-    where: { id },
-    data: updateData,
-  });
-  
-  // Invalidate caches
+export async function getMenuItems(): Promise<CategoryWithMenuItems[]> {
   try {
-    await redis.del(`menu-item:${id}`);
-    await redis.del(`menu-item:${id}:with-category`);
-    await redis.del('menu-items:all:true:all');
-    await redis.del('menu-items:all:false:all');
-    await redis.del(`menu-items:all:true:${menuItem.categoryId}`);
-    await redis.del(`menu-items:all:false:${menuItem.categoryId}`);
-    await redis.del('menu-items:with-categories');
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return menuItem;
-}
+    const response = await fetch('/api/menu-items');
 
-/**
- * Delete a menu item
- */
-export async function deleteMenuItem(id: string): Promise<MenuItem> {
-  // Get the item first to know its categoryId for cache invalidation
-  const menuItem = await prisma.menuItem.findUnique({
-    where: { id },
-    select: { categoryId: true },
-  });
-  
-  // Delete the item
-  const deletedItem = await prisma.menuItem.delete({
-    where: { id },
-  });
-  
-  // Invalidate caches
-  try {
-    await redis.del(`menu-item:${id}`);
-    await redis.del(`menu-item:${id}:with-category`);
-    await redis.del('menu-items:all:true:all');
-    await redis.del('menu-items:all:false:all');
-    if (menuItem) {
-      await redis.del(`menu-items:all:true:${menuItem.categoryId}`);
-      await redis.del(`menu-items:all:false:${menuItem.categoryId}`);
+    if (!response.ok) {
+      console.error('Failed to fetch menu items:', response.status, response.statusText);
+      // Consider throwing an error or returning a more specific error object
+      // throw new Error(`Failed to fetch menu items: ${response.status}`);
+      return []; // Return empty array on error to prevent breaking UI
     }
-    await redis.del('menu-items:with-categories');
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return deletedItem;
-}
 
-/**
- * Mark a menu item as available/unavailable
- */
-export async function toggleMenuItemAvailability(id: string, isAvailable: boolean): Promise<MenuItem> {
-  const menuItem = await prisma.menuItem.update({
-    where: { id },
-    data: { isAvailable },
-  });
-  
-  // Invalidate caches
-  try {
-    await redis.del(`menu-item:${id}`);
-    await redis.del(`menu-item:${id}:with-category`);
-    await redis.del('menu-items:all:true:all');
-    await redis.del('menu-items:all:false:all');
-    await redis.del(`menu-items:all:true:${menuItem.categoryId}`);
-    await redis.del(`menu-items:all:false:${menuItem.categoryId}`);
-    await redis.del('menu-items:with-categories');
-  } catch (error) {
-    console.error('Redis cache invalidation error:', error);
-  }
-  
-  return menuItem;
-}
+    const data = await response.json();
 
-/**
- * Get popular menu items based on order count
- */
-export const getPopularMenuItems = cache(async (limit: number = 10): Promise<MenuItem[]> => {
-  const cacheKey = `menu-items:popular:${limit}`;
-  
-  // Try to get from Redis cache first
-  try {
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
+    // Basic validation that data is an array
+    if (!Array.isArray(data)) {
+        console.error('Fetched menu items data is not an array:', data);
+        return [];
     }
+    
+    // Note: Date strings from JSON will not be automatically converted to Date objects.
+    // If Date objects are needed on the client, they'd need to be parsed.
+    // For this example, we'll assume the client can handle date strings or further processing.
+    return data as CategoryWithMenuItems[];
   } catch (error) {
-    console.error('Redis cache error:', error);
+    console.error('Error fetching menu items:', error);
+    return []; // Return empty array on error
   }
-  
-  // Query database if not in cache
-  const popularItems = await prisma.$queryRaw<MenuItem[]>`
-    SELECT m.* 
-    FROM "MenuItem" m
-    JOIN (
-      SELECT "menuItemId", COUNT(*) as order_count
-      FROM "OrderItem"
-      GROUP BY "menuItemId"
-      ORDER BY order_count DESC
-      LIMIT ${limit}
-    ) o ON m.id = o."menuItemId"
-    WHERE m."isActive" = true AND m."isAvailable" = true
-    ORDER BY o.order_count DESC
-  `;
-  
-  // Store in Redis cache
-  try {
-    await redis.set(cacheKey, JSON.stringify(popularItems), 'EX', CACHE_TTL);
-  } catch (error) {
-    console.error('Redis cache error:', error);
-  }
-  
-  return popularItems;
-});
+}
 
 /**
- * Search menu items by name or description
+ * Fetches a single menu item by its ID from the API.
+ * The API route `/api/menu-items/[id]` handles caching internally.
+ * @param id The ID of the menu item to fetch.
  */
-export async function searchMenuItems(query: string): Promise<MenuItem[]> {
-  if (!query || query.trim() === '') {
-    return [];
+export async function getMenuItemById(id: string): Promise<MenuItem | null> {
+  if (!id) {
+    console.error('getMenuItemById: ID is required');
+    return null;
   }
-  
-  const searchTerm = `%${query.trim()}%`;
-  
-  const menuItems = await prisma.$queryRaw<MenuItem[]>`
-    SELECT * FROM "MenuItem"
-    WHERE 
-      "isActive" = true AND
-      (
-        "name" ILIKE ${searchTerm} OR
-        "nameEn" ILIKE ${searchTerm} OR
-        "description" ILIKE ${searchTerm} OR
-        "descriptionEn" ILIKE ${searchTerm}
-      )
-    ORDER BY "name" ASC
-    LIMIT 20
-  `;
-  
-  return menuItems;
+
+  try {
+    const response = await fetch(`/api/menu-items/${id}`);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`Menu item with ID ${id} not found.`);
+        return null;
+      }
+      console.error(`Failed to fetch menu item ${id}:`, response.status, response.statusText);
+      // throw new Error(`Failed to fetch menu item ${id}: ${response.status}`);
+      return null; // Return null on other errors
+    }
+
+    const data = await response.json();
+    
+    // Basic validation that data is an object (and not an error response like { error: ... })
+    if (typeof data !== 'object' || data === null || Array.isArray(data)) {
+        console.error(`Fetched menu item data for ID ${id} is not a valid object:`, data);
+        return null;
+    }
+    if (data.error) { // Handle cases where API returns a JSON error object
+        console.error(`API error for menu item ${id}:`, data.error);
+        return null;
+    }
+
+    return data as MenuItem;
+  } catch (error) {
+    console.error(`Error fetching menu item ${id}:`, error);
+    return null; // Return null on error
+  }
 }
