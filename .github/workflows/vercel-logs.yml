@@ -11,6 +11,7 @@ jobs:
   monitor-deployment:
     runs-on: ubuntu-latest
     permissions:
+      contents: read # Required to checkout the repository code
       issues: write
       pull-requests: write # For commit comments
     steps:
