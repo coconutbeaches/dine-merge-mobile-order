@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem as CartItemType } from '@/types/CartItem';
-import { Order, SupabaseOrderStatus, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
+import { Order, OrderStatus } from '@/types/supabaseTypes';
 
 // Export CartItem for compatibility
 export type CartItem = CartItemType;
@@ -21,7 +21,7 @@ export async function placeOrder(orderData: {
       .insert({
         user_id: orderData.userId || null,
         total_amount: orderData.total,
-        order_status: 'new' as SupabaseOrderStatus,
+        order_status: 'new',
         order_items: orderData.items,
         table_number: orderData.tableNumber,
         customer_name: orderData.customerName
@@ -57,7 +57,7 @@ export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
 
     return data.map(order => ({
       ...order,
-      order_status: mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus)
+      order_status: order.order_status as OrderStatus
     })) as Order[];
   } catch (error) {
     console.error('Error fetching user orders:', error);
@@ -81,7 +81,7 @@ export const placeOrderInSupabase = async (
         order_items: cartItems,
         total_amount: total,
         table_number: tableNumber,
-        order_status: 'new' as SupabaseOrderStatus
+        order_status: 'new'
       })
       .select()
       .single();
