@@ -25,9 +25,7 @@ export async function placeOrder(orderData: {
           order_status: 'new' as SupabaseOrderStatus,
           order_items: orderData.items,
           table_number: orderData.tableNumber,
-          customer_name: orderData.customerName,
-          payment_status: 'unpaid',
-          tip: 0
+          customer_name: orderData.customerName
         }
       ])
       .select()
@@ -86,9 +84,7 @@ export const placeOrderInSupabase = async (
           order_items: cartItems,
           total_amount: total,
           table_number: tableNumber,
-          order_status: 'new' as SupabaseOrderStatus,
-          payment_status: 'unpaid',
-          tip: 0
+          order_status: 'new' as SupabaseOrderStatus
         }
       ])
       .select()

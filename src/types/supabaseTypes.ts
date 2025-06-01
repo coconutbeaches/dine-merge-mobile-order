@@ -72,12 +72,10 @@ export interface Database {
           id: number
           order_items: Json | null
           order_status: Database["public"]["Enums"]["order_status"] | null
-          payment_status: Database["public"]["Enums"]["payment_status"] | null
           table_number: string | null
           total_amount: number
           updated_at: string
           user_id: string | null
-          tip: number | null
         }
         Insert: {
           created_at?: string
@@ -85,12 +83,10 @@ export interface Database {
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
-          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           table_number?: string | null
           total_amount: number
           updated_at?: string
           user_id?: string | null
-          tip?: number | null
         }
         Update: {
           created_at?: string
@@ -98,12 +94,10 @@ export interface Database {
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
-          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           table_number?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string | null
-          tip?: number | null
         }
         Relationships: [
           {
@@ -177,23 +171,18 @@ export interface Database {
   }
 }
 
-export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (Database["public"]["Tables"] & { _: never })
-    | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
-    : never = never
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName]["Row"]
-  : PublicTableNameOrOptions extends keyof (Database["public"]["Tables"] & {
-      _: never
-    })
-  ? Database["public"]["Tables"][PublicTableNameOrOptions]["Row"]
-  : never
+export type MenuItems = Database["public"]["Tables"]["menu_items"]["Row"]
+export type Category = Database["public"]["Tables"]["categories"]["Row"]
 
-export type MenuItems = Tables<"menu_items">
-export type Category = Tables<"categories">
+// Address type
+export interface Address {
+  id: string;
+  street: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  isDefault: boolean;
+}
 
 // Product types based on actual database schema
 export type Product = {
@@ -250,7 +239,7 @@ export interface CartItem {
     image_url?: string | null;
 }
 
-export type OrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled' | 'paid';
+export type OrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled';
 export type SupabaseOrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled';
 
 export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStatus => {
@@ -261,7 +250,6 @@ export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStat
     case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'cancelled': return 'cancelled';
-    case 'paid': return 'completed'; // Map 'paid' to 'completed' for Supabase
     default: return 'new';
   }
 };
@@ -283,8 +271,6 @@ export interface Order {
   user_id?: string;
   total_amount: number;
   order_status: OrderStatus;
-  payment_status?: 'unpaid' | 'paid' | 'pending' | 'failed' | 'refunded';
-  fulfillment_status?: 'unfulfilled' | 'ready' | 'out_for_delivery' | 'fulfilled';
   created_at: string;
   updated_at: string;
   order_items: any;
@@ -292,5 +278,4 @@ export interface Order {
   customer_name?: string;
   customer_name_from_profile?: string;
   customer_email_from_profile?: string;
-  tip?: number;
 }

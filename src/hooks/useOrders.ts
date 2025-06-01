@@ -102,13 +102,11 @@ export function useOrders(userId: string | undefined) {
         user_id: insertedOrderData.user_id || userId,
         total_amount: insertedOrderData.total_amount,
         order_status: 'new' as OrderStatus,
-        payment_status: insertedOrderData.payment_status || 'unpaid',
         created_at: insertedOrderData.created_at,
         updated_at: insertedOrderData.updated_at,
         order_items: insertedOrderData.order_items,
         table_number: insertedOrderData.table_number || tableNumberInput,
-        customer_name: insertedOrderData.customer_name,
-        tip: insertedOrderData.tip || 0
+        customer_name: insertedOrderData.customer_name
       };
       
       console.log("New order created for local state:", newOrderForLocalState);

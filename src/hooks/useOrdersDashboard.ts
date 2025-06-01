@@ -66,9 +66,7 @@ export function useOrdersDashboard() {
 
         const enrichedOrders = data.map(order => {
           let appOrderStatus: OrderStatus;
-          if (order.payment_status === 'paid') {
-            appOrderStatus = 'paid';
-          } else if (order.order_status) {
+          if (order.order_status) {
             appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
           } else {
             appOrderStatus = 'new';
@@ -120,20 +118,12 @@ export function useOrdersDashboard() {
       console.log(`Updating order ${orderId} to status: ${newStatus}`);
       
       // Map our application status to Supabase status
-      const supabaseStatus = newStatus === 'paid' 
-        ? 'completed' as SupabaseOrderStatus  // Special case for 'paid'
-        : mapOrderStatusToSupabase(newStatus);
+      const supabaseStatus = mapOrderStatusToSupabase(newStatus);
       
-      // Also update payment_status to 'paid' if the new status is 'paid'
       const updateData: any = { 
         order_status: supabaseStatus, 
         updated_at: new Date().toISOString() 
       };
-      
-      // If setting to paid status, also update the payment_status
-      if (newStatus === 'paid') {
-        updateData.payment_status = 'paid';
-      }
       
       const { error } = await supabase
         .from('orders')
@@ -149,7 +139,7 @@ export function useOrdersDashboard() {
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId 
-            ? { ...order, order_status: newStatus, payment_status: newStatus === 'paid' ? 'paid' : order.payment_status } 
+            ? { ...order, order_status: newStatus } 
             : order
         ) as Order[]
       );

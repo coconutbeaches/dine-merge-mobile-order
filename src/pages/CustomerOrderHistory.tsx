@@ -81,10 +81,7 @@ const CustomerOrderHistory = () => {
         const transformedOrders = data.map(order => {
           let appOrderStatus: OrderStatus;
           
-          // Special handling for 'paid' orders
-          if (order.payment_status === 'paid') {
-            appOrderStatus = 'paid';
-          } else if (order.order_status) {
+          if (order.order_status) {
             // Map Supabase order_status to our application OrderStatus
             appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
           } else {
@@ -93,7 +90,7 @@ const CustomerOrderHistory = () => {
             appOrderStatus = 'new';
           }
           
-          console.log(`Order ${order.id} - DB order_status: ${order.order_status}, DB payment_status: ${order.payment_status}, Calculated app_status: ${appOrderStatus}`);
+          console.log(`Order ${order.id} - DB order_status: ${order.order_status}, Calculated app_status: ${appOrderStatus}`);
           
           return {
             ...order,
@@ -124,8 +121,6 @@ const CustomerOrderHistory = () => {
         return "bg-blue-500";
       case 'completed':
         return "bg-green-500";
-      case 'paid':
-        return "bg-green-700";
       case 'cancelled':
         return "bg-gray-500";
       default:

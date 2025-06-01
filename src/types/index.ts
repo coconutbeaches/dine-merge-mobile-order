@@ -51,7 +51,7 @@ export interface CartItem {
 }
 
 // Import Order from supabaseTypes to maintain consistency
-export { Order, OrderStatus } from './supabaseTypes';
+export type { Order, OrderStatus } from './supabaseTypes';
 
 export interface RestaurantInfo {
   name: string;
