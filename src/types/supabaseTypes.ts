@@ -1,3 +1,4 @@
+
 export type Json =
   | string
   | number
@@ -181,6 +182,53 @@ export type Tables<
 
 export type MenuItems = Tables<"menu_items">
 export type Category = Tables<"categories">
+
+// Product types based on actual database schema
+export type Product = {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  image_url?: string | null;
+  category_id?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// Profile type
+export type Profile = {
+  id: string;
+  email: string;
+  name?: string | null;
+  phone?: string | null;
+  role?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+// Product option types
+export interface ProductOptionChoice {
+  id: string;
+  option_id: string;
+  name: string;
+  price_adjustment: number;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ProductOption {
+  id: string;
+  product_id: string;
+  name: string;
+  required: boolean;
+  selection_type: "single" | "multiple";
+  enable_quantity: boolean;
+  sort_order: number;
+  choices: ProductOptionChoice[];
+  created_at?: string;
+  updated_at?: string;
+}
 
 export interface CartItem {
     id: number;

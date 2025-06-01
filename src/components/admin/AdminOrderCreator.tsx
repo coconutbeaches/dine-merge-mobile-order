@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, UserPlus } from 'lucide-react'; // Added UserPlus
+import { Plus, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { nanoid } from 'nanoid';
 
 interface Customer {
   id: string;
@@ -87,13 +88,16 @@ const AdminOrderCreator = () => {
     }
     setIsCreatingGuest(true);
     try {
+      const guestId = nanoid();
       const uniqueEmail = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@throwaway.com`;
+      
       const { data: newGuest, error } = await supabase
         .from('profiles')
         .insert({
+          id: guestId,
           name: guestName,
           email: uniqueEmail,
-          role: 'guest', // Assuming 'guest' is a valid role
+          role: 'guest',
         })
         .select('id, name, email')
         .single();
@@ -128,7 +132,7 @@ const AdminOrderCreator = () => {
   };
 
   return (
-    <> {/* Added React.Fragment because we now have two sibling Dialogs */}
+    <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button variant="outline">
@@ -197,7 +201,7 @@ const AdminOrderCreator = () => {
                 {filteredCustomers.map((customer) => (
                   <li 
                     key={customer.id} 
-                    className="py-2 px-3 hover:bg-muted/50 cursor-pointer" // Added px-3 for better spacing
+                    className="py-2 px-3 hover:bg-muted/50 cursor-pointer"
                     onClick={() => handleCreateOrder(customer.id)}
                   >
                     <p className="font-medium">{customer.name}</p>
@@ -216,14 +220,14 @@ const AdminOrderCreator = () => {
             )}
           </div>
         </div>
-        <div className="flex justify-end"> {/* Removed gap-2 as only one button now */}
+        <div className="flex justify-end">
           <DialogClose asChild>
-            <Button variant="secondary">Close</Button> {/* Changed from Cancel to Close */}
+            <Button variant="secondary">Close</Button>
           </DialogClose>
         </div>
       </DialogContent>
     </Dialog>
-    </> // Closing the React.Fragment
+    </>
   );
 };
 

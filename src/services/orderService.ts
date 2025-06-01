@@ -1,6 +1,10 @@
+
 import { supabase } from '@/integrations/supabase/client';
-import { CartItem } from '@/types/CartItem';
+import { CartItem as CartItemType } from '@/types/CartItem';
 import { Order, SupabaseOrderStatus, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
+
+// Export CartItem for compatibility
+export type CartItem = CartItemType;
 
 export async function placeOrder(orderData: {
   items: CartItem[];
@@ -44,6 +48,63 @@ export async function placeOrder(orderData: {
     };
   }
 }
+
+export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return data.map(order => ({
+      ...order,
+      order_status: mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus)
+    })) as Order[];
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    return [];
+  }
+};
+
+export const placeOrderInSupabase = async (
+  userId: string,
+  customerName: string | null,
+  cartItems: CartItem[],
+  total: number,
+  tableNumber: string
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([
+        {
+          user_id: userId,
+          customer_name: customerName,
+          order_items: cartItems,
+          total_amount: total,
+          table_number: tableNumber,
+          order_status: 'new' as SupabaseOrderStatus,
+          payment_status: 'unpaid'
+        }
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error placing order in Supabase:', error);
+    throw error;
+  }
+};
+
+export const getFilteredOrderHistory = (orders: Order[], userId?: string) => {
+  if (!userId) return [];
+  return orders.filter(order => order.user_id === userId);
+};
 
 const formatOrders = (orders: any[]): Order[] => {
   return orders.map(order => ({
