@@ -6,7 +6,7 @@ export interface User {
   phone: string;  // Changed from optional to required
   role?: string; // Add role field
   addresses: Address[];
-  orderHistory: Order[];
+  orderHistory: import('./supabaseTypes').Order[];
 }
 
 export interface Address {
@@ -50,7 +50,7 @@ export interface CartItem {
   specialInstructions?: string;
 }
 
-// Use the Order and OrderStatus from supabaseTypes to maintain consistency
+// Re-export Order and OrderStatus from supabaseTypes to maintain consistency
 export type { Order, OrderStatus } from './supabaseTypes';
 
 export interface RestaurantInfo {
