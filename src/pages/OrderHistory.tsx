@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { OrderStatus } from '@/types/supabaseTypes'; // Import from supabaseTypes
+import { OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
 
 const OrderHistory = () => {
@@ -23,20 +23,20 @@ const OrderHistory = () => {
   // The getOrderHistory from context already filters by user and sorts.
   const orders = getOrderHistory();
   
-  const totalSpent = orders.reduce((total, order) => total + order.total, 0);
+  const totalSpent = orders.reduce((total, order) => total + (order.total_amount || 0), 0);
   
   const getStatusColor = (status: OrderStatus | null) => {
     switch (status) {
       case 'new':
         return "bg-red-500"; 
-      case 'confirmed':
-        return "bg-green-500";
-      case 'make':
+      case 'preparing':
         return "bg-yellow-500";
       case 'ready':
         return "bg-orange-500";
-      case 'delivered':
+      case 'out_for_delivery':
         return "bg-blue-500";
+      case 'completed':
+        return "bg-green-500";
       case 'paid':
         return "bg-green-700"; // Darker green for Paid
       case 'cancelled':
@@ -79,35 +79,35 @@ const OrderHistory = () => {
                 <CardContent className="p-4">
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h3 className="font-semibold">Order #{order.id.substring(0, 8)}...</h3>
+                      <h3 className="font-semibold">Order #{order.id.toString().padStart(4, '0')}</h3>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(order.createdAt), 'MMM d, yyyy - h:mm a')}
+                        {format(new Date(order.created_at), 'MMM d, yyyy - h:mm a')}
                       </p>
-                      {order.tableNumber && (
+                      {order.table_number && (
                         <p className="text-xs text-muted-foreground capitalize">
-                          {order.tableNumber === 'Take Away' ? 'Take Away' : `Table: ${order.tableNumber}`}
+                          {order.table_number === 'Take Away' ? 'Take Away' : `Table: ${order.table_number}`}
                         </p>
                       )}
                     </div>
-                    {order.status && (
-                       <Badge className={`${getStatusColor(order.status)} text-white capitalize`}>
-                         {order.status}
+                    {order.order_status && (
+                       <Badge className={`${getStatusColor(order.order_status)} text-white capitalize`}>
+                         {order.order_status}
                        </Badge>
                     )}
                   </div>
                   
                   <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
-                    {order.items.map((item, idx) => (
+                    {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => (
                       <div key={idx} className="text-sm flex justify-between mb-1 pr-2">
-                        <span>{item.quantity}× {item.menuItem.name}</span>
-                        <span>{formatThaiCurrency(item.menuItem.price * item.quantity)}</span>
+                        <span>{item.quantity}× {item.name}</span>
+                        <span>{formatThaiCurrency(item.price * item.quantity)}</span>
                       </div>
                     ))}
                   </div>
                   
                   <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center font-semibold">
                     <span>Total</span>
-                    <span>{formatThaiCurrency(order.total)}</span>
+                    <span>{formatThaiCurrency(order.total_amount)}</span>
                   </div>
                 </CardContent>
               </Card>

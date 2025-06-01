@@ -77,6 +77,7 @@ export interface Database {
           total_amount: number
           updated_at: string
           user_id: string | null
+          tip: number | null
         }
         Insert: {
           created_at?: string
@@ -89,6 +90,7 @@ export interface Database {
           total_amount: number
           updated_at?: string
           user_id?: string | null
+          tip?: number | null
         }
         Update: {
           created_at?: string
@@ -101,6 +103,7 @@ export interface Database {
           total_amount?: number
           updated_at?: string
           user_id?: string | null
+          tip?: number | null
         }
         Relationships: [
           {
@@ -118,6 +121,9 @@ export interface Database {
           id: string
           name: string | null
           updated_at: string | null
+          phone: string | null
+          role: string | null
+          created_at: string
         }
         Insert: {
           avatar_url?: string | null
@@ -125,6 +131,9 @@ export interface Database {
           id: string
           name?: string | null
           updated_at?: string | null
+          phone?: string | null
+          role?: string | null
+          created_at?: string
         }
         Update: {
           avatar_url?: string | null
@@ -132,6 +141,9 @@ export interface Database {
           id: string
           name?: string | null
           updated_at?: string | null
+          phone?: string | null
+          role?: string | null
+          created_at?: string
         }
         Relationships: [
           {
@@ -249,8 +261,8 @@ export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStat
     case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'cancelled': return 'cancelled';
-    // paid is a special case and doesn't directly map
-    default: return 'new'; // Or handle the default case as needed
+    case 'paid': return 'completed'; // Map 'paid' to 'completed' for Supabase
+    default: return 'new';
   }
 };
 
@@ -262,7 +274,7 @@ export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStat
     case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'cancelled': return 'cancelled';
-    default: return 'new'; // Or handle the default case as needed
+    default: return 'new';
   }
 };
 

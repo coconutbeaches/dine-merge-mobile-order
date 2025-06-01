@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import { Order, Address } from '../types';
+import { Order, Address } from '../types/supabaseTypes'; // Use supabaseTypes Order
 import { useUserContext } from './UserContext';
 import { useOrders } from '@/hooks/useOrders';
 

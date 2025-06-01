@@ -27,7 +27,7 @@ export async function placeOrder(orderData: {
           table_number: orderData.tableNumber,
           customer_name: orderData.customerName,
           payment_status: 'unpaid',
-          fulfillment_status: 'unfulfilled'
+          tip: 0
         }
       ])
       .select()
@@ -87,7 +87,8 @@ export const placeOrderInSupabase = async (
           total_amount: total,
           table_number: tableNumber,
           order_status: 'new' as SupabaseOrderStatus,
-          payment_status: 'unpaid'
+          payment_status: 'unpaid',
+          tip: 0
         }
       ])
       .select()
@@ -104,26 +105,4 @@ export const placeOrderInSupabase = async (
 export const getFilteredOrderHistory = (orders: Order[], userId?: string) => {
   if (!userId) return [];
   return orders.filter(order => order.user_id === userId);
-};
-
-const formatOrders = (orders: any[]): Order[] => {
-  return orders.map(order => ({
-    id: order.id.toString(),
-    userId: order.user_id,
-    items: order.order_items || [],
-    status: mapSupabaseToOrderStatus(order.order_status),
-    total: order.total_amount,
-    createdAt: new Date(order.created_at),
-    address: {
-      id: 'default',
-      street: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      isDefault: true
-    },
-    paymentMethod: 'Cash on Delivery',
-    tableNumber: order.table_number || 'N/A',
-    tip: order.tip || 0
-  }));
 };

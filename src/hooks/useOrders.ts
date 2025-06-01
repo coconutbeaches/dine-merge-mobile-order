@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Order, Address, OrderStatus } from '@/types';
+import { Order, Address, OrderStatus } from '@/types/supabaseTypes'; // Use supabaseTypes consistently
 import { supabase } from '@/integrations/supabase/client';
 import { useCartContext } from '@/context/CartContext';
 import { CartItem, fetchUserOrders, placeOrderInSupabase, getFilteredOrderHistory } from '@/services/orderService';
@@ -96,23 +96,19 @@ export function useOrders(userId: string | undefined) {
 
       console.log("Order inserted in Supabase:", insertedOrderData);
 
-      // Use optional chaining to safely access properties
-      const tableNumberValue = insertedOrderData.table_number || tableNumberInput;
-
+      // Create a new order that matches the Order interface from supabaseTypes
       const newOrderForLocalState: Order = {
-        id: insertedOrderData.id.toString(),
-        userId: insertedOrderData.user_id || userId,
-        items: cart.map(ci => ({
-          menuItem: ci.menuItem,
-          quantity: ci.quantity,
-          selectedOptions: ci.selectedOptions,
-        })),
-        status: OrderStatus.NEW,
-        total: insertedOrderData.total_amount,
-        createdAt: new Date(insertedOrderData.created_at),
-        address: address || { id: 'default', street: '', city: '', state: '', zipCode: '', isDefault: true },
-        paymentMethod,
-        tableNumber: tableNumberValue
+        id: insertedOrderData.id,
+        user_id: insertedOrderData.user_id || userId,
+        total_amount: insertedOrderData.total_amount,
+        order_status: 'new' as OrderStatus,
+        payment_status: insertedOrderData.payment_status || 'unpaid',
+        created_at: insertedOrderData.created_at,
+        updated_at: insertedOrderData.updated_at,
+        order_items: insertedOrderData.order_items,
+        table_number: insertedOrderData.table_number || tableNumberInput,
+        customer_name: insertedOrderData.customer_name,
+        tip: insertedOrderData.tip || 0
       };
       
       console.log("New order created for local state:", newOrderForLocalState);

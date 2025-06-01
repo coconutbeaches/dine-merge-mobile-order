@@ -50,28 +50,8 @@ export interface CartItem {
   specialInstructions?: string;
 }
 
-export interface Order {
-  id: string;
-  userId: string;
-  items: CartItem[];
-  status: OrderStatus;
-  total: number;
-  createdAt: Date;
-  estimatedDeliveryTime?: Date;
-  address: Address; // For delivery orders, if applicable
-  paymentMethod: string;
-  tip?: number;
-  tableNumber?: string; // Added for table number or "Take Away"
-}
-
-export enum OrderStatus {
-  NEW = "new",
-  CONFIRMED = "confirmed",
-  COMPLETED = "completed",
-  DELIVERED = "delivered",
-  PAID = "paid",
-  CANCELLED = "cancelled",
-}
+// Import Order from supabaseTypes to maintain consistency
+export { Order, OrderStatus } from './supabaseTypes';
 
 export interface RestaurantInfo {
   name: string;

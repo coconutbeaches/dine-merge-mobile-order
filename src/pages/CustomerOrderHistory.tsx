@@ -116,14 +116,14 @@ const CustomerOrderHistory = () => {
     switch (status) {
       case 'new':
         return "bg-red-500";
-      case 'confirmed':
-        return "bg-green-500";
-      case 'make':
+      case 'preparing':
         return "bg-yellow-500";
       case 'ready':
         return "bg-orange-500";
-      case 'delivered':
+      case 'out_for_delivery':
         return "bg-blue-500";
+      case 'completed':
+        return "bg-green-500";
       case 'paid':
         return "bg-green-700";
       case 'cancelled':
@@ -219,7 +219,7 @@ const CustomerOrderHistory = () => {
                       {Array.isArray(order.order_items) ? order.order_items.map((item: any, idx: number) => (
                         <div key={idx} className="flex justify-between mb-1 pr-2">
                           <span>{item.quantity}× {item.name}</span>
-                          <span>{formatThaiCurrency(item.unitPrice * item.quantity)}</span>
+                          <span>{formatThaiCurrency(item.price * item.quantity)}</span>
                         </div>
                       )) : (
                         <p className="text-sm text-muted-foreground">Order details not available</p>
