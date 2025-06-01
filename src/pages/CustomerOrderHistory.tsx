@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,10 +14,11 @@ import {
   mapSupabaseToOrderStatus 
 } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 
 const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,6 +130,16 @@ const CustomerOrderHistory = () => {
 
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
 
+  const handleCreateNewOrder = () => {
+    // Navigate to menu with customer context
+    navigate('/menu', { 
+      state: { 
+        adminCustomerId: customerId,
+        adminCustomerName: customer?.name || customer?.email 
+      } 
+    });
+  };
+
   if (isLoading) {
     return (
       <Layout title="Customer Orders" showBackButton={true}>
@@ -143,15 +153,21 @@ const CustomerOrderHistory = () => {
   return (
     <Layout title={`Customer Orders: ${customer?.name || 'Unknown'}`} showBackButton={false}>
       <div className="page-container p-4 md:p-6">
-        <div className="flex items-center mb-6 gap-4">
-          <Link to="/orders-dashboard">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <h1 className="text-xl font-bold">
-            {customer ? `${customer.name || 'Customer'}'s Orders` : 'Customer Orders'}
-          </h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <Link to="/orders-dashboard">
+              <Button variant="outline" size="icon">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold">
+              {customer ? `${customer.name || 'Customer'}'s Orders` : 'Customer Orders'}
+            </h1>
+          </div>
+          <Button onClick={handleCreateNewOrder} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create New Order
+          </Button>
         </div>
 
         {customer && (
@@ -176,9 +192,15 @@ const CustomerOrderHistory = () => {
           <div className="text-center py-10 border rounded-lg border-dashed">
             <h2 className="text-xl font-medium text-gray-500 mb-2">No Orders Found</h2>
             <p className="text-muted-foreground mb-6">This customer hasn't placed any orders yet.</p>
-            <Link to="/orders-dashboard">
-              <Button>Back to Orders Dashboard</Button>
-            </Link>
+            <div className="flex gap-4 justify-center">
+              <Button onClick={handleCreateNewOrder} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Create First Order
+              </Button>
+              <Link to="/orders-dashboard">
+                <Button variant="outline">Back to Orders Dashboard</Button>
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
