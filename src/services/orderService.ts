@@ -18,16 +18,14 @@ export async function placeOrder(orderData: {
     
     const { data, error } = await supabase
       .from('orders')
-      .insert([
-        {
-          user_id: orderData.userId || null,
-          total_amount: orderData.total,
-          order_status: 'new' as SupabaseOrderStatus,
-          order_items: orderData.items,
-          table_number: orderData.tableNumber,
-          customer_name: orderData.customerName
-        }
-      ])
+      .insert({
+        user_id: orderData.userId || null,
+        total_amount: orderData.total,
+        order_status: 'new' as SupabaseOrderStatus,
+        order_items: orderData.items,
+        table_number: orderData.tableNumber,
+        customer_name: orderData.customerName
+      })
       .select()
       .single();
 
@@ -77,16 +75,14 @@ export const placeOrderInSupabase = async (
   try {
     const { data, error } = await supabase
       .from('orders')
-      .insert([
-        {
-          user_id: userId,
-          customer_name: customerName,
-          order_items: cartItems,
-          total_amount: total,
-          table_number: tableNumber,
-          order_status: 'new' as SupabaseOrderStatus
-        }
-      ])
+      .insert({
+        user_id: userId,
+        customer_name: customerName,
+        order_items: cartItems,
+        total_amount: total,
+        table_number: tableNumber,
+        order_status: 'new' as SupabaseOrderStatus
+      })
       .select()
       .single();
 

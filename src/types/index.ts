@@ -50,7 +50,7 @@ export interface CartItem {
   specialInstructions?: string;
 }
 
-// Import Order from supabaseTypes to maintain consistency
+// Use the Order and OrderStatus from supabaseTypes to maintain consistency
 export type { Order, OrderStatus } from './supabaseTypes';
 
 export interface RestaurantInfo {

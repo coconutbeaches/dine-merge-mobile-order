@@ -163,6 +163,7 @@ export interface Database {
         | "out_for_delivery"
         | "completed"
         | "cancelled"
+        | "paid"
       payment_status: "unpaid" | "paid" | "pending" | "failed" | "refunded"
     }
     CompositeTypes: {
@@ -239,8 +240,8 @@ export interface CartItem {
     image_url?: string | null;
 }
 
-export type OrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled';
-export type SupabaseOrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled';
+export type OrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled' | 'paid';
+export type SupabaseOrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled' | 'paid';
 
 export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStatus => {
   switch (status) {
@@ -250,6 +251,7 @@ export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStat
     case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'cancelled': return 'cancelled';
+    case 'paid': return 'paid';
     default: return 'new';
   }
 };
@@ -262,6 +264,7 @@ export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStat
     case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'cancelled': return 'cancelled';
+    case 'paid': return 'paid';
     default: return 'new';
   }
 };
