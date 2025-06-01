@@ -7,6 +7,7 @@ import { useOrders } from '@/hooks/useOrders';
 interface OrderContextType {
   placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string) => Promise<Order | null>;
   getOrderHistory: () => Order[];
+  isLoadingOrders: boolean; // Added isLoadingOrders
 }
 
 const OrderContext = createContext<OrderContextType | undefined>(undefined);
@@ -25,7 +26,8 @@ interface OrderProviderProps {
 
 export const OrderProvider = ({ children }: OrderProviderProps) => {
   const { currentUser } = useUserContext();
-  const { placeOrder, getOrderHistory } = useOrders(currentUser?.id);
+  // Destructure isLoading from useOrders and rename it for clarity if needed
+  const { placeOrder, getOrderHistory, isLoading: isOrdersLoadingHook } = useOrders(currentUser?.id);
 
   // Enhanced order placement function with better error handling
   const handlePlaceOrder = async (
@@ -57,7 +59,8 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
 
   const value = {
     placeOrder: handlePlaceOrder,
-    getOrderHistory
+    getOrderHistory,
+    isLoadingOrders: isOrdersLoadingHook // Provide the loading state
   };
 
   return <OrderContext.Provider value={value}>{children}</OrderContext.Provider>;

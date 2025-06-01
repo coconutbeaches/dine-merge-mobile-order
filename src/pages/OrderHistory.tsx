@@ -12,9 +12,11 @@ import { formatThaiCurrency } from '@/lib/utils';
 
 const OrderHistory = () => {
   const navigate = useNavigate();
-  const { getOrderHistory, isLoggedIn, isLoading, currentUser } = useAppContext();
+  // Added isOrdersLoading from useAppContext
+  const { getOrderHistory, isLoggedIn, isLoading, currentUser, isOrdersLoading } = useAppContext();
   
   React.useEffect(() => {
+    // isLoading here refers to UserContext's isLoading (authentication/user profile loading)
     if (!isLoading && !isLoggedIn) {
       navigate('/login', { state: { returnTo: '/order-history' } });
     }
@@ -46,7 +48,10 @@ const OrderHistory = () => {
     }
   };
 
-  if (isLoading) {
+  // Combined loading state: true if either user info is loading OR orders are loading
+  const isOverallLoading = isLoading || isOrdersLoading;
+
+  if (isOverallLoading) {
     return (
       <Layout title="Order History" showBackButton>
         <div className="page-container text-center py-10">
@@ -59,20 +64,25 @@ const OrderHistory = () => {
   return (
     <Layout title="Order History" showBackButton>
       <div className="page-container">
-        {orders.length > 0 && (
+        {/* This part for total spent can still be shown based on currently loaded orders,
+            or also conditioned by !isOverallLoading if preferred */}
+        {orders.length > 0 && !isOverallLoading && (
           <div className="bg-muted/20 p-4 rounded-lg mb-6 text-center">
             <p className="text-sm text-muted-foreground mb-1">Total Spent on Orders</p>
             <p className="text-2xl font-bold">{formatThaiCurrency(totalSpent)}</p>
           </div>
         )}
         
-        {orders.length === 0 ? (
+        {/* Show "No Orders Yet" only when not loading and orders array is empty */}
+        {!isOverallLoading && orders.length === 0 ? (
           <div className="text-center py-10">
             <h2 className="text-xl font-bold mb-2">No Orders Yet</h2>
             <p className="text-muted-foreground mb-6">You haven't placed any orders yet.</p>
             <Button onClick={() => navigate('/menu')}>Browse Menu</Button>
           </div>
         ) : (
+          // Ensure orders are mapped only when not overall loading and orders exist
+          !isOverallLoading && orders.length > 0 && (
           <div className="space-y-4">
             {orders.map((order) => (
               <Card key={order.id} className="food-card overflow-hidden">

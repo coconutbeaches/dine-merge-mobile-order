@@ -23,8 +23,9 @@ interface AppContextType {
   // Order Management
   placeOrder: ReturnType<typeof useOrderContext>['placeOrder'];
   getOrderHistory: ReturnType<typeof useOrderContext>['getOrderHistory'];
+  isLoadingOrders: ReturnType<typeof useOrderContext>['isLoadingOrders']; // Added from OrderContext
   
-  // Loading state
+  // Loading state (User loading state)
   isLoading: ReturnType<typeof useUserContext>['isLoading'];
 }
 
@@ -66,8 +67,9 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     // Order Management
     placeOrder: orderContext.placeOrder,
     getOrderHistory: orderContext.getOrderHistory,
+    isLoadingOrders: orderContext.isLoadingOrders, // Added from OrderContext
     
-    // Loading state
+    // Loading state (User loading state)
     isLoading: userContext.isLoading
   };
 
