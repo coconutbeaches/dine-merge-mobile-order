@@ -43,6 +43,7 @@ export type Database = {
           id: number
           order_items: Json | null
           order_status: Database["public"]["Enums"]["order_status"] | null
+          table_number: string | null
           total_amount: number
           updated_at: string
           user_id: string | null
@@ -53,6 +54,7 @@ export type Database = {
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
+          table_number?: string | null
           total_amount: number
           updated_at?: string
           user_id?: string | null
@@ -63,6 +65,7 @@ export type Database = {
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
+          table_number?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string | null
@@ -230,6 +233,11 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      fulfillment_status:
+        | "unfulfilled"
+        | "ready"
+        | "out_for_delivery"
+        | "fulfilled"
       order_status:
         | "new"
         | "confirmed"
@@ -237,6 +245,12 @@ export type Database = {
         | "delivered"
         | "paid"
         | "cancelled"
+      payment_status:
+        | "unpaid"
+        | "confirming_payment"
+        | "partially_paid"
+        | "paid"
+        | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -352,6 +366,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      fulfillment_status: [
+        "unfulfilled",
+        "ready",
+        "out_for_delivery",
+        "fulfilled",
+      ],
       order_status: [
         "new",
         "confirmed",
@@ -359,6 +379,13 @@ export const Constants = {
         "delivered",
         "paid",
         "cancelled",
+      ],
+      payment_status: [
+        "unpaid",
+        "confirming_payment",
+        "partially_paid",
+        "paid",
+        "refunded",
       ],
     },
   },
