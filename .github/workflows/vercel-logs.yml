@@ -1,0 +1,391 @@
+name: Vercel Deployment Monitor
+
+on:
+  push:
+    branches:
+      - droid/initial-setup
+      - main
+      - master
+
+jobs:
+  monitor-deployment:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # Required to checkout the repository code
+      issues: write
+      pull-requests: write # For commit comments
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Wait for Vercel Deployment
+        id: wait_for_deployment
+        run: |
+          # Get the current commit SHA and branch name
+          COMMIT_SHA=$(git rev-parse HEAD)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          echo "Monitoring deployment for commit: $COMMIT_SHA on branch: $BRANCH_NAME"
+          
+          # Determine teamId parameter
+          TEAM_ID_PARAM=""
+          if [ -n "${{ secrets.VERCEL_ORG_ID }}" ]; then
+            TEAM_ID_PARAM="&teamId=${{ secrets.VERCEL_ORG_ID }}"
+            echo "Using VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}"
+          else
+            echo "VERCEL_ORG_ID is not set, will try without teamId parameter."
+          fi
+
+          # Increase timeout values
+          MAX_ATTEMPTS=60 # 10 minutes total wait time (60 * 10s)
+          ATTEMPT=0
+          DEPLOYMENT_ID=""
+          DEPLOYMENT_URL=""
+          DEPLOYMENT_STATE=""
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            echo "Attempt $ATTEMPT of $MAX_ATTEMPTS: Checking for deployment..."
+            
+            # Reset deployment info for current attempt
+            CURRENT_DEPLOYMENT_ID=""
+            CURRENT_DEPLOYMENT_URL=""
+            CURRENT_DEPLOYMENT_STATE=""
+
+            # Approach 1: Try to find deployment by commit SHA (with and without teamId)
+            echo "Approach 1: Searching by commit SHA..."
+            DEPLOYMENTS_RESPONSE=""
+
+            # Try with teamId first if available
+            if [ -n "$TEAM_ID_PARAM" ]; then
+              echo "Trying with teamId parameter..."
+              DEPLOYMENTS_RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                "https://api.vercel.com/v6/deployments?projectId=${{ secrets.VERCEL_PROJECT_ID }}&meta-githubCommitSha=$COMMIT_SHA$TEAM_ID_PARAM&limit=5")
+              echo "Raw API response (by SHA, with teamId): $DEPLOYMENTS_RESPONSE"
+              if echo "$DEPLOYMENTS_RESPONSE" | jq -e '.deployments' > /dev/null 2>&1 && [ "$(echo "$DEPLOYMENTS_RESPONSE" | jq '.deployments | length')" -gt 0 ]; then
+                CURRENT_DEPLOYMENT_ID=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].id')
+                CURRENT_DEPLOYMENT_URL=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].url')
+                CURRENT_DEPLOYMENT_STATE=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].state')
+                echo "Found deployment by SHA (with teamId): ID=$CURRENT_DEPLOYMENT_ID, URL=$CURRENT_DEPLOYMENT_URL, State=$CURRENT_DEPLOYMENT_STATE"
+              else
+                echo "No deployment found by SHA with teamId, or invalid response."
+              fi
+            fi
+
+            # If not found or no teamId, try without teamId
+            if [ -z "$CURRENT_DEPLOYMENT_ID" ]; then
+              echo "Trying without teamId parameter..."
+              DEPLOYMENTS_RESPONSE=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                "https://api.vercel.com/v6/deployments?projectId=${{ secrets.VERCEL_PROJECT_ID }}&meta-githubCommitSha=$COMMIT_SHA&limit=5")
+              echo "Raw API response (by SHA, without teamId): $DEPLOYMENTS_RESPONSE"
+              if echo "$DEPLOYMENTS_RESPONSE" | jq -e '.deployments' > /dev/null 2>&1 && [ "$(echo "$DEPLOYMENTS_RESPONSE" | jq '.deployments | length')" -gt 0 ]; then
+                CURRENT_DEPLOYMENT_ID=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].id')
+                CURRENT_DEPLOYMENT_URL=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].url')
+                CURRENT_DEPLOYMENT_STATE=$(echo "$DEPLOYMENTS_RESPONSE" | jq -r '.deployments[0].state')
+                echo "Found deployment by SHA (without teamId): ID=$CURRENT_DEPLOYMENT_ID, URL=$CURRENT_DEPLOYMENT_URL, State=$CURRENT_DEPLOYMENT_STATE"
+              else
+                echo "No deployment found by SHA without teamId, or invalid response."
+              fi
+            fi
+
+            # If still no deployment found by SHA, try Approach 2: Get latest deployments (with and without teamId)
+            if [ -z "$CURRENT_DEPLOYMENT_ID" ]; then
+              echo "Approach 2: Searching latest deployments..."
+              LATEST_DEPLOYMENTS=""
+
+              # Try with teamId first if available
+              if [ -n "$TEAM_ID_PARAM" ]; then
+                echo "Trying latest deployments with teamId parameter..."
+                LATEST_DEPLOYMENTS=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  "https://api.vercel.com/v6/deployments?projectId=${{ secrets.VERCEL_PROJECT_ID }}$TEAM_ID_PARAM&limit=10")
+                echo "Raw API response (latest, with teamId): $LATEST_DEPLOYMENTS"
+                if echo "$LATEST_DEPLOYMENTS" | jq -e '.deployments' > /dev/null 2>&1 && [ "$(echo "$LATEST_DEPLOYMENTS" | jq '.deployments | length')" -gt 0 ]; then
+                  # Try to find a deployment with matching commit SHA in metadata
+                  MATCHING_DEPLOYMENT=$(echo "$LATEST_DEPLOYMENTS" | jq --arg sha "$COMMIT_SHA" '.deployments[] | select(.meta.githubCommitSha == $sha or .meta["githubCommitSha"] == $sha)')
+                  
+                  if [ -n "$MATCHING_DEPLOYMENT" ]; then
+                    CURRENT_DEPLOYMENT_ID=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.id')
+                    CURRENT_DEPLOYMENT_URL=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.url')
+                    CURRENT_DEPLOYMENT_STATE=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.state')
+                    echo "Found matching deployment in latest (with teamId): ID=$CURRENT_DEPLOYMENT_ID, URL=$CURRENT_DEPLOYMENT_URL, State=$CURRENT_DEPLOYMENT_STATE"
+                  else
+                    echo "No matching deployment found in latest deployments with teamId"
+                  fi
+                else
+                  echo "No valid latest deployments found with teamId, or invalid response."
+                fi
+              fi
+
+              # If not found with teamId, try without teamId
+              if [ -z "$CURRENT_DEPLOYMENT_ID" ]; then
+                echo "Trying latest deployments without teamId parameter..."
+                LATEST_DEPLOYMENTS=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  "https://api.vercel.com/v6/deployments?projectId=${{ secrets.VERCEL_PROJECT_ID }}&limit=10")
+                echo "Raw API response (latest, without teamId): $LATEST_DEPLOYMENTS"
+                if echo "$LATEST_DEPLOYMENTS" | jq -e '.deployments' > /dev/null 2>&1 && [ "$(echo "$LATEST_DEPLOYMENTS" | jq '.deployments | length')" -gt 0 ]; then
+                  # Try to find a deployment with matching commit SHA in metadata
+                  MATCHING_DEPLOYMENT=$(echo "$LATEST_DEPLOYMENTS" | jq --arg sha "$COMMIT_SHA" '.deployments[] | select(.meta.githubCommitSha == $sha or .meta["githubCommitSha"] == $sha)')
+                  
+                  if [ -n "$MATCHING_DEPLOYMENT" ]; then
+                    CURRENT_DEPLOYMENT_ID=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.id')
+                    CURRENT_DEPLOYMENT_URL=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.url')
+                    CURRENT_DEPLOYMENT_STATE=$(echo "$MATCHING_DEPLOYMENT" | jq -r '.state')
+                    echo "Found matching deployment in latest (without teamId): ID=$CURRENT_DEPLOYMENT_ID, URL=$CURRENT_DEPLOYMENT_URL, State=$CURRENT_DEPLOYMENT_STATE"
+                  else
+                    echo "No matching deployment found in latest deployments without teamId"
+                    
+                    # Try to find by branch name (approach 3) - with and without teamId
+                    echo "Approach 3: Searching by branch name..."
+                    
+                    # Try with teamId first if available
+                    if [ -n "$TEAM_ID_PARAM" ]; then
+                      echo "Trying branch search with teamId parameter..."
+                      BRANCH_DEPLOYMENT=$(echo "$LATEST_DEPLOYMENTS" | jq --arg branch "$BRANCH_NAME" '.deployments[] | select(.meta.githubBranch == $branch or .meta["githubBranch"] == $branch) | select(.state == "READY" or .state == "BUILDING" or .state == "INITIALIZING")')
+                      
+                      if [ -n "$BRANCH_DEPLOYMENT" ]; then
+                        CURRENT_DEPLOYMENT_ID=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.id')
+                        CURRENT_DEPLOYMENT_URL=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.url')
+                        CURRENT_DEPLOYMENT_STATE=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.state')
+                        echo "Found deployment by branch (with teamId): ID=$CURRENT_DEPLOYMENT_ID, URL=$CURRENT_DEPLOYMENT_URL, State=$CURRENT_DEPLOYMENT_STATE"
+                      else
+                        echo "No deployment found by branch with teamId"
+                      fi
+                    fi
+                    
+                    # If not found with teamId, try without teamId
+                    if [ -z "$CURRENT_DEPLOYMENT_ID" ]; then
+                      echo "Trying branch search without teamId parameter..."
+                      # We already have LATEST_DEPLOYMENTS without teamId from above
+                      BRANCH_DEPLOYMENT=$(echo "$LATEST_DEPLOYMENTS" | jq --arg branch "$BRANCH_NAME" '.deployments[] | select(.meta.githubBranch == $branch or .meta["githubBranch"] == $branch) | select(.state == "READY" or .state == "BUILDING" or .state == "INITIALIZING")')
+                      
+                      if [ -n "$BRANCH_DEPLOYMENT" ]; then
+                        CURRENT_DEPLOYMENT_ID=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.id')
+                        CURRENT_DEPLOYMENT_URL=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.url')
+                        CURRENT_DEPLOYMENT_STATE=$(echo "$BRANCH_DEPLOYMENT" | jq -r '.state')
+                        echo "Found deployment by branch (without teamId): ID=$CURRENT_DEPLOYMENT_ID, URL=$CURRENT_DEPLOYMENT_URL, State=$CURRENT_DEPLOYMENT_STATE"
+                      else
+                        echo "No deployment found by branch without teamId"
+                      fi
+                    fi
+                    
+                    # Last resort: Just take the most recent deployment
+                    if [ -z "$CURRENT_DEPLOYMENT_ID" ]; then
+                      echo "Approach 4: Taking most recent deployment..."
+                      
+                      # Try with teamId first if available
+                      if [ -n "$TEAM_ID_PARAM" ] && [ "$(echo "$LATEST_DEPLOYMENTS" | jq '.deployments | length')" -gt 0 ]; then
+                        CURRENT_DEPLOYMENT_ID=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].id')
+                        CURRENT_DEPLOYMENT_URL=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].url')
+                        CURRENT_DEPLOYMENT_STATE=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].state')
+                        DEPLOYMENT_COMMIT=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].meta.githubCommitSha // "unknown"')
+                        echo "Using most recent deployment (with teamId): ID=$CURRENT_DEPLOYMENT_ID, URL=$CURRENT_DEPLOYMENT_URL, State=$CURRENT_DEPLOYMENT_STATE, Commit=$DEPLOYMENT_COMMIT"
+                      elif [ "$(echo "$LATEST_DEPLOYMENTS" | jq '.deployments | length')" -gt 0 ]; then
+                        # We already have LATEST_DEPLOYMENTS without teamId from above
+                        CURRENT_DEPLOYMENT_ID=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].id')
+                        CURRENT_DEPLOYMENT_URL=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].url')
+                        CURRENT_DEPLOYMENT_STATE=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].state')
+                        DEPLOYMENT_COMMIT=$(echo "$LATEST_DEPLOYMENTS" | jq -r '.deployments[0].meta.githubCommitSha // "unknown"')
+                        echo "Using most recent deployment (without teamId): ID=$CURRENT_DEPLOYMENT_ID, URL=$CURRENT_DEPLOYMENT_URL, State=$CURRENT_DEPLOYMENT_STATE, Commit=$DEPLOYMENT_COMMIT"
+                      fi
+                    fi
+                  fi
+                else
+                  echo "Invalid response or no deployments found in latest without teamId"
+                fi
+              fi
+            fi
+            
+            # Update the main deployment variables if we found something
+            if [ -n "$CURRENT_DEPLOYMENT_ID" ]; then
+              DEPLOYMENT_ID="$CURRENT_DEPLOYMENT_ID"
+              DEPLOYMENT_URL="$CURRENT_DEPLOYMENT_URL"
+              DEPLOYMENT_STATE="$CURRENT_DEPLOYMENT_STATE"
+            fi
+            
+            # If we found a deployment, check if it's ready or has error
+            if [ -n "$DEPLOYMENT_ID" ]; then
+              echo "Checking deployment state: $DEPLOYMENT_STATE"
+              
+              if [ "$DEPLOYMENT_STATE" = "READY" ]; then
+                echo "Deployment is ready!"
+                break
+              elif [ "$DEPLOYMENT_STATE" = "ERROR" ]; then
+                echo "Deployment failed!"
+                break
+              else
+                echo "Deployment state is $DEPLOYMENT_STATE, waiting for it to complete..."
+                
+                # Refresh the deployment state - try with teamId first if available
+                if [ -n "$TEAM_ID_PARAM" ]; then
+                  echo "Refreshing deployment state with teamId..."
+                  DEPLOYMENT_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                    "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID?teamId=${{ secrets.VERCEL_ORG_ID }}")
+                  
+                  if echo "$DEPLOYMENT_INFO" | jq -e '.' > /dev/null 2>&1; then
+                    DEPLOYMENT_STATE=$(echo "$DEPLOYMENT_INFO" | jq -r '.state // "UNKNOWN"')
+                    echo "Updated deployment state (with teamId): $DEPLOYMENT_STATE"
+                    
+                    if [ "$DEPLOYMENT_STATE" = "READY" ] || [ "$DEPLOYMENT_STATE" = "ERROR" ]; then
+                      echo "Deployment state changed to $DEPLOYMENT_STATE"
+                      break
+                    fi
+                  else
+                    echo "Invalid response when refreshing deployment state with teamId, will try without teamId"
+                  fi
+                fi
+                
+                # If teamId refresh failed or wasn't available, try without teamId
+                if [ "$DEPLOYMENT_STATE" != "READY" ] && [ "$DEPLOYMENT_STATE" != "ERROR" ]; then
+                  echo "Refreshing deployment state without teamId..."
+                  DEPLOYMENT_INFO=$(curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                    "https://api.vercel.com/v13/deployments/$DEPLOYMENT_ID")
+                  
+                  if echo "$DEPLOYMENT_INFO" | jq -e '.' > /dev/null 2>&1; then
+                    DEPLOYMENT_STATE=$(echo "$DEPLOYMENT_INFO" | jq -r '.state // "UNKNOWN"')
+                    echo "Updated deployment state (without teamId): $DEPLOYMENT_STATE"
+                    
+                    if [ "$DEPLOYMENT_STATE" = "READY" ] || [ "$DEPLOYMENT_STATE" = "ERROR" ]; then
+                      echo "Deployment state changed to $DEPLOYMENT_STATE"
+                      break
+                    fi
+                  else
+                    echo "Invalid response when refreshing deployment state without teamId"
+                  fi
+                fi
+              fi
+            fi
+            
+            ATTEMPT=$((ATTEMPT+1))
+            echo "Waiting for deployment... Attempt $ATTEMPT of $MAX_ATTEMPTS. Sleeping 10s."
+            sleep 10
+          done
+          
+          # Final check and output
+          if [ -z "$DEPLOYMENT_ID" ]; then
+            echo "Error: Could not find any deployment after $MAX_ATTEMPTS attempts."
+            echo "DEPLOYMENT_ID=null" >> $GITHUB_OUTPUT
+            echo "DEPLOYMENT_URL=unknown" >> $GITHUB_OUTPUT
+            echo "DEPLOYMENT_STATE=unknown" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "Final deployment details: ID=$DEPLOYMENT_ID, URL=$DEPLOYMENT_URL, State=$DEPLOYMENT_STATE"
+            echo "DEPLOYMENT_ID=$DEPLOYMENT_ID" >> $GITHUB_OUTPUT
+            echo "DEPLOYMENT_URL=https://$DEPLOYMENT_URL" >> $GITHUB_OUTPUT
+            echo "DEPLOYMENT_STATE=$DEPLOYMENT_STATE" >> $GITHUB_OUTPUT
+          fi
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Fetch Vercel Build Logs
+        id: fetch_logs
+        run: |
+          DEPLOYMENT_ID="${{ steps.wait_for_deployment.outputs.DEPLOYMENT_ID }}"
+          DEPLOYMENT_STATE="${{ steps.wait_for_deployment.outputs.DEPLOYMENT_STATE }}"
+          
+          # Determine teamId parameter
+          TEAM_ID_PARAM=""
+          if [ -n "${{ secrets.VERCEL_ORG_ID }}" ]; then
+            TEAM_ID_PARAM="teamId=${{ secrets.VERCEL_ORG_ID }}"
+            echo "Using VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}"
+          else
+            echo "VERCEL_ORG_ID is not set, will try without teamId parameter."
+          fi
+          
+          echo "Deployment ID: $DEPLOYMENT_ID"
+          echo "Deployment State: $DEPLOYMENT_STATE"
+          
+          if [ -n "$DEPLOYMENT_ID" ] && [ "$DEPLOYMENT_ID" != "null" ]; then
+            echo "Fetching logs for deployment ID: $DEPLOYMENT_ID"
+            # Use --token directly with vercel logs command
+            vercel logs "$DEPLOYMENT_ID" --token ${{ secrets.VERCEL_TOKEN }} > deployment_logs.txt
+            
+            # Check if logs were successfully fetched
+            if [ $? -eq 0 ]; then
+              echo "Successfully fetched logs"
+              cat deployment_logs.txt | head -20  # Show first 20 lines for debugging
+            else
+              echo "Failed to fetch logs with vercel CLI, trying API fallback"
+              
+              # Try API with teamId first if available
+              if [ -n "$TEAM_ID_PARAM" ]; then
+                echo "Trying API logs with teamId parameter..."
+                curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  "https://api.vercel.com/v2/deployments/$DEPLOYMENT_ID/events?$TEAM_ID_PARAM" > api_logs.json
+                
+                # Check if we got valid logs
+                if [ -s api_logs.json ] && jq -e '.events' api_logs.json > /dev/null 2>&1; then
+                  echo "API logs fetched with teamId, extracting messages"
+                  jq -r '.events[] | "\(.date): \(.text)"' api_logs.json > deployment_logs.txt
+                else
+                  echo "Failed to fetch logs with teamId, trying without teamId"
+                  # Try API without teamId
+                  curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                    "https://api.vercel.com/v2/deployments/$DEPLOYMENT_ID/events" > api_logs.json
+                  
+                  if [ -s api_logs.json ] && jq -e '.events' api_logs.json > /dev/null 2>&1; then
+                    echo "API logs fetched without teamId, extracting messages"
+                    jq -r '.events[] | "\(.date): \(.text)"' api_logs.json > deployment_logs.txt
+                  else
+                    echo "Failed to fetch logs from API with or without teamId"
+                    echo "Error: Could not fetch logs for deployment $DEPLOYMENT_ID" > deployment_logs.txt
+                  fi
+                fi
+              else
+                # Try API without teamId (since TEAM_ID_PARAM is empty)
+                echo "Trying API logs without teamId parameter..."
+                curl -s -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+                  "https://api.vercel.com/v2/deployments/$DEPLOYMENT_ID/events" > api_logs.json
+                
+                if [ -s api_logs.json ] && jq -e '.events' api_logs.json > /dev/null 2>&1; then
+                  echo "API logs fetched without teamId, extracting messages"
+                  jq -r '.events[] | "\(.date): \(.text)"' api_logs.json > deployment_logs.txt
+                else
+                  echo "Failed to fetch logs from API without teamId"
+                  echo "Error: Could not fetch logs for deployment $DEPLOYMENT_ID" > deployment_logs.txt
+                fi
+              fi
+            fi
+            
+            if [ "$DEPLOYMENT_STATE" = "ERROR" ]; then
+              echo "HAS_ERRORS=true" >> $GITHUB_OUTPUT
+            else
+              echo "HAS_ERRORS=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No valid deployment ID found from previous step. Cannot fetch logs."
+            echo "HAS_ERRORS=true" >> $GITHUB_OUTPUT
+            echo "Error: No valid deployment found for the current commit. Please check your Vercel project settings and ensure the deployment was triggered." > deployment_logs.txt
+          fi
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Create GitHub Issue for Errors
+        if: steps.fetch_logs.outputs.HAS_ERRORS == 'true'
+        uses: peter-evans/create-issue-from-file@v4
+        with:
+          title: "Vercel Deployment Failed: ${{ github.ref_name }} @ ${{ github.sha }}"
+          content-filepath: ./deployment_logs.txt
+          labels: |
+            bug
+            vercel-deployment
+
+      - name: Create Success Commit Comment
+        if: steps.fetch_logs.outputs.HAS_ERRORS == 'false'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.repos.createCommitComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: context.sha,
+              body: `✅ Vercel deployment successful!\n\nDeployment URL: ${{ steps.wait_for_deployment.outputs.DEPLOYMENT_URL }}`
+            });

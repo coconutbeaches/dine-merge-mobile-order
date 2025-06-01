@@ -1,0 +1,169 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Menu categories (e.g., Drinks, Food, Desserts)
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  nameEn    String?   // English name (optional)
+  image     String?   // Image URL
+  order     Int       @default(0) // For sorting categories
+  isActive  Boolean   @default(true)
+  items     MenuItem[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// Menu items (e.g., Water, Coke, Beer)
+model MenuItem {
+  id          String      @id @default(cuid())
+  name        String      // Thai name
+  nameEn      String?     // English name (optional)
+  description String?     // Description in Thai
+  descriptionEn String?   // Description in English (optional)
+  price       Int         // Price in Thai Baht (stored as integer)
+  image       String?     // Image URL
+  isActive    Boolean     @default(true)
+  isAvailable Boolean     @default(true) // For marking items as sold out
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive, isAvailable])
+}
+
+// Customer accounts with phone-based identification
+model Customer {
+  id             String   @id @default(cuid())
+  name           String?
+  phone          String   @unique // Primary identifier (Thai phone format)
+  totalOrders    Int      @default(0)
+  totalSpent     Int      @default(0) // Lifetime spending in Baht
+  orders         Order[]
+  mergedFrom     String[] // Track merged phone numbers
+  lastOrderDate  DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([phone])
+}
+
+// Order status enum
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+// Payment status enum
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+// Order model
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     Int           @default(autoincrement())
+  customerId      String?
+  customer        Customer?     @relation(fields: [customerId], references: [id])
+  customerName    String
+  customerPhone   String
+  items           OrderItem[]
+  total           Int           // Total in Baht
+  tableNumber     Int?          // Table number (1-40)
+  isTakeAway      Boolean       @default(false)
+  status          OrderStatus   @default(PENDING)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  whatsappSent    Boolean       @default(false)
+  notes           String?
+  createdAt       DateTime      @default(now()) // Order date/time (UTC+7)
+  updatedAt       DateTime      @updatedAt
+
+  @@index([customerId])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([createdAt])
+}
+
+// Order items (items in an order)
+model OrderItem {
+  id          String    @id @default(cuid())
+  orderId     String
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId  String
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id])
+  name        String    // Item name at time of order
+  price       Int       // Price at time of order
+  quantity    Int
+  subtotal    Int       // price * quantity
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([orderId])
+  @@index([menuItemId])
+}
+
+// Restaurant settings
+model RestaurantSettings {
+  id                String   @id @default(cuid())
+  name              String   // Restaurant name
+  nameEn            String?  // English name
+  logo              String?  // Logo URL
+  whatsappNumber    String   // Restaurant WhatsApp number
+  currency          String   @default("฿") // Thai Baht symbol
+  address           String?
+  instagram         String?
+  facebook          String?
+  website           String?
+  openingHours      String?
+  closingHours      String?
+  isOpen            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Admin users
+model AdminUser {
+  id        String   @id @default(cuid())
+  name      String
+  username  String   @unique
+  password  String
+  role      String   @default("admin")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Popular items tracking (for recommendations)
+model PopularItem {
+  id          String   @id @default(cuid())
+  menuItemId  String   @unique
+  orderCount  Int      @default(0)
+  lastOrdered DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Customer account merge history (for audit)
+model CustomerMerge {
+  id               String   @id @default(cuid())
+  primaryCustomerId String
+  mergedCustomerId  String
+  primaryPhone     String
+  mergedPhone      String
+  mergedAt         DateTime @default(now())
+}

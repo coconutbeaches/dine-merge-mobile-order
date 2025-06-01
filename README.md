@@ -1,73 +1,171 @@
-# Welcome to your Lovable project BRANCH!
+# Take.app Mobile Restaurant Ordering System
 
-## Project info
+This project is a mobile-first restaurant ordering platform for a single restaurant in Thailand, inspired by Take.app/coconut. It prioritizes speed, simplicity, and mobile optimization with cash-only payments. The system focuses on customer account management, order history tracking, and the ability to merge duplicate customer accounts.
 
-**URL**: https://lovable.dev/projects/c49a8c44-9196-466a-8929-d139ab77ca8e
+## Table of Contents
 
-## How can I edit this code?
+- [Features](#features)
+- [Technical Stack](#technical-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Environment Variables](#environment-variables)
+  - [Database Setup](#database-setup)
+  - [Running the Application](#running-the-application)
+- [Deployment](#deployment)
+- [Automated Build Monitoring (GitHub Actions)](#automated-build-monitoring-github-actions)
+- [Contributing](#contributing)
+- [License](#license)
 
-There are several ways of editing your application.
+## Features
 
-**Use Lovable**
+### Customer-Facing Mobile Website
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c49a8c44-9196-466a-8929-d139ab77ca8e) and start prompting.
+- Clean, minimalist menu display with item names and prices in Thai Baht (฿)
+- Mobile-first responsive design for Thai mobile users
+- Fast loading times (under 2 seconds)
+- Simple ordering interface with cash payment only
+- Customer account system with order history
+- Total lifetime spending display for customers
+- English language support
+- Instagram integration link
+- Progressive Web App (PWA) capabilities for offline menu viewing and native app-like experience
+- Touch-optimized interface and clean typography
+- Minimal JavaScript for speed
 
-Changes made via Lovable will be committed automatically to this repo.
+### Restaurant Management Dashboard
 
-**Use your preferred IDE**
+- Menu management (add/edit/delete items, prices in Thai Baht without decimals, descriptions, options)
+- Order management and notifications
+- Customer account management with merge functionality
+- Customer analytics (order history, spending totals)
+- Basic sales analytics (popular items, daily/weekly revenue)
+- Order status management (Received, Preparing, Ready for Pickup)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Core Architecture
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Frontend**: Next.js 14+ (App Router), Tailwind CSS, Redux Toolkit for cart state, next-pwa plugin, Server-side rendering for SEO
+- **Backend**: Node.js/Express (API routes in Next.js for now), PostgreSQL with Prisma ORM, Redis for caching, WebSocket/Server-Sent Events for real-time orders (future), Customer account merging
+- **Infrastructure**: Thailand-optimized CDN (Cloudflare with Bangkok edge), Mobile-optimized image compression, Database optimization for quick menu loading, Thailand timezone support, WhatsApp Web URL integration
 
-Follow these steps:
+## Technical Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+| Layer | Technology |
+|-------|------------|
+| **Framework** | Next.js 14+ (App Router) |
+| **Styling** | Tailwind CSS |
+| **State Management** | Redux Toolkit |
+| **PWA** | `next-pwa` |
+| **Database** | PostgreSQL (Prisma ORM) |
+| **Caching** | Redis (`ioredis`) |
+| **Authentication** | (Future) NextAuth.js or Auth0 |
+| **Deployment** | Vercel (frontend) · Railway/Render (backend) |
+| **Monitoring** | Sentry |
+| **Icons** | `lucide-react`, `react-icons` |
+| **Notifications** | `sonner`, `react-hot-toast` |
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Project Structure
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+.
+├── public/
+│   ├── icons/
+│   └── manifest.json
+├── prisma/
+│   └── schema.prisma
+├── src/
+│   ├── app/                  # Next.js App Router
+│   │   ├── api/              # API routes
+│   │   ├── admin/            # Admin dashboard pages
+│   │   ├── cart/
+│   │   ├── checkout/
+│   │   ├── menu/
+│   │   ├── globals.css
+│   │   └── layout.tsx
+│   ├── components/           # Reusable components
+│   │   ├── admin/
+│   │   ├── cart/
+│   │   ├── menu/
+│   │   └── ui/               # Utility UI (skeleton etc.)
+│   ├── lib/                  # Utils, db, redis
+│   └── store/                # Redux store & slices
+├── .env.example
+├── next.config.js
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
 ```
 
-**Edit a file directly in GitHub**
+## Getting Started
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Prerequisites
+- Node.js ≥ 18
+- npm or Yarn
+- Docker (for local DB/Redis)
+- PostgreSQL instance
+- Redis instance
 
-**Use GitHub Codespaces**
+### Installation
+```bash
+git clone https://github.com/coconutbeaches/dine-merge-mobile-order.git
+cd dine-merge-mobile-order
+npm install   # or yarn install
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Environment Variables
+Copy `.env.example` to `.env` and fill in:
+```
+DATABASE_URL="postgresql://user:password@host:port/database?schema=public"
+REDIS_URL="redis://:password@host:port"
+NEXTAUTH_SECRET="your_nextauth_secret"
+NEXTAUTH_URL="http://localhost:3000"
+```
 
-## What technologies are used for this project?
+### Database Setup
+```bash
+docker-compose up -d      # optional local pg/redis
+npx prisma migrate dev --name init
+npx prisma db seed        # optional sample data
+```
 
-This project is built with:
+### Running the Application
+```bash
+npm run dev   # or yarn dev
+# Visit http://localhost:3000
+```
+Admin dashboard: `/admin/orders`
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Deployment
 
-## How can I deploy this project?
+1. **Frontend**: Deploy to Vercel  
+2. **Database / Redis**: Use Supabase, PlanetScale, Railway, or Render (Asia region)
 
-Simply open [Lovable](https://lovable.dev/projects/c49a8c44-9196-466a-8929-d139ab77ca8e) and click on Share -> Publish.
+### Environment on Vercel
+Add `DATABASE_URL`, `REDIS_URL`, etc., in project settings.
 
-## Can I connect a custom domain to my Lovable project?
+## Automated Build Monitoring (GitHub Actions)
 
-Yes, you can!
+This repo includes `.github/workflows/vercel-logs.yml` which:
+- Waits for Vercel deployment
+- Fetches build logs
+- Opens GitHub issue on failure
+- Comments deployment URL on success
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Secrets required:
+| Name | Purpose |
+|------|---------|
+| `VERCEL_TOKEN` | Vercel API token |
+| `VERCEL_PROJECT_ID` | Project ID (`prj_...`) |
+| `VERCEL_ORG_ID` | Org/Team ID |
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Contributing
+Pull requests welcome!  
+1. Fork repo → create feature branch → commit → open PR.  
+2. Follow conventional commit messages.  
+3. Ensure `npm run lint` and `npm run build` pass.
+
+## License
+MIT © 2025 Coconut Beaches
+
+<!-- Triggering build after manual UI component cleanup -->
