@@ -216,12 +216,26 @@ const CustomerOrderHistory = () => {
                   
                   {order.order_items && (
                     <div className="mt-3 mb-2 max-h-32 overflow-y-auto text-sm border-t border-gray-100 pt-2">
-                      {Array.isArray(order.order_items) ? order.order_items.map((item: any, idx: number) => (
-                        <div key={idx} className="flex justify-between mb-1 pr-2">
-                          <span>{item.quantity}× {item.name}</span>
-                          <span>{formatThaiCurrency(item.unitPrice * item.quantity)}</span>
-                        </div>
-                      )) : (
+                      {Array.isArray(order.order_items) ?
+                        order.order_items
+                          .filter(item => item && typeof item === 'object') // Filter out null/undefined/non-object items
+                          .map((item: any, idx: number) => {
+                            const itemName = typeof item.name === 'string' ? item.name : 'Unknown Item';
+                            const quantity = typeof item.quantity === 'number' ? item.quantity : 0;
+                            const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : 0;
+
+                            return (
+                              <div key={idx} className="flex justify-between mb-1 pr-2">
+                                <span>{quantity}× {itemName}</span>
+                                {(typeof item.quantity === 'number' && typeof item.unitPrice === 'number') ? (
+                                  <span>{formatThaiCurrency(unitPrice * quantity)}</span>
+                                ) : (
+                                  <span>Price not available</span>
+                                )}
+                              </div>
+                            );
+                          })
+                       : (
                         <p className="text-sm text-muted-foreground">Order details not available</p>
                       )}
                     </div>
