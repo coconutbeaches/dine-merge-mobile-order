@@ -63,32 +63,3 @@ export async function getRestaurantWhatsAppNumber(): Promise<string | null> {
     return null;
   }
 }
-
-// The updateSetting function can remain as it directly interacts with Prisma
-// and is assumed to be called from a server-side context (e.g., an admin API route).
-// If this function were ever called from a client component, it would also need
-// to be refactored into its own API route.
-// For now, keeping it as is, assuming its usage is server-side.
-// Example function to update a setting (ensure proper admin rights for this in a real app)
-import { prisma } from '@/lib/db';
-import { isRedisAvailable, redisClient } from '@/lib/redis';
-
-export async function updateSetting(key: string, value: string): Promise<boolean> {
-  try {
-    await prisma.setting.upsert({
-      where: { key },
-      update: { value },
-      create: { key, value },
-    });
-
-    // Invalidate cache for this setting
-    if (isRedisAvailable()) {
-      await redisClient.del(key); // Assuming cache key matches setting key
-      console.log(`Cache for setting ${key} invalidated after update.`);
-    }
-    return true;
-  } catch (error) {
-    console.error(`Error updating setting ${key}:`, error);
-    return false;
-  }
-}
