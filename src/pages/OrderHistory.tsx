@@ -124,8 +124,8 @@ const OrderHistory = () => {
               ))}
             </div>
           ) // This parenthesis closes the inner conditional block
-        ) // ADDED: This closes the 'else' branch of the ternary
-      )}
+        ) // This closes the 'else' branch of the ternary (was the added one)
+      }
       </div>
     </Layout>
   );
