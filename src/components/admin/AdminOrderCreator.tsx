@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // Added useNavigate import
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ interface Customer {
 }
 
 const AdminOrderCreator = () => {
+  const navigate = useNavigate(); // Initialized useNavigate
   const [searchQuery, setSearchQuery] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
@@ -76,7 +78,7 @@ const AdminOrderCreator = () => {
   const handleCreateOrder = (customerId: string) => {
     // For now, just redirect to customer orders page
     // In a real implementation, you'd create a new order for this customer
-    window.location.href = `/admin/customer-orders/${customerId}`;
+    navigate(`/admin/customer-orders/${customerId}`); // Replaced window.location.href
     setOpen(false); // Close main dialog
   };
 
