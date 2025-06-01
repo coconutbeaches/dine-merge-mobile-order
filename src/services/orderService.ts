@@ -22,7 +22,7 @@ export async function placeOrder(orderData: {
         user_id: orderData.userId || null,
         total_amount: orderData.total,
         order_status: 'new',
-        order_items: orderData.items,
+        order_items: orderData.items as any, // Cast to Json
         table_number: orderData.tableNumber,
         customer_name: orderData.customerName
       })
@@ -78,7 +78,7 @@ export const placeOrderInSupabase = async (
       .insert({
         user_id: userId,
         customer_name: customerName,
-        order_items: cartItems,
+        order_items: cartItems as any, // Cast to Json
         total_amount: total,
         table_number: tableNumber,
         order_status: 'new'
