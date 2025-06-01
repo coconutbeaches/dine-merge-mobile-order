@@ -83,47 +83,49 @@ const OrderHistory = () => {
         ) : (
           // Ensure orders are mapped only when not overall loading and orders exist
           !isOverallLoading && orders.length > 0 && (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <Card key={order.id} className="food-card overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <h3 className="font-semibold">Order #{order.id.substring(0, 8)}...</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(order.createdAt), 'MMM d, yyyy - h:mm a')}
-                      </p>
-                      {order.tableNumber && (
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {order.tableNumber === 'Take Away' ? 'Take Away' : `Table: ${order.tableNumber}`}
+            <div className="space-y-4">
+              {orders.map((order) => (
+                <Card key={order.id} className="food-card overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-semibold">Order #{order.id.substring(0, 8)}...</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(order.createdAt), 'MMM d, yyyy - h:mm a')}
                         </p>
+                        {order.tableNumber && (
+                          <p className="text-xs text-muted-foreground capitalize">
+                            {order.tableNumber === 'Take Away' ? 'Take Away' : `Table: ${order.tableNumber}`}
+                          </p>
+                        )}
+                      </div>
+                      {order.status && (
+                         <Badge className={`${getStatusColor(order.status)} text-white capitalize`}>
+                           {order.status}
+                         </Badge>
                       )}
                     </div>
-                    {order.status && (
-                       <Badge className={`${getStatusColor(order.status)} text-white capitalize`}>
-                         {order.status}
-                       </Badge>
-                    )}
-                  </div>
-                  
-                  <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
-                    {order.items.map((item, idx) => (
-                      <div key={idx} className="text-sm flex justify-between mb-1 pr-2">
-                        <span>{item.quantity}× {item.menuItem.name}</span>
-                        <span>{formatThaiCurrency(item.menuItem.price * item.quantity)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center font-semibold">
-                    <span>Total</span>
-                    <span>{formatThaiCurrency(order.total)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+
+                    <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
+                      {order.items.map((item, idx) => (
+                        <div key={idx} className="text-sm flex justify-between mb-1 pr-2">
+                          <span>{item.quantity}× {item.menuItem.name}</span>
+                          <span>{formatThaiCurrency(item.menuItem.price * item.quantity)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center font-semibold">
+                      <span>Total</span>
+                      <span>{formatThaiCurrency(order.total)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) // This parenthesis closes the inner conditional block
+        ) // ADDED: This closes the 'else' branch of the ternary
+      )}
       </div>
     </Layout>
   );
