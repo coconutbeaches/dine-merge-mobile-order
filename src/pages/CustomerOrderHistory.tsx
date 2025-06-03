@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added CardHeader, CardTitle
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,23 +14,23 @@ import {
   mapSupabaseToOrderStatus 
 } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
-import { ArrowLeft, Edit3, FilePenLine } from 'lucide-react'; // Added FilePenLine
+import { ArrowLeft, Edit3, FilePenLine } from 'lucide-react';
 import { useUserContext } from '@/context/UserContext';
 
 const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { currentUser } = useUserContext();
+  const [pageIsLoading, setPageIsLoading] = useState(true); // Renamed local loading state
+  const { currentUser, isLoading: isUserContextLoading } = useUserContext(); // Get UserContext loading state
 
-  // ... (useEffect and fetch functions remain the same) ...
   useEffect(() => {
     if (customerId) {
+      setPageIsLoading(true); // Ensure page loading is true when customerId changes
       Promise.all([
         fetchCustomerDetails(customerId),
         fetchCustomerOrders(customerId)
-      ]).finally(() => setIsLoading(false));
+      ]).finally(() => setPageIsLoading(false));
       
       const channel = supabase
         .channel(`customer-orders-${customerId}`)
@@ -38,8 +38,8 @@ const CustomerOrderHistory = () => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${customerId}` },
           (payload) => {
-            console.log("Real-time order update:", payload);
-            fetchCustomerOrders(customerId);
+            // console.log("Real-time order update:", payload);
+            fetchCustomerOrders(customerId); // Re-fetch orders on real-time update
           }
         )
         .subscribe();
@@ -100,7 +100,6 @@ const CustomerOrderHistory = () => {
     }
   };
 
-
   const getStatusColor = (status: OrderStatus | null) => {
     switch (status) {
       case 'new': return "bg-red-500";
@@ -116,12 +115,12 @@ const CustomerOrderHistory = () => {
 
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
 
-  if (isLoading) {
-    // ... (loading state remains the same) ...
+  // Combined loading check
+  if (pageIsLoading || isUserContextLoading) {
     return (
       <Layout title="Customer Orders" showBackButton={true}>
         <div className="page-container text-center py-10">
-          <p>Loading customer orders...</p>
+          <p>Loading data...</p> {/* Generic loading message */}
         </div>
       </Layout>
     );
@@ -131,7 +130,6 @@ const CustomerOrderHistory = () => {
     <Layout title={`Customer Orders: ${customer?.name || 'Unknown'}`} showBackButton={false}>
       <div className="page-container p-4 md:p-6">
         <div className="flex items-center justify-between mb-6 gap-4">
-          {/* ... (existing header with back button, title, and Edit Customer button) ... */}
           <div className="flex items-center gap-4">
             <Link to="/orders-dashboard">
               <Button variant="outline" size="icon">
@@ -142,6 +140,7 @@ const CustomerOrderHistory = () => {
               {customer ? `${customer.name || 'Customer'}'s Orders` : 'Customer Orders'}
             </h1>
           </div>
+          {/* Check currentUser AFTER loading states are false */}
           {currentUser?.role === 'admin' && customerId && (
             <Link to={`/admin/edit-customer/${customerId}`}>
               <Button variant="outline" size="sm">
@@ -153,9 +152,9 @@ const CustomerOrderHistory = () => {
         </div>
 
         {customer && (
-          // ... (customer details card remains the same) ...
           <Card className="mb-6 bg-muted/20">
             <CardContent className="p-4">
+              {/* ... customer details ... */}
               <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>
                   <h2 className="text-lg font-semibold">{customer.name}</h2>
@@ -172,8 +171,8 @@ const CustomerOrderHistory = () => {
         )}
         
         {orders.length === 0 ? (
-          // ... (no orders message remains the same) ...
           <div className="text-center py-10 border rounded-lg border-dashed">
+            {/* ... no orders message ... */}
             <h2 className="text-xl font-medium text-gray-500 mb-2">No Orders Found</h2>
             <p className="text-muted-foreground mb-6">This customer hasn't placed any orders yet.</p>
             <Link to="/orders-dashboard">
@@ -184,7 +183,6 @@ const CustomerOrderHistory = () => {
           <div className="space-y-4">
             {orders.map((order) => (
               <Card key={order.id} className="overflow-hidden">
-                {/* Using CardHeader for better structure and to place button */}
                 <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
                   <div>
                     <CardTitle className="text-lg font-semibold">Order #{order.id.toString().padStart(4, '0')}</CardTitle>
@@ -192,6 +190,7 @@ const CustomerOrderHistory = () => {
                       {format(new Date(order.created_at), 'MMM d, yyyy - h:mm a')}
                     </p>
                   </div>
+                  {/* Check currentUser AFTER loading states are false */}
                   {currentUser?.role === 'admin' && (
                     <Link to={`/admin/edit-order/${order.id}`}>
                       <Button variant="outline" size="sm">
@@ -202,6 +201,7 @@ const CustomerOrderHistory = () => {
                   )}
                 </CardHeader>
                 <CardContent className="p-4">
+                  {/* ... order content ... */}
                   <div className="flex flex-col md:flex-row justify-between md:items-start gap-3 mb-3">
                     <div>
                       {order.order_status && (
