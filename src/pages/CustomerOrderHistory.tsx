@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'; // Added CardHeader, CardTitle
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,14 +14,17 @@ import {
   mapSupabaseToOrderStatus 
 } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Edit3, FilePenLine } from 'lucide-react'; // Added FilePenLine
+import { useUserContext } from '@/context/UserContext';
 
 const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { currentUser } = useUserContext();
 
+  // ... (useEffect and fetch functions remain the same) ...
   useEffect(() => {
     if (customerId) {
       Promise.all([
@@ -30,7 +32,6 @@ const CustomerOrderHistory = () => {
         fetchCustomerOrders(customerId)
       ]).finally(() => setIsLoading(false));
       
-      // Setup real-time subscription for this customer's orders
       const channel = supabase
         .channel(`customer-orders-${customerId}`)
         .on(
@@ -58,7 +59,6 @@ const CustomerOrderHistory = () => {
         .single();
         
       if (error) throw error;
-      console.log("Customer details:", data);
       setCustomer(data);
     } catch (error) {
       console.error('Error fetching customer details:', error);
@@ -74,34 +74,22 @@ const CustomerOrderHistory = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      console.log("Customer orders raw data:", data);
       
       if (data) {
-        // Transform the data to correctly handle the order_status
         const transformedOrders = data.map(order => {
           let appOrderStatus: OrderStatus;
-          
-          // Special handling for 'paid' orders
           if (order.payment_status === 'paid') {
             appOrderStatus = 'paid';
           } else if (order.order_status) {
-            // Map Supabase order_status to our application OrderStatus
             appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
           } else {
-            // Default fallback
-            console.warn(`Order ${order.id} - order_status from DB is null or empty. Defaulting to 'new'. DB value: `, order.order_status);
             appOrderStatus = 'new';
           }
-          
-          console.log(`Order ${order.id} - DB order_status: ${order.order_status}, DB payment_status: ${order.payment_status}, Calculated app_status: ${appOrderStatus}`);
-          
           return {
             ...order,
             order_status: appOrderStatus
           } as Order;
         });
-        
-        console.log("Transformed orders:", transformedOrders);
         setOrders(transformedOrders);
       } else {
         setOrders([]);
@@ -112,30 +100,24 @@ const CustomerOrderHistory = () => {
     }
   };
 
+
   const getStatusColor = (status: OrderStatus | null) => {
     switch (status) {
-      case 'new':
-        return "bg-red-500";
-      case 'confirmed':
-        return "bg-green-500";
-      case 'make':
-        return "bg-yellow-500";
-      case 'ready':
-        return "bg-orange-500";
-      case 'delivered':
-        return "bg-blue-500";
-      case 'paid':
-        return "bg-green-700";
-      case 'cancelled':
-        return "bg-gray-500";
-      default:
-        return "bg-gray-400";
+      case 'new': return "bg-red-500";
+      case 'confirmed': return "bg-green-500";
+      case 'make': return "bg-yellow-500";
+      case 'ready': return "bg-orange-500";
+      case 'delivered': return "bg-blue-500";
+      case 'paid': return "bg-green-700";
+      case 'cancelled': return "bg-gray-500";
+      default: return "bg-gray-400";
     }
   };
 
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
 
   if (isLoading) {
+    // ... (loading state remains the same) ...
     return (
       <Layout title="Customer Orders" showBackButton={true}>
         <div className="page-container text-center py-10">
@@ -148,21 +130,33 @@ const CustomerOrderHistory = () => {
   return (
     <Layout title={`Customer Orders: ${customer?.name || 'Unknown'}`} showBackButton={false}>
       <div className="page-container p-4 md:p-6">
-        <div className="flex items-center mb-6 gap-4">
-          <Link to="/orders-dashboard">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <h1 className="text-xl font-bold">
-            {customer ? `${customer.name || 'Customer'}'s Orders` : 'Customer Orders'}
-          </h1>
+        <div className="flex items-center justify-between mb-6 gap-4">
+          {/* ... (existing header with back button, title, and Edit Customer button) ... */}
+          <div className="flex items-center gap-4">
+            <Link to="/orders-dashboard">
+              <Button variant="outline" size="icon">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <h1 className="text-xl font-bold">
+              {customer ? `${customer.name || 'Customer'}'s Orders` : 'Customer Orders'}
+            </h1>
+          </div>
+          {currentUser?.role === 'admin' && customerId && (
+            <Link to={`/admin/edit-customer/${customerId}`}>
+              <Button variant="outline" size="sm">
+                <Edit3 className="h-4 w-4 mr-2" />
+                Edit Customer
+              </Button>
+            </Link>
+          )}
         </div>
 
         {customer && (
+          // ... (customer details card remains the same) ...
           <Card className="mb-6 bg-muted/20">
             <CardContent className="p-4">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>
                   <h2 className="text-lg font-semibold">{customer.name}</h2>
                   <p className="text-sm text-muted-foreground">{customer.email}</p>
@@ -178,6 +172,7 @@ const CustomerOrderHistory = () => {
         )}
         
         {orders.length === 0 ? (
+          // ... (no orders message remains the same) ...
           <div className="text-center py-10 border rounded-lg border-dashed">
             <h2 className="text-xl font-medium text-gray-500 mb-2">No Orders Found</h2>
             <p className="text-muted-foreground mb-6">This customer hasn't placed any orders yet.</p>
@@ -189,36 +184,47 @@ const CustomerOrderHistory = () => {
           <div className="space-y-4">
             {orders.map((order) => (
               <Card key={order.id} className="overflow-hidden">
+                {/* Using CardHeader for better structure and to place button */}
+                <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
+                  <div>
+                    <CardTitle className="text-lg font-semibold">Order #{order.id.toString().padStart(4, '0')}</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(order.created_at), 'MMM d, yyyy - h:mm a')}
+                    </p>
+                  </div>
+                  {currentUser?.role === 'admin' && (
+                    <Link to={`/admin/edit-order/${order.id}`}>
+                      <Button variant="outline" size="sm">
+                        <FilePenLine className="h-4 w-4 mr-1 md:mr-2" />
+                        Edit Order
+                      </Button>
+                    </Link>
+                  )}
+                </CardHeader>
                 <CardContent className="p-4">
-                  <div className="flex flex-col md:flex-row justify-between md:items-start gap-3">
+                  <div className="flex flex-col md:flex-row justify-between md:items-start gap-3 mb-3">
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold">Order #{order.id.toString().padStart(4, '0')}</h3>
-                        {order.order_status && (
-                          <Badge className={`${getStatusColor(order.order_status)} text-white capitalize`}>
-                            {order.order_status}
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(order.created_at), 'MMM d, yyyy - h:mm a')}
-                      </p>
+                      {order.order_status && (
+                        <Badge className={`${getStatusColor(order.order_status)} text-white capitalize mb-1`}>
+                          {order.order_status}
+                        </Badge>
+                      )}
                       {order.table_number && (
-                        <p className="text-xs text-muted-foreground capitalize mt-1">
+                        <p className="text-sm text-muted-foreground capitalize">
                           {order.table_number === 'Take Away' ? 'Take Away' : `Table: ${order.table_number}`}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
-                      <span className="font-semibold">{formatThaiCurrency(order.total_amount)}</span>
+                      <span className="font-semibold text-lg">{formatThaiCurrency(order.total_amount)}</span>
                     </div>
                   </div>
                   
                   {order.order_items && (
-                    <div className="mt-3 mb-2 max-h-32 overflow-y-auto text-sm border-t border-gray-100 pt-2">
+                    <div className="mt-2 max-h-32 overflow-y-auto text-sm border-t border-gray-100 pt-2">
                       {Array.isArray(order.order_items) ?
                         order.order_items
-                          .filter(item => item && typeof item === 'object') // Filter out null/undefined/non-object items
+                          .filter(item => item && typeof item === 'object')
                           .map((item: any, idx: number) => {
                             const itemName = typeof item.name === 'string' ? item.name : 'Unknown Item';
                             const quantity = typeof item.quantity === 'number' ? item.quantity : 0;

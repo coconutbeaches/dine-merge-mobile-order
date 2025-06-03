@@ -7,6 +7,7 @@ import {
   mapSupabaseToOrderStatus
 } from '@/types/supabaseTypes';
 import { Json } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 export type CartItem = {
   menuItem: {
@@ -229,3 +230,67 @@ export async function getAllOrdersForAdmin(): Promise<Order[]> {
 // Renaming placeOrderInSupabase to createOrder for clarity as per subtask, and ensuring it's exported.
 // If placeOrderInSupabase was already exported, this just re-confirms.
 export { placeOrderInSupabase as createOrder };
+
+
+/**
+ * Allows an admin to update specific details of an order.
+ * Currently supports updating order_status and table_number.
+ * @param orderId The ID of the order to update.
+ * @param details An object containing the order fields to update.
+ * @returns The updated order data.
+ * @throws If the update fails.
+ */
+export const adminUpdateOrderDetails = async (
+  orderId: string,
+  details: {
+    order_status?: SupabaseOrderStatus;
+    table_number?: string;
+    // Potentially other fields like user_id, order_items in the future
+  }
+) => {
+  if (!orderId) {
+    toast.error("Order ID is required to update order details.");
+    throw new Error("Order ID is required to update order details.");
+  }
+  if (Object.keys(details).length === 0) {
+    toast.info("No details provided to update for the order.");
+    // Depending on desired behavior, could return null or throw an error
+    return null;
+  }
+
+  console.log(`Admin updating order ${orderId} with details:`, details);
+
+  // Ensure empty string for table_number is handled as intended (e.g., set to null or allow empty string)
+  // If table_number can be cleared, Supabase might need `null` instead of `''` if the column is nullable.
+  // For now, we pass the string value directly.
+  const updatePayload = { ...details };
+  if (details.table_number === '') {
+      // If you want to clear it and the DB column is nullable string:
+      // updatePayload.table_number = null;
+      // If empty string is acceptable or it's a text column that's not nullable:
+      // keep as is. For now, we assume empty string is fine.
+  }
+
+
+  const { data, error } = await supabase
+    .from('orders')
+    .update(updatePayload)
+    .eq('id', orderId)
+    .select() // Select the updated row to confirm and get fresh data
+    .single(); // Expect a single row
+
+  if (error) {
+    console.error(`Error updating order ${orderId} via admin:`, error);
+    toast.error(`Error updating order: ${error.message}`);
+    throw error; // Re-throw to be caught by the calling form/component
+  }
+
+  if (!data) {
+    toast.warn(`Order ${orderId} update seemed to succeed but no data was returned.`);
+    return null;
+  }
+
+  // toast.success(`Order ${orderId} updated successfully by admin!`); // Form can show its own toast
+  console.log(`Order ${orderId} updated by admin:`, data);
+  return data;
+};

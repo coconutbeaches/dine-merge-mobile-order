@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,8 +13,8 @@ import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword"; // Added
-import ResetPassword from "./pages/ResetPassword";   // Added
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import OrderHistory from "./pages/OrderHistory";
 import OrdersDashboard from "./pages/OrdersDashboard";
@@ -27,7 +26,11 @@ import ProductForm from "./pages/ProductForm";
 import CategoriesManager from "./pages/CategoriesManager";
 import ProductsByCategory from "./pages/ProductsByCategory";
 import CustomerOrderHistory from "./pages/CustomerOrderHistory";
-import ProtectedAdminRoute from "./components/layout/ProtectedAdminRoute"; // Import ProtectedAdminRoute
+import ProtectedAdminRoute from "./components/layout/ProtectedAdminRoute";
+
+// NEWLY ADDED ADMIN PAGES
+import EditCustomerForm from "./pages/admin/EditCustomerForm"; // Added
+import EditOrderForm from "./pages/admin/EditOrderForm";     // Added
 
 function App() {
   return (
@@ -46,8 +49,8 @@ function App() {
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Added */}
-            <Route path="/reset-password" element={<ResetPassword />} />   {/* Added */}
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/order-history" element={<OrderHistory />} />
 
@@ -61,6 +64,10 @@ function App() {
               <Route path="/orders-dashboard" element={<OrdersDashboard />} />
               <Route path="/categories-manager" element={<CategoriesManager />} />
               <Route path="/admin/customer-orders/:customerId" element={<CustomerOrderHistory />} />
+
+              {/* NEWLY ADDED ADMIN ROUTES */}
+              <Route path="/admin/edit-customer/:customerId" element={<EditCustomerForm />} />
+              <Route path="/admin/edit-order/:orderId" element={<EditOrderForm />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

@@ -1,26 +1,31 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+// Remove Select imports if no longer used directly here for status
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button'; // Added Button
+import { FilePenLine } from 'lucide-react'; // Added an icon
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
-import { formatDate, getStatusColorDot } from '@/utils/orderDashboardUtils';
+import { formatDate, getStatusColorDot } from '@/utils/orderDashboardUtils'; // getStatusColorDot might be kept for visual cue if desired elsewhere
 
 interface OrdersListProps {
   orders: Order[];
   selectedOrders: number[];
   toggleSelectOrder: (orderId: number) => void;
-  updateOrderStatus: (orderId: number, newStatus: OrderStatus) => void;
-  orderStatusOptions: OrderStatus[];
+  // updateOrderStatus: (orderId: number, newStatus: OrderStatus) => void; // This prop might be removed if status is only edited on the form
+  // orderStatusOptions: OrderStatus[]; // This prop might also be removed
 }
 
+// Note: Depending on whether updateOrderStatus and orderStatusOptions are used elsewhere in the parent,
+// they might not be removed from props entirely, but their direct use here is changing.
+// For this task, we assume they are primarily for the removed Select.
 const OrdersList = ({ 
   orders, 
   selectedOrders, 
   toggleSelectOrder,
-  updateOrderStatus,
-  orderStatusOptions
+  // updateOrderStatus, // Removed for this change
+  // orderStatusOptions // Removed for this change
 }: OrdersListProps) => {
   if (orders.length === 0) {
     return <div className="p-6 text-center text-muted-foreground">No orders found.</div>;
@@ -33,6 +38,7 @@ const OrdersList = ({
           key={order.id} 
           className="grid grid-cols-12 gap-x-2 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
         >
+          {/* Checkbox */}
           <div className="col-span-1 flex items-center">
             <Checkbox 
               checked={selectedOrders.includes(order.id)} 
@@ -40,6 +46,7 @@ const OrdersList = ({
               aria-label={`Select order ${order.id}`}
             />
           </div>
+          {/* Customer Name/Order ID */}
           <div className="col-span-3">
             {order.user_id ? (
               <Link 
@@ -47,52 +54,39 @@ const OrdersList = ({
                 className="font-medium text-primary hover:underline truncate block"
                 title={`${order.customer_name_from_profile || 'N/A'} (${order.customer_email_from_profile || 'No Email'})`}
               >
-                {order.customer_name_from_profile || `Order #${order.id}`}
+                {order.customer_name_from_profile || `Order #${order.id.toString().padStart(4, '0')}`}
               </Link>
             ) : (
-              // For orders without a user_id (e.g., older guest orders not yet using profiles system fully)
-              // or if customer_name_from_profile is somehow still undefined
               <div 
                 className="font-medium truncate" 
                 title={`${order.customer_name_from_profile || order.customer_name || 'Guest'} (${order.customer_email_from_profile || 'N/A'})`}
               >
-                {order.customer_name_from_profile || order.customer_name || `Order #${order.id}`}
+                {order.customer_name_from_profile || order.customer_name || `Order #${order.id.toString().padStart(4, '0')}`}
               </div>
             )}
-            {/* Optionally, display email directly if space allows and it's desired */}
-            {/* <div className="text-xs text-muted-foreground truncate" title={order.customer_email_from_profile || 'No Email'}>
-              {order.customer_email_from_profile || 'No Email'}
-            </div> */}
+             {/* Display current status textually for quick view */}
+            <div className="text-xs text-muted-foreground capitalize flex items-center mt-0.5">
+                <span className={`w-2 h-2 rounded-full mr-1.5 ${getStatusColorDot(order.order_status || 'new')}`}></span>
+                {order.order_status || 'N/A'}
+            </div>
           </div>
+          {/* Table Number */}
           <div className="col-span-2 text-xs text-muted-foreground capitalize">
             {order.table_number ? (order.table_number === 'Take Away' ? 'Take Away' : `Table ${order.table_number}`) : 'N/A'}
           </div>
+          {/* Total Amount */}
           <div className="col-span-2 text-right">{formatThaiCurrency(order.total_amount)}</div>
+          {/* Date */}
           <div className="col-span-2 text-xs text-muted-foreground">{formatDate(order.created_at)}</div>
           
-          <div className="col-span-2">
-            <Select
-              value={order.order_status || 'new'}
-              onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
-            >
-              <SelectTrigger className="w-full h-9 text-xs flex items-center gap-1.5 py-1">
-                {order.order_status && (
-                  <>
-                    <span className={`inline-block w-2.5 h-2.5 rounded-full ${getStatusColorDot(order.order_status)}`}></span>
-                    <span className="capitalize">{order.order_status}</span>
-                  </>
-                )}
-                {!order.order_status && <span className="text-muted-foreground">Select...</span>}
-              </SelectTrigger>
-              <SelectContent>
-                {orderStatusOptions.map(statusVal => (
-                  <SelectItem key={statusVal} value={statusVal} className="flex items-center gap-2 text-xs capitalize">
-                    <span className={`inline-block w-2.5 h-2.5 rounded-full ${getStatusColorDot(statusVal)}`}></span>
-                    {statusVal}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Edit Button Column (replaces old status select) */}
+          <div className="col-span-2 flex justify-end"> {/* Changed to flex justify-end for button alignment */}
+            <Link to={`/admin/edit-order/${order.id}`}>
+              <Button variant="outline" size="sm">
+                <FilePenLine className="h-4 w-4 mr-2 md:mr-0 lg:mr-2" /> {/* Responsive icon margin */}
+                <span className="hidden md:inline lg:inline">Edit</span> {/* Show text on larger screens */}
+              </Button>
+            </Link>
           </div>
         </div>
       ))}
