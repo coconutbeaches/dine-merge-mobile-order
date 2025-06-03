@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Plus, UserPlus } from 'lucide-react'; // Added UserPlus
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Customer {
   id: string;
@@ -90,9 +91,11 @@ const AdminOrderCreator = () => {
     setIsCreatingGuest(true);
     try {
       const uniqueEmail = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@throwaway.com`;
+      const newGuestId = uuidv4();
       const { data: newGuest, error } = await supabase
         .from('profiles')
         .insert({
+          id: newGuestId,
           name: guestName,
           email: uniqueEmail,
           role: 'guest', // Assuming 'guest' is a valid role
