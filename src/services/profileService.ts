@@ -30,19 +30,17 @@ export const adminUpdateProfile = async (userId: string, details: ProfileUpdateD
     .from('profiles')
     .update(details)
     .eq('id', userId)
-    .select() // Select the updated row
-    .single(); // Expect a single row to be returned
+    .select()
+    .maybeSingle(); // MODIFIED HERE
 
   if (error) {
     console.error('Error updating profile via admin:', error);
     toast.error(`Error updating profile: ${error.message}`);
-    throw error; // Re-throw the error to be caught by the caller
+    throw error;
   }
 
   if (!data) {
-    // This case might happen if the user ID doesn't exist, though `eq` might not error out.
-    // Supabase typically returns an empty array if no match, and .single() would make error non-null.
-    toast.warn("Profile update seemed to succeed but no data was returned.");
+    toast.warn("Profile update: No data returned after update. This might be due to RLS on select or if the ID didn't match.");
     return null;
   }
 

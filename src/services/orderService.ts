@@ -276,21 +276,22 @@ export const adminUpdateOrderDetails = async (
     .from('orders')
     .update(updatePayload)
     .eq('id', orderId)
-    .select() // Select the updated row to confirm and get fresh data
-    .single(); // Expect a single row
+    .select()
+    .maybeSingle(); // MODIFIED HERE
 
   if (error) {
     console.error(`Error updating order ${orderId} via admin:`, error);
-    toast.error(`Error updating order: ${error.message}`);
-    throw error; // Re-throw to be caught by the calling form/component
+    toast.error(`Error updating order: ${error.message}`); // Keep this specific error toast
+    throw error;
   }
 
   if (!data) {
-    toast.warn(`Order ${orderId} update seemed to succeed but no data was returned.`);
+    // This warning can help diagnose if the update worked but select failed.
+    toast.warn(`Order update: No data returned after update for order ${orderId}. This might be due to RLS on select or if the ID didn't match.`);
     return null;
   }
 
-  // toast.success(`Order ${orderId} updated successfully by admin!`); // Form can show its own toast
+  // toast.success(`Order ${orderId} updated successfully by admin!`); // Form shows its own success toast
   console.log(`Order ${orderId} updated by admin:`, data);
   return data;
 };
