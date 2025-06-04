@@ -16,21 +16,27 @@ import {
 import { formatThaiCurrency } from '@/lib/utils';
 import { ArrowLeft, Edit3, FilePenLine } from 'lucide-react';
 import { useUserContext } from '@/context/UserContext';
+// import { toast } from 'sonner'; // Import if using toast for "No customer ID"
 
 const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState<Profile | null>(null);
-  const [pageIsLoading, setPageIsLoading] = useState(true); // Renamed local loading state
-  const { currentUser, isLoading: isUserContextLoading } = useUserContext(); // Get UserContext loading state
+  const [pageIsLoading, setPageIsLoading] = useState(true);
+  const { currentUser, isLoading: isUserContextLoading } = useUserContext();
 
   useEffect(() => {
     if (customerId) {
-      setPageIsLoading(true); // Ensure page loading is true when customerId changes
+      setPageIsLoading(true);
+      setCustomer(null); // Reset customer state on new customerId
+      setOrders([]);   // Reset orders state on new customerId
+
       Promise.all([
         fetchCustomerDetails(customerId),
         fetchCustomerOrders(customerId)
-      ]).finally(() => setPageIsLoading(false));
+      ]).finally(() => {
+        setPageIsLoading(false);
+      });
       
       const channel = supabase
         .channel(`customer-orders-${customerId}`)
@@ -38,8 +44,7 @@ const CustomerOrderHistory = () => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${customerId}` },
           (payload) => {
-            // console.log("Real-time order update:", payload);
-            fetchCustomerOrders(customerId); // Re-fetch orders on real-time update
+            fetchCustomerOrders(customerId);
           }
         )
         .subscribe();
@@ -47,6 +52,14 @@ const CustomerOrderHistory = () => {
       return () => {
         supabase.removeChannel(channel);
       };
+    } else {
+      // Handle cases where customerId is null, undefined, or empty
+      setPageIsLoading(false); // Not loading if no valid ID
+      setCustomer(null);
+      setOrders([]);
+      // Optionally, you could inform the user, e.g.,
+      // toast.warn("No customer ID specified or customer ID is invalid.");
+      // Or render a specific message in the UI based on a new state variable.
     }
   }, [customerId]);
 
@@ -56,12 +69,17 @@ const CustomerOrderHistory = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .single(); // .single() will error if 0 or >1 rows, RLS can cause 0 rows.
         
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
+      // If data is null (e.g. from .maybeSingle() if it were used, or if .single() could return null for a valid query without erroring - generally it errors for 0 rows)
+      // For .single(), an error is thrown if no rows, so this 'data' should be the profile object.
       setCustomer(data);
     } catch (error) {
       console.error('Error fetching customer details:', error);
+      setCustomer(null); // Explicitly set customer to null on error
     }
   };
 
@@ -73,7 +91,9 @@ const CustomerOrderHistory = () => {
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
       if (data) {
         const transformedOrders = data.map(order => {
@@ -85,10 +105,7 @@ const CustomerOrderHistory = () => {
           } else {
             appOrderStatus = 'new';
           }
-          return {
-            ...order,
-            order_status: appOrderStatus
-          } as Order;
+          return { ...order, order_status: appOrderStatus } as Order;
         });
         setOrders(transformedOrders);
       } else {
@@ -96,12 +113,12 @@ const CustomerOrderHistory = () => {
       }
     } catch (error) {
       console.error('Error fetching customer orders:', error);
-      setOrders([]);
+      setOrders([]); // Ensure orders are empty on error
     }
   };
 
   const getStatusColor = (status: OrderStatus | null) => {
-    switch (status) {
+    // ... (getStatusColor function remains the same)
       case 'new': return "bg-red-500";
       case 'confirmed': return "bg-green-500";
       case 'make': return "bg-yellow-500";
@@ -110,51 +127,50 @@ const CustomerOrderHistory = () => {
       case 'paid': return "bg-green-700";
       case 'cancelled': return "bg-gray-500";
       default: return "bg-gray-400";
-    }
   };
 
-  const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
+  const totalSpent = orders.reduce((total, order) => total + (order.total_amount || 0), 0);
 
-  // Combined loading check
+
   if (pageIsLoading || isUserContextLoading) {
     return (
       <Layout title="Customer Orders" showBackButton={true}>
         <div className="page-container text-center py-10">
-          <p>Loading data...</p> {/* Generic loading message */}
+          <p>Loading data...</p>
         </div>
       </Layout>
     );
   }
 
+  // UI when customerId was initially falsy, or fetchCustomerDetails failed.
+  // Orders might still be loaded if customerId was valid but profile fetch failed.
+  const customerDisplayName = customer?.name || (customerId ? 'Details N/A' : 'Invalid ID');
+  const pageTitle = `Customer Orders: ${customer?.name || (customerId ? 'Unknown Customer' : 'N/A')}`;
+
   return (
-    <Layout title={`Customer Orders: ${customer?.name || 'Unknown'}`} showBackButton={false}>
+    <Layout title={pageTitle} showBackButton={false}>
       <div className="page-container p-4 md:p-6">
         <div className="flex items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-4">
             <Link to="/orders-dashboard">
-              <Button variant="outline" size="icon">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
+              <Button variant="outline" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
             <h1 className="text-xl font-bold">
-              {customer ? `${customer.name || 'Customer'}'s Orders` : 'Customer Orders'}
+              {/* If customer is null but customerId was valid, show ID or placeholder */}
+              {customer ? `${customer.name || 'Customer'}'s Orders` : (customerId ? `Orders for ID: ${customerId.substring(0,8)}...` : 'Customer Orders')}
             </h1>
           </div>
-          {/* Check currentUser AFTER loading states are false */}
-          {currentUser?.role === 'admin' && customerId && (
+          {currentUser?.role === 'admin' && customerId && customer && ( // Only show edit if customer loaded
             <Link to={`/admin/edit-customer/${customerId}`}>
-              <Button variant="outline" size="sm">
-                <Edit3 className="h-4 w-4 mr-2" />
-                Edit Customer
-              </Button>
+              <Button variant="outline" size="sm"><Edit3 className="h-4 w-4 mr-2" />Edit Customer</Button>
             </Link>
           )}
         </div>
 
+        {/* Display customer card only if customer data is successfully fetched */}
         {customer && (
           <Card className="mb-6 bg-muted/20">
             <CardContent className="p-4">
-              {/* ... customer details ... */}
               <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>
                   <h2 className="text-lg font-semibold">{customer.name}</h2>
@@ -170,14 +186,23 @@ const CustomerOrderHistory = () => {
           </Card>
         )}
         
-        {orders.length === 0 ? (
+        {/* If no customerId was provided to the page */}
+        {!customerId && !pageIsLoading && !isUserContextLoading && (
+            <div className="text-center py-10 border rounded-lg border-dashed">
+                <h2 className="text-xl font-medium text-gray-500 mb-2">Invalid Customer ID</h2>
+                <p className="text-muted-foreground mb-6">No customer ID was specified or it was invalid.</p>
+                <Link to="/orders-dashboard"><Button>Back to Orders Dashboard</Button></Link>
+            </div>
+        )}
+
+        {/* If customerId is valid, show orders or no orders message */}
+        {customerId && (orders.length === 0 ? (
           <div className="text-center py-10 border rounded-lg border-dashed">
-            {/* ... no orders message ... */}
             <h2 className="text-xl font-medium text-gray-500 mb-2">No Orders Found</h2>
-            <p className="text-muted-foreground mb-6">This customer hasn't placed any orders yet.</p>
-            <Link to="/orders-dashboard">
-              <Button>Back to Orders Dashboard</Button>
-            </Link>
+            <p className="text-muted-foreground mb-6">
+              {customer ? "This customer hasn't placed any orders yet." : (customerId ? "No orders found for this customer ID, or customer details could not be loaded." : "Cannot load orders without a customer ID.")}
+            </p>
+            <Link to="/orders-dashboard"><Button>Back to Orders Dashboard</Button></Link>
           </div>
         ) : (
           <div className="space-y-4">
@@ -190,18 +215,14 @@ const CustomerOrderHistory = () => {
                       {format(new Date(order.created_at), 'MMM d, yyyy - h:mm a')}
                     </p>
                   </div>
-                  {/* Check currentUser AFTER loading states are false */}
                   {currentUser?.role === 'admin' && (
                     <Link to={`/admin/edit-order/${order.id}`}>
-                      <Button variant="outline" size="sm">
-                        <FilePenLine className="h-4 w-4 mr-1 md:mr-2" />
-                        Edit Order
-                      </Button>
+                      <Button variant="outline" size="sm"><FilePenLine className="h-4 w-4 mr-1 md:mr-2" />Edit Order</Button>
                     </Link>
                   )}
                 </CardHeader>
                 <CardContent className="p-4">
-                  {/* ... order content ... */}
+                  {/* ... order content as before, but ensure getStatusColor is used ... */}
                   <div className="flex flex-col md:flex-row justify-between md:items-start gap-3 mb-3">
                     <div>
                       {order.order_status && (
@@ -250,7 +271,7 @@ const CustomerOrderHistory = () => {
               </Card>
             ))}
           </div>
-        )}
+        ))}
       </div>
     </Layout>
   );
