@@ -16,7 +16,7 @@ import {
 import { formatThaiCurrency } from '@/lib/utils';
 import { ArrowLeft, Edit3, FilePenLine } from 'lucide-react';
 import { useUserContext } from '@/context/UserContext';
-// import { toast } from 'sonner'; // Import if using toast for "No customer ID"
+// import { toast } from 'sonner'; // Not currently used in this version for "No customer ID"
 
 const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
@@ -28,8 +28,8 @@ const CustomerOrderHistory = () => {
   useEffect(() => {
     if (customerId) {
       setPageIsLoading(true);
-      setCustomer(null); // Reset customer state on new customerId
-      setOrders([]);   // Reset orders state on new customerId
+      setCustomer(null);
+      setOrders([]);
 
       Promise.all([
         fetchCustomerDetails(customerId),
@@ -53,13 +53,9 @@ const CustomerOrderHistory = () => {
         supabase.removeChannel(channel);
       };
     } else {
-      // Handle cases where customerId is null, undefined, or empty
-      setPageIsLoading(false); // Not loading if no valid ID
+      setPageIsLoading(false);
       setCustomer(null);
       setOrders([]);
-      // Optionally, you could inform the user, e.g.,
-      // toast.warn("No customer ID specified or customer ID is invalid.");
-      // Or render a specific message in the UI based on a new state variable.
     }
   }, [customerId]);
 
@@ -69,17 +65,15 @@ const CustomerOrderHistory = () => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single(); // .single() will error if 0 or >1 rows, RLS can cause 0 rows.
+        .single();
         
       if (error) {
         throw error;
       }
-      // If data is null (e.g. from .maybeSingle() if it were used, or if .single() could return null for a valid query without erroring - generally it errors for 0 rows)
-      // For .single(), an error is thrown if no rows, so this 'data' should be the profile object.
       setCustomer(data);
     } catch (error) {
       console.error('Error fetching customer details:', error);
-      setCustomer(null); // Explicitly set customer to null on error
+      setCustomer(null);
     }
   };
 
@@ -113,12 +107,13 @@ const CustomerOrderHistory = () => {
       }
     } catch (error) {
       console.error('Error fetching customer orders:', error);
-      setOrders([]); // Ensure orders are empty on error
+      setOrders([]);
     }
   };
 
+  // CORRECTED getStatusColor function
   const getStatusColor = (status: OrderStatus | null) => {
-    // ... (getStatusColor function remains the same)
+    switch (status) { // Restored switch statement
       case 'new': return "bg-red-500";
       case 'confirmed': return "bg-green-500";
       case 'make': return "bg-yellow-500";
@@ -127,10 +122,10 @@ const CustomerOrderHistory = () => {
       case 'paid': return "bg-green-700";
       case 'cancelled': return "bg-gray-500";
       default: return "bg-gray-400";
+    } // Closing brace for switch
   };
 
   const totalSpent = orders.reduce((total, order) => total + (order.total_amount || 0), 0);
-
 
   if (pageIsLoading || isUserContextLoading) {
     return (
@@ -142,9 +137,6 @@ const CustomerOrderHistory = () => {
     );
   }
 
-  // UI when customerId was initially falsy, or fetchCustomerDetails failed.
-  // Orders might still be loaded if customerId was valid but profile fetch failed.
-  const customerDisplayName = customer?.name || (customerId ? 'Details N/A' : 'Invalid ID');
   const pageTitle = `Customer Orders: ${customer?.name || (customerId ? 'Unknown Customer' : 'N/A')}`;
 
   return (
@@ -156,18 +148,16 @@ const CustomerOrderHistory = () => {
               <Button variant="outline" size="icon"><ArrowLeft className="h-4 w-4" /></Button>
             </Link>
             <h1 className="text-xl font-bold">
-              {/* If customer is null but customerId was valid, show ID or placeholder */}
               {customer ? `${customer.name || 'Customer'}'s Orders` : (customerId ? `Orders for ID: ${customerId.substring(0,8)}...` : 'Customer Orders')}
             </h1>
           </div>
-          {currentUser?.role === 'admin' && customerId && customer && ( // Only show edit if customer loaded
+          {currentUser?.role === 'admin' && customerId && customer && (
             <Link to={`/admin/edit-customer/${customerId}`}>
               <Button variant="outline" size="sm"><Edit3 className="h-4 w-4 mr-2" />Edit Customer</Button>
             </Link>
           )}
         </div>
 
-        {/* Display customer card only if customer data is successfully fetched */}
         {customer && (
           <Card className="mb-6 bg-muted/20">
             <CardContent className="p-4">
@@ -186,7 +176,6 @@ const CustomerOrderHistory = () => {
           </Card>
         )}
         
-        {/* If no customerId was provided to the page */}
         {!customerId && !pageIsLoading && !isUserContextLoading && (
             <div className="text-center py-10 border rounded-lg border-dashed">
                 <h2 className="text-xl font-medium text-gray-500 mb-2">Invalid Customer ID</h2>
@@ -195,7 +184,6 @@ const CustomerOrderHistory = () => {
             </div>
         )}
 
-        {/* If customerId is valid, show orders or no orders message */}
         {customerId && (orders.length === 0 ? (
           <div className="text-center py-10 border rounded-lg border-dashed">
             <h2 className="text-xl font-medium text-gray-500 mb-2">No Orders Found</h2>
@@ -222,8 +210,7 @@ const CustomerOrderHistory = () => {
                   )}
                 </CardHeader>
                 <CardContent className="p-4">
-                  {/* ... order content as before, but ensure getStatusColor is used ... */}
-                  <div className="flex flex-col md:flex-row justify-between md:items-start gap-3 mb-3">
+                   <div className="flex flex-col md:flex-row justify-between md:items-start gap-3 mb-3">
                     <div>
                       {order.order_status && (
                         <Badge className={`${getStatusColor(order.order_status)} text-white capitalize mb-1`}>
