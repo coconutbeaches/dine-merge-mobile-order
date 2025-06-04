@@ -121,8 +121,6 @@ const EditOrderForm = () => {
 
   return (
     <Layout title="Edit Order Details" showBackButton={true}>
-      {/* This console.log is for debugging purposes */}
-      {console.log('Runtime orderStatusOptions:', JSON.stringify(orderStatusOptions))}
       <div className="page-container max-w-3xl mx-auto">
         <Card>
           <CardHeader>
