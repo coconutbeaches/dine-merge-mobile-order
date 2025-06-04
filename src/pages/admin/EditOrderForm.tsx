@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 import { formatThaiCurrency } from '@/lib/utils';
 
 // Define available order statuses for the dropdown
-const orderStatusOptions: SupabaseOrderStatus[] = ["new", "confirmed", "make", "ready", "delivered", "paid", "cancelled"];
+const orderStatusOptions: SupabaseOrderStatus[] = ["new", "confirmed", "completed", "delivered", "paid", "cancelled"];
 
 const EditOrderForm = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -121,6 +121,8 @@ const EditOrderForm = () => {
 
   return (
     <Layout title="Edit Order Details" showBackButton={true}>
+      {/* This console.log is for debugging purposes */}
+      {console.log('Runtime orderStatusOptions:', JSON.stringify(orderStatusOptions))}
       <div className="page-container max-w-3xl mx-auto">
         <Card>
           <CardHeader>
