@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -48,7 +47,7 @@ const OrdersDashboard = () => {
               onValueChange={handleBulkStatusChange}
               disabled={selectedOrders.length === 0 || isLoading}
             >
-              <SelectTrigger className="w-[140px] h-9 text-xs">
+              <SelectTrigger className="w-[140px] h-10 text-sm font-medium">
                 <SelectValue placeholder="Bulk Status" />
               </SelectTrigger>
               <SelectContent>
