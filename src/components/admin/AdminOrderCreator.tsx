@@ -7,6 +7,7 @@ import { Plus, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { nanoid } from 'nanoid';
+import { crypto } from 'crypto';
 
 interface Customer {
   id: string;
@@ -89,7 +90,8 @@ const AdminOrderCreator = () => {
     }
     setIsCreatingGuest(true);
     try {
-      const guestId = nanoid();
+      // IMPORTANT: Generate a valid UUID for guest ID.
+      const guestId = crypto.randomUUID(); // <-- Fix: use UUID not nanoid
       const uniqueEmail = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@throwaway.com`;
       
       const { data: newGuest, error } = await supabase
@@ -111,13 +113,9 @@ const AdminOrderCreator = () => {
           name: newGuest.name || 'Unnamed Guest',
           email: newGuest.email,
         };
-        // Add to local state to avoid re-fetch, ensure it's at the top for immediate visibility
         setCustomers(prev => [formattedNewGuest, ...prev]);
-        // If search is active, new guest might not appear unless it matches search
-        // So, we also add to filteredCustomers or clear search
-        setFilteredCustomers(prev => [formattedNewGuest, ...prev]); // Simplest way: add to current filter
-        setSearchQuery(''); // Clear search to ensure new guest is visible
-
+        setFilteredCustomers(prev => [formattedNewGuest, ...prev]);
+        setSearchQuery('');
         toast.success(`Guest "${formattedNewGuest.name}" created successfully.`);
         setIsGuestModalOpen(false);
         setGuestName('');
