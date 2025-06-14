@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -89,7 +88,7 @@ const AdminOrderDetail = () => {
               <div>
                 <h3 className="font-semibold mb-2">Customer Information</h3>
                 <p><strong>Name:</strong> {customerDisplayName}</p>
-                <p><strong>Email:</strong> {order.customer_email_from_profile || 'N/A'}</p>
+                <p><strong>Email:</strong> {order.customer_email_from_profile || order.customer_name || 'N/A'}</p>
                 <p><strong>Table/Takeaway:</strong> {order.table_number || 'N/A'}</p>
               </div>
               <div>
@@ -109,11 +108,11 @@ const AdminOrderDetail = () => {
                 {order.order_items?.map((item, index) => (
                   <div key={index} className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium">{item.products?.name || 'Unknown Product'}</p>
+                      <p className="font-medium">{item.name || 'Unknown Product'}</p>
                       <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                     </div>
                     <p className="font-medium">
-                      {formatThaiCurrency((item.products?.price || 0) * item.quantity)}
+                      {formatThaiCurrency((item.price || 0) * item.quantity)}
                     </p>
                   </div>
                 ))}

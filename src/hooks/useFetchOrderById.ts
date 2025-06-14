@@ -1,21 +1,15 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Order } from '@/types/supabaseTypes';
+import { Order, CartItem } from '@/types/supabaseTypes';
 
-// Extend Order to include order_items with product details
-interface OrderWithDetails extends Order {
-  order_items: {
-    quantity: number;
-    products: {
-      name: string;
-      price: number;
-    } | null;
-  }[];
+// Define a more specific type for the order details
+interface EnrichedOrder extends Omit<Order, 'order_items'> {
+  order_items: CartItem[];
 }
 
 export const useFetchOrderById = (orderId: string | undefined) => {
-  const { data: order, isLoading, error } = useQuery<OrderWithDetails | null, Error>({
+  const { data: order, isLoading, error } = useQuery<EnrichedOrder | null, Error>({
     queryKey: ['order', orderId],
     queryFn: async () => {
       if (!orderId) return null;
@@ -24,12 +18,9 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         .from('orders')
         .select(`
           *,
-          order_items (
-            quantity,
-            products ( name, price )
-          )
+          profiles ( name, email )
         `)
-        .eq('id', orderId)
+        .eq('id', parseInt(orderId, 10))
         .maybeSingle();
 
       if (error) {
@@ -37,7 +28,20 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         throw error;
       }
       
-      return data;
+      if (!data) {
+        return null;
+      }
+
+      const orderData = data as any;
+
+      const enrichedData: EnrichedOrder = {
+        ...orderData,
+        customer_name_from_profile: orderData.profiles?.name || null,
+        customer_email_from_profile: orderData.profiles?.email || null,
+        order_items: Array.isArray(orderData.order_items) ? orderData.order_items : [],
+      };
+      
+      return enrichedData;
     },
     enabled: !!orderId,
   });
