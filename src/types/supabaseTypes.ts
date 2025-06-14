@@ -239,9 +239,11 @@ export interface CartItem {
     image_url?: string | null;
 }
 
+// Remove 'out_for_delivery', only include allowed statuses:
 export type OrderStatus = 'new' | 'preparing' | 'ready' | 'delivery' | 'completed' | 'cancelled' | 'paid';
 export type SupabaseOrderStatus = 'new' | 'preparing' | 'ready' | 'delivery' | 'completed' | 'cancelled' | 'paid';
 
+// Mapping functions - all only map to/from valid statuses:
 export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStatus => {
   switch (status) {
     case 'new': return 'new';
@@ -264,6 +266,8 @@ export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStat
     case 'completed': return 'completed';
     case 'cancelled': return 'cancelled';
     case 'paid': return 'paid';
+    // if an old value ever comes up, coerce to 'delivery'
+    // case 'out_for_delivery': return 'delivery';
     default: return 'new';
   }
 };
