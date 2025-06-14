@@ -32,7 +32,6 @@ export const useOrdersDashboard = () => {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      // First fetch orders
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
@@ -41,10 +40,7 @@ export const useOrdersDashboard = () => {
       if (ordersError) throw ordersError;
 
       if (ordersData) {
-        // Get unique user IDs to fetch profiles
         const userIds = [...new Set(ordersData.map(order => order.user_id).filter(Boolean))];
-        
-        // Fetch profiles for all users
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, name, email')
@@ -56,9 +52,11 @@ export const useOrdersDashboard = () => {
 
         const transformedOrders = ordersData.map(order => {
           const profile = profilesData?.find(p => p.id === order.user_id);
-          
+
+          // Type assertion updated here: force the result to fit the new Order type
           return {
             ...order,
+            // Map *from* the DB value (which is SupabaseOrderStatus) to our local OrderStatus
             order_status: order.order_status ? mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus) : 'new' as OrderStatus,
             customer_name_from_profile: profile?.name || null,
             customer_email_from_profile: profile?.email || null
@@ -78,11 +76,10 @@ export const useOrdersDashboard = () => {
 
   const updateOrderStatus = async (orderId: number, newStatus: OrderStatus) => {
     try {
-      // Map to correct lower-case enum for Supabase
       const supabaseStatus = mapOrderStatusToSupabase(newStatus);
       console.log(`Updating order ${orderId} status to ${newStatus} (Supabase: ${supabaseStatus})`);
 
-      // Update with explicit type casting in raw SQL (defensive for bad types!)
+      // Type for order_status matches SupabaseOrderStatus (not including out_for_delivery)
       const { error, count } = await supabase
         .from('orders')
         .update({ 
@@ -136,6 +133,7 @@ export const useOrdersDashboard = () => {
     try {
       const supabaseStatus = mapOrderStatusToSupabase(newStatus);
 
+      // order_status field now correctly typed
       const { error, count } = await supabase
         .from('orders')
         .update({ 
