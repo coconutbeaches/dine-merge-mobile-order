@@ -62,12 +62,9 @@ const OrdersList = ({
         return (
           <div
             key={order.id}
-            className="grid grid-cols-12 gap-x-1 md:gap-x-2 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
+            className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
             style={{
-              // Checkbox | Customer | Amount | Date | Status
-              // 1. Checkbox (min) | 2.5fr Customer | 1.1fr Amount | 1.7fr Date | 2.2fr Status | hidden columns
-              gridTemplateColumns:
-                "min-content minmax(0,2.5fr) minmax(0,1.08fr) minmax(0,1.62fr) minmax(0,2.2fr) min-content min-content min-content min-content min-content min-content min-content"
+              gridTemplateColumns: "min-content minmax(0,2.5fr) minmax(0,1.1fr) minmax(0,1.2fr) min-content min-content min-content min-content min-content min-content min-content min-content"
             }}
           >
             {/* Checkbox */}
@@ -78,8 +75,8 @@ const OrdersList = ({
                 aria-label={`Select order ${order.id}`}
               />
             </div>
-            {/* Customer name: now as far left as possible */}
-            <div className="col-span-2 truncate min-w-0">
+            {/* Customer name, table number below */}
+            <div className="col-span-3 min-w-0">
               {order.user_id ? (
                 <Link 
                   to={`/admin/customer-orders/${order.user_id}`} 
@@ -104,47 +101,41 @@ const OrdersList = ({
                 </div>
               )}
             </div>
-            {/* Order Amounts, now moved left, pruned padding, header aligns above */}
+            {/* Order Amount (now moved left, add extra space after) */}
             <Link
               to={`/admin/order/${order.id}`}
-              className="col-span-2 text-right cursor-pointer text-primary font-bold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-0 pr-2"
+              className="col-span-2 text-right cursor-pointer text-primary font-bold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-1 pr-5"
               title={`View full order #${order.id}`}
               tabIndex={0}
               style={{ minWidth: 0 }}
             >
               {formatThaiCurrency(order.total_amount)}
             </Link>
-            {/* Date/Time, now wider so date/time always fits on 2 lines (never 3), left aligned */}
+            {/* Date/Time (clickable) */}
             <Link
               to={`/admin/order/${order.id}`}
-              className="col-span-2 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition text-left"
+              className="col-span-2 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
               title={`View full order #${order.id}`}
               tabIndex={0}
-              style={{ minWidth: 0, maxWidth: '90px', wordBreak: 'break-word' }}
+              style={{ minWidth: 0 }}
             >
               <span>{formatOrderDate(order.created_at)}</span>
               <span>{formatOrderTime(order.created_at)}</span>
             </Link>
-            {/* Order Status */}
-            <div className="col-span-2 min-w-[60px] md:min-w-[80px] flex items-center">
+            {/* Order Status: as a small pill-shaped select */}
+            <div className="col-span-3 min-w-[70px] md:min-w-[100px] flex items-center">
               <Select
                 value={statusVal}
                 onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
               >
                 <SelectTrigger
-                  className={`min-w-[60px] max-w-full h-[24px] px-2 text-xs font-semibold border-0 shadow-none focus:ring-0 rounded-full transition`}
-                  style={{
-                    boxShadow: 'none',
-                    minWidth: 0,
-                    height: 24,
-                    background: 'rgba(0,0,0,0.03)',
-                    border: 0
-                  }}
+                  className={`min-w-[70px] max-w-full h-6 px-2 text-xs font-semibold border-0 shadow-none focus:ring-0 ${statusPillStyle} rounded-full transition`}
+                  style={{ boxShadow: 'none', minWidth: 0, height: 24 }}
                 >
                   <span
                     className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusColorDot(statusVal)}`}
                   ></span>
-                  <span className="capitalize pr-1">{statusVal === 'delivery' ? 'Delivery' : statusVal}</span>
+                  <span className="capitalize">{statusVal === 'delivery' ? 'Delivery' : statusVal}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {orderStatusOptions.map(statusOption => (
