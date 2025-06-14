@@ -79,7 +79,8 @@ const Index = () => {
         
         {/* Categories with Black Headers */}
         {categories && products && categories.map((category) => {
-          const categoryProducts = products.filter(product => product.category_id === category.id).slice(0, 4);
+          // Show *all* products in this category, remove slice(0,4)
+          const categoryProducts = products.filter(product => product.category_id === category.id);
           if (categoryProducts.length === 0) return null;
           
           return (
@@ -106,15 +107,7 @@ const Index = () => {
                   </div>
                 ))}
               </div>
-              <div className="mt-3 text-center">
-                <Button 
-                  variant="outline" 
-                  onClick={() => navigate(`/menu?category=${category.id}`)}
-                  className="border-black text-black hover:bg-gray-100"
-                >
-                  See All {category.name}
-                </Button>
-              </div>
+              {/* Removed the See All button */}
             </div>
           );
         })}
