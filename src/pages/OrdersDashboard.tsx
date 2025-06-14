@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -37,32 +36,24 @@ const OrdersDashboard = () => {
     <Layout title="Orders Dashboard" showBackButton={false}>
       <div className="page-container p-4 md:p-6">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          {/* Remove duplicated highlighted Orders Dashboard text */}
-          <h1 className="text-xl font-bold">Orders Dashboard</h1>
+          {/* REMOVED "Orders Dashboard" heading as requested */}
           <div className="flex gap-2 flex-wrap items-center">
             <div className="flex gap-2 items-center">
-              <AdminOrderCreator>
-                {/*
-                  Make "+ New Order" button less wide using smaller size and min-w-28 (~7rem) for a more compact look.
-                  You may also override built-in padding with px-3 (if needed)
-                */}
-                <Button className="min-w-28 px-3" size="sm">
-                  + New Order
-                </Button>
-              </AdminOrderCreator>
-              <Select 
+              <AdminOrderCreator />
+              {/* Make Bulk Status pulldown less wide */}
+              <Select
                 value={bulkStatus}
                 onValueChange={handleBulkStatusChange}
                 disabled={selectedOrders.length === 0 || isLoading}
               >
-                <SelectTrigger className="w-32 h-9 text-sm font-medium border-gray-300 [&>span]:font-bold">
+                <SelectTrigger className="w-28 h-9 text-sm font-medium border-gray-300 [&>span]:font-bold">
                   <SelectValue placeholder="Bulk Status" />
                 </SelectTrigger>
                 <SelectContent>
                   {orderStatusOptions.map(status => (
-                    <SelectItem 
-                      key={status} 
-                      value={status} 
+                    <SelectItem
+                      key={status}
+                      value={status}
                       className="capitalize text-xs"
                     >
                       {status === 'delivery' ? 'Delivery' : status}
@@ -70,7 +61,6 @@ const OrdersDashboard = () => {
                   ))}
                 </SelectContent>
               </Select>
-              {/* Bulk delete button */}
               <Button 
                 variant="destructive" 
                 disabled={selectedOrders.length === 0 || isLoading}
@@ -80,7 +70,6 @@ const OrdersDashboard = () => {
               >
                 <Trash size={18} />
               </Button>
-              {/* Refresh button - fits on same row */}
               <Button 
                 onClick={fetchOrders} 
                 disabled={isLoading}
@@ -121,4 +110,3 @@ const OrdersDashboard = () => {
 };
 
 export default OrdersDashboard;
-

@@ -133,7 +133,7 @@ const AdminOrderCreator = () => {
     <>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline">
+          <Button variant="outline" className="min-w-28 px-3" size="sm">
             <Plus className="mr-2 h-4 w-4" /> New Order
           </Button>
         </DialogTrigger>
