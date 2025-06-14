@@ -13,31 +13,45 @@ export const useFetchOrderById = (orderId: string | undefined) => {
     queryKey: ['order', orderId],
     queryFn: async () => {
       if (!orderId) return null;
-      
-      const { data, error } = await supabase
+
+      // First, fetch the order data
+      const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles ( name, email )
-        `)
+        .select('*')
         .eq('id', parseInt(orderId, 10))
         .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching order:', error);
-        throw error;
+      if (orderError) {
+        console.error('Error fetching order:', orderError);
+        throw orderError;
       }
-      
-      if (!data) {
+
+      if (!orderData) {
         return null;
       }
 
-      const orderData = data as any;
+      let profileData = null;
+      // If the order has a user_id, fetch the corresponding profile
+      if (orderData.user_id) {
+        const { data: pData, error: profileError } = await supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', orderData.user_id)
+          .single();
 
+        if (profileError) {
+          console.error(`Error fetching profile for user ${orderData.user_id}:`, profileError);
+          // Not throwing error here, just means we won't have profile data
+        } else {
+          profileData = pData;
+        }
+      }
+
+      // Combine order data with profile data
       const enrichedData: EnrichedOrder = {
-        ...orderData,
-        customer_name_from_profile: orderData.profiles?.name || null,
-        customer_email_from_profile: orderData.profiles?.email || null,
+        ...(orderData as Omit<Order, 'order_items'>),
+        customer_name_from_profile: profileData?.name || null,
+        customer_email_from_profile: profileData?.email || null,
         order_items: Array.isArray(orderData.order_items) ? orderData.order_items : [],
       };
       
