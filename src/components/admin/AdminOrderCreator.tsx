@@ -137,7 +137,7 @@ const AdminOrderCreator = () => {
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button variant="outline">
-            <Plus className="mr-2 h-4 w-4" /> New Order For Customer
+            <Plus className="mr-2 h-4 w-4" /> New Order
           </Button>
         </DialogTrigger>
         <DialogContent className="sm:max-w-md">
