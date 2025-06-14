@@ -28,18 +28,6 @@ const getStatusColor = (status: OrderStatus | null) => {
   }
 };
 
-// Helper: Clean options formatting (identical to OrderHistory)
-const getCleanOptionsString = (selectedOptions: any) => {
-  if (!selectedOptions || typeof selectedOptions !== "object") return "";
-  const allChosen = Object.values(selectedOptions)
-    .flat()
-    .map(c => String(c))
-    .filter(Boolean);
-  if (allChosen.length === 0) return "";
-  // Two spaces before options
-  return `  ${allChosen.join(", ")}`;
-};
-
 interface CustomerOrderCardProps {
   order: Order;
 }
@@ -78,19 +66,26 @@ const CustomerOrderCard = ({ order }: CustomerOrderCardProps) => {
                 ? item.menuItem.price
                 : 0);
             const selectedOptions = item.selectedOptions;
-            const optionString = getCleanOptionsString(selectedOptions);
 
             return (
-              <div key={idx} className="text-sm pr-2 mb-1 flex justify-between">
-                <span>
-                  {item.quantity}× {name}
-                  {optionString &&
-                    <span className="text-xs text-muted-foreground font-normal not-italic">
-                      {optionString}
-                    </span>
-                  }
-                </span>
-                <span>{formatThaiCurrency(price * item.quantity)}</span>
+              <div key={idx} className="text-sm mb-1">
+                <div className="flex justify-between pr-2">
+                  <span>
+                    {item.quantity}× {name}
+                  </span>
+                  <span>{formatThaiCurrency(price * item.quantity)}</span>
+                </div>
+
+                {selectedOptions && Object.keys(selectedOptions).length > 0 && (
+                  <div className="pl-5 text-xs text-muted-foreground">
+                    {Object.values(selectedOptions)
+                      .flat()
+                      .filter(Boolean)
+                      .map((value: any, i: number) => (
+                        <div key={i}>{String(value)}</div>
+                      ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -105,4 +100,3 @@ const CustomerOrderCard = ({ order }: CustomerOrderCardProps) => {
 };
 
 export default CustomerOrderCard;
-

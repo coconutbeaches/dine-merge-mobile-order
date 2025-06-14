@@ -49,20 +49,6 @@ const OrderHistory = () => {
     }
   };
 
-  // Helper: Format options cleanly (no "Option", no colon, no brackets, just value)
-  const getCleanOptionsString = (selectedOptions: any) => {
-    if (!selectedOptions || typeof selectedOptions !== "object") return "";
-    // Only show each value, space-separated if multiple
-    // Handle cases where option values are array or string
-    const allChosen = Object.values(selectedOptions)
-      .flat()
-      .map(c => String(c))
-      .filter(Boolean);
-    if (allChosen.length === 0) return "";
-    // Two spaces before options
-    return `  ${allChosen.join(", ")}`;
-  };
-
   if (isLoading) {
     return (
       <Layout title="Order History" showBackButton>
@@ -126,20 +112,25 @@ const OrderHistory = () => {
                           : 0);
                       const selectedOptions = item.selectedOptions;
 
-                      // Clean option string, e.g., "  Leo" (no Option, brackets, or colon, styled same as muted info)
-                      const optionString = getCleanOptionsString(selectedOptions);
-
                       return (
-                        <div key={idx} className="text-sm pr-2 mb-1 flex justify-between">
-                          <span>
-                            {item.quantity}× {name}
-                            {optionString &&
-                              <span className="text-xs text-muted-foreground font-normal not-italic">
-                                {optionString}
-                              </span>
-                            }
-                          </span>
-                          <span>{formatThaiCurrency(price * item.quantity)}</span>
+                        <div key={idx} className="text-sm mb-1">
+                          <div className="flex justify-between pr-2">
+                            <span>
+                              {item.quantity}× {name}
+                            </span>
+                            <span>{formatThaiCurrency(price * item.quantity)}</span>
+                          </div>
+
+                          {selectedOptions && Object.keys(selectedOptions).length > 0 && (
+                            <div className="pl-5 text-xs text-muted-foreground">
+                              {Object.values(selectedOptions)
+                                .flat()
+                                .filter(Boolean)
+                                .map((value: any, i: number) => (
+                                  <div key={i}>{String(value)}</div>
+                                ))}
+                            </div>
+                          )}
                         </div>
                       )
                     })}
@@ -159,4 +150,3 @@ const OrderHistory = () => {
 };
 
 export default OrderHistory;
-

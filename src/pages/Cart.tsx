@@ -93,13 +93,13 @@ const Cart = () => {
                         
                         {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
                           <div className="text-xs text-muted-foreground mt-1">
-                            {Object.entries(item.selectedOptions).map(([optionName, value]) => {
-                              const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
-                              if (displayValue) { // Only render if there's a value
-                                return <p key={optionName} className="truncate">{optionName}: {displayValue}</p>;
-                              }
-                              return null;
-                            })}
+                            {Object.values(item.selectedOptions)
+                              .flat()
+                              .filter(Boolean)
+                              .map((value, index) => {
+                                const displayValue = String(value);
+                                return <p key={index} className="truncate">{displayValue}</p>;
+                              })}
                           </div>
                         )}
                         
