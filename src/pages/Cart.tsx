@@ -50,7 +50,7 @@ const Cart = () => {
           <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-bold mb-2">Your cart is empty</h2>
           <p className="text-muted-foreground mb-6">Add items from the menu to get started</p>
-          <Button onClick={() => navigate('/menu')}>Browse Menu</Button>
+          <Button onClick={() => navigate('/')}>Browse Menu</Button>
         </div>
       </Layout>
     );
@@ -172,3 +172,4 @@ const Cart = () => {
 };
 
 export default Cart;
+
