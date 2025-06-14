@@ -40,7 +40,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         return null;
       }
       
-      const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as CartItem[];
+      const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[];
       
       const enrichedItems: EnrichedOrderItem[] = items.map(item => {
         if (!item.menuItem) {
@@ -103,7 +103,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         ...(orderData as Omit<Order, 'order_items'>),
         customer_name_from_profile: profileData?.name || null,
         customer_email_from_profile: profileData?.email || null,
-        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as EnrichedOrderItem[],
+        order_items: enrichedItems,
       };
       
       return enrichedData;
