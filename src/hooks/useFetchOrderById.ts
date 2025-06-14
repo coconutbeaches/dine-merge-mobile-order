@@ -1,8 +1,17 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Order, CartItem } from '@/types/supabaseTypes';
+import { Order } from '@/types/supabaseTypes';
 
-// Define a more specific type for the order details
+// Using a local CartItem type to handle potentially numeric IDs from old orders
+interface CartItem {
+  id: number | string;
+  name: string;
+  price: number;
+  quantity: number;
+  image_url?: string | null;
+}
+
 interface EnrichedOrder extends Omit<Order, 'order_items'> {
   order_items: CartItem[];
 }
@@ -13,7 +22,6 @@ export const useFetchOrderById = (orderId: string | undefined) => {
     queryFn: async () => {
       if (!orderId) return null;
 
-      // First, fetch the order data
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .select('*')
@@ -29,25 +37,26 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         return null;
       }
       
-      // Enrich order items with product names
-      const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[];
+      const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as CartItem[];
       if (items.length > 0) {
-        const productIds = items.map(item => String(item.id)).filter(Boolean);
+        const productIds = items.map(item => item.id).filter(Boolean);
         if (productIds.length > 0) {
+          // Assuming old orders refer to menu_items with numeric IDs
           const { data: productsData, error: productsError } = await supabase
-            .from('products')
-            .select('id, name, image_url')
-            .in('id', productIds);
+            .from('menu_items')
+            .select('id, name, image_url, price')
+            .in('id', productIds as any[]);
 
           if (productsError) {
-            console.error('Error fetching product details:', productsError);
+            console.error('Error fetching product details from menu_items:', productsError);
           } else if (productsData) {
             const productMap = new Map(productsData.map(p => [p.id, p]));
             const enrichedItems = items.map(item => {
-              const productDetails = productMap.get(String(item.id));
+              const productDetails = productMap.get(item.id);
               return {
                 ...item,
-                name: productDetails?.name || item.name,
+                name: productDetails?.name || item.name || 'Unknown Product',
+                price: productDetails?.price ?? item.price ?? 0,
                 image_url: productDetails?.image_url || item.image_url,
               };
             });
@@ -56,8 +65,16 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         }
       }
 
+      if (orderData.total_amount === 0 && orderData.order_items) {
+        const calculatedTotal = (orderData.order_items as CartItem[]).reduce((total, item) => {
+            return total + (item.price || 0) * (item.quantity || 1);
+        }, 0);
+        if (calculatedTotal > 0) {
+            orderData.total_amount = calculatedTotal;
+        }
+      }
+
       let profileData = null;
-      // If the order has a user_id, fetch the corresponding profile
       if (orderData.user_id) {
         const { data: pData, error: profileError } = await supabase
           .from('profiles')
@@ -67,18 +84,16 @@ export const useFetchOrderById = (orderId: string | undefined) => {
 
         if (profileError) {
           console.error(`Error fetching profile for user ${orderData.user_id}:`, profileError);
-          // Not throwing error here, just means we won't have profile data
         } else {
           profileData = pData;
         }
       }
 
-      // Combine order data with profile data
       const enrichedData: EnrichedOrder = {
         ...(orderData as Omit<Order, 'order_items'>),
         customer_name_from_profile: profileData?.name || null,
         customer_email_from_profile: profileData?.email || null,
-        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[],
+        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as CartItem[],
       };
       
       return enrichedData;

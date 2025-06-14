@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
 import { formatThaiCurrency, cn } from '@/lib/utils';
-import { formatOrderDateTime, getStatusBadgeClasses, orderStatusOptions } from '@/utils/orderDashboardUtils';
+import { formatOrderDateTime, getStatusBadgeClasses } from '@/utils/orderDashboardUtils';
 import { OrderStatus, mapOrderStatusToSupabase } from '@/types/supabaseTypes';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const AdminOrderDetail = () => {
     const navigate = useNavigate();
@@ -57,6 +56,17 @@ const AdminOrderDetailContent = () => {
       toast.error(`Failed to update status: ${error.message}`);
     },
   });
+  
+  const statusSequence: OrderStatus[] = ['new', 'preparing', 'ready', 'delivery', 'completed'];
+  const currentStatusIndex = order ? statusSequence.indexOf(order.order_status) : -1;
+  const canBeAdvanced = currentStatusIndex > -1 && currentStatusIndex < statusSequence.length - 1;
+
+  const handleStatusUpdate = () => {
+    if (order && canBeAdvanced && !isUpdatingStatus) {
+      const nextStatus = statusSequence[currentStatusIndex + 1];
+      updateStatus(nextStatus);
+    }
+  };
 
   if (isLoading) {
     return <OrderDetailsSkeleton />;
@@ -84,35 +94,18 @@ const AdminOrderDetailContent = () => {
     <>
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Order #{String(order.id).padStart(4, '0')}</h2>
-        <Popover>
-            <PopoverTrigger asChild>
-                <Badge
-                  variant="default"
-                  className={cn(
-                    "text-sm font-semibold capitalize cursor-pointer px-3 py-1",
-                    getStatusBadgeClasses(order.order_status)
-                  )}
-                >
-                  {order.order_status}
-                </Badge>
-            </PopoverTrigger>
-            <PopoverContent className="w-40 p-1">
-                <div className="flex flex-col gap-1">
-                {orderStatusOptions.map(status => (
-                    <Button
-                    key={status}
-                    variant="ghost"
-                    size="sm"
-                    className="justify-start capitalize"
-                    onClick={() => updateStatus(status)}
-                    disabled={status === order.order_status || isUpdatingStatus}
-                    >
-                    {isUpdatingStatus && status === order.order_status ? 'Updating...' : status}
-                    </Button>
-                ))}
-                </div>
-            </PopoverContent>
-        </Popover>
+        <Badge
+          variant="default"
+          className={cn(
+            "text-sm font-semibold capitalize px-3 py-1",
+            getStatusBadgeClasses(order.order_status),
+            canBeAdvanced && "cursor-pointer hover:opacity-80 transition-opacity",
+            isUpdatingStatus && "cursor-wait"
+          )}
+          onClick={handleStatusUpdate}
+        >
+          {isUpdatingStatus ? 'Updating...' : order.order_status}
+        </Badge>
       </div>
       <div className="text-sm text-muted-foreground mt-1 mb-6">
         <div>{formatOrderDateTime(order.created_at)}</div>
