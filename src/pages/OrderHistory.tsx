@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -47,6 +46,25 @@ const OrderHistory = () => {
       default:
         return "bg-gray-400"; // Default for null or unknown
     }
+  };
+
+  // Utility function to render selected options (friendlier output)
+  const renderSelectedOptions = (selectedOptions: any) => {
+    if (!selectedOptions || typeof selectedOptions !== "object") return null;
+    // Format: { optionName: value, ... } where value can be string or array
+    return (
+      <ul className="ml-4 text-xs text-muted-foreground space-y-0.5">
+        {Object.entries(selectedOptions).map(([option, choice], idx) => (
+          <li key={idx}>
+            {option}: {
+              Array.isArray(choice)
+                ? choice.join(", ")
+                : (typeof choice === "string" ? choice : String(choice))
+            }
+          </li>
+        ))}
+      </ul>
+    );
   };
 
   if (isLoading) {
@@ -102,17 +120,22 @@ const OrderHistory = () => {
                   {/* FIXED order items display */}
                   <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
                     {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
-                      // Support both shapes: {quantity, name, price} or {quantity, menuItem: {name, price}}
+                      // Support both shapes: {quantity, name, price, selectedOptions} or {quantity, menuItem: {name, price}, selectedOptions}
                       const name = item.name || (item.menuItem && item.menuItem.name) || 'Item';
                       const price = (typeof item.price === 'number'
                         ? item.price
                         : item.menuItem && typeof item.menuItem.price === 'number'
                           ? item.menuItem.price
                           : 0);
+                      const selectedOptions = item.selectedOptions;
+
                       return (
-                        <div key={idx} className="text-sm flex justify-between mb-1 pr-2">
-                          <span>{item.quantity}× {name}</span>
-                          <span>{formatThaiCurrency(price * item.quantity)}</span>
+                        <div key={idx} className="text-sm pr-2 mb-1">
+                          <div className="flex justify-between">
+                            <span>{item.quantity}× {name}</span>
+                            <span>{formatThaiCurrency(price * item.quantity)}</span>
+                          </div>
+                          {selectedOptions && renderSelectedOptions(selectedOptions)}
                         </div>
                       )
                     })}
@@ -133,4 +156,3 @@ const OrderHistory = () => {
 };
 
 export default OrderHistory;
-
