@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { useParams, useNavigate } from "react-router-dom";
@@ -46,7 +45,7 @@ const useProductForm = () => {
   });
 
   // Get categories
-  const { data: categoriesData } = useQuery({
+  const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -58,15 +57,15 @@ const useProductForm = () => {
     }
   });
 
-  // vvv FIX: move category injection out of react-hook-form
+  // vvv move category injection out of react-hook-form
   useEffect(() => {
     if (categoriesData) {
       setCategories(categoriesData);
     }
   }, [categoriesData]);
-
+  
   // Product
-  const { data: product, isLoading, error: productError } = useQuery({
+  const { data: product, isLoading: isProductLoading, error: productError } = useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
       if (!isEditMode) return null;
@@ -84,28 +83,31 @@ const useProductForm = () => {
   // Not found / error condition
   let error = null;
   if (productError) error = productError;
-  if (isEditMode && !isLoading && !product) {
+  if (isEditMode && !isProductLoading && !product) {
     error = `Product not found (ID: ${id})`;
   }
 
-  // Set form fields when product loaded
+  // Set form fields when product and categories are loaded
   useEffect(() => {
-    if (isEditMode && product) {
-      form.reset({
-        name: product.name ?? "",
-        price: product.price !== undefined && product.price !== null ? String(product.price) : "",
-        description: product.description ?? "",
-        category_id: product.category_id ?? null,
-        image: null
-      });
-      if (product.image_url) {
-        setImagePreview(product.image_url);
-      } else {
-        setImagePreview(null);
-      }
+    // Only run when both product and categories are loaded, or not in edit mode
+    if (!isEditMode) return;
+    if (!product) return;
+    if (isCategoriesLoading) return;
+    // DEBUG: Show what will be set
+    console.log("Resetting form with product:", product);
+    form.reset({
+      name: product.name ?? "",
+      price: product.price !== undefined && product.price !== null ? String(product.price) : "",
+      description: product.description ?? "",
+      category_id: product.category_id ?? null,
+      image: null
+    });
+    if (product.image_url) {
+      setImagePreview(product.image_url);
+    } else {
+      setImagePreview(null);
     }
-    // eslint-disable-next-line
-  }, [product, isEditMode]);
+  }, [product, isEditMode, isCategoriesLoading]);
 
   // Product options for edit mode
   const { data: productOptions } = useQuery({
@@ -368,7 +370,7 @@ const useProductForm = () => {
     handleOptionChange,
     handleDeleteOption,
     isEditMode,
-    isLoading,
+    isLoading: isProductLoading,
     error,
     createProductMutation,
     updateProductMutation,
