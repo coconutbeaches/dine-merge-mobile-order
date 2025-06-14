@@ -136,14 +136,17 @@ const ProductForm = () => {
   useEffect(() => {
     if (product) {
       form.reset({
-        name: product.name || '',
-        price: product.price || '',
-        description: product.description || '',
-        category_id: product.category_id
+        name: product.name ?? '',
+        price: product.price ?? '',
+        description: product.description ?? '',
+        category_id: product.category_id ?? null,
+        // NOTE: intentionally NOT setting 'image' here as it is only for upload
       });
-      
+
       if (product.image_url) {
         setImagePreview(product.image_url);
+      } else {
+        setImagePreview(null);
       }
     }
   }, [product, form]);
