@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
-import { formatThaiCurrency } from '@/lib/utils';
-import { formatOrderDate, formatOrderTime, getStatusColorDot } from '@/utils/orderDashboardUtils';
+import { formatThaiCurrency, cn } from '@/lib/utils';
+import { formatOrderDate, formatOrderTime, getStatusColorDot, getStatusBadgeClasses, getStatusBadgeHoverClasses } from '@/utils/orderDashboardUtils';
 
 // Helper for pill-style status badge (smaller, rounded, colored)
 const getStatusPillStyles = (status: OrderStatus) => {
@@ -83,7 +82,6 @@ const OrdersList = ({
                                   `Order #${order.id}`;
 
         const statusVal: OrderStatus = order.order_status || "new";
-        const statusPillStyle = getStatusPillStyles(statusVal);
 
         return (
           <div
@@ -150,13 +148,16 @@ const OrdersList = ({
                 onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
               >
                 <SelectTrigger
-                  className={`min-w-[70px] max-w-full h-6 px-2 text-xs font-semibold border-0 shadow-none focus:ring-0 ${statusPillStyle} rounded-full transition`}
+                  className={cn(
+                    "min-w-[70px] max-w-full h-6 px-3 text-xs font-semibold border-0 shadow-none focus:ring-0 rounded-full transition-colors",
+                    getStatusBadgeClasses(statusVal),
+                    getStatusBadgeHoverClasses(statusVal)
+                  )}
                   style={{ boxShadow: 'none', minWidth: 0, height: 24 }}
                 >
-                  <span
-                    className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusColorDot(statusVal)}`}
-                  ></span>
-                  <span className="capitalize">{statusVal === 'delivery' ? 'Delivery' : statusVal}</span>
+                  <SelectValue asChild>
+                    <span className="capitalize">{statusVal === 'delivery' ? 'Delivery' : statusVal}</span>
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {orderStatusOptions.map(statusOption => (
