@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderStatus, SupabaseOrderStatus, mapOrderStatusToSupabase, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
@@ -67,6 +66,7 @@ export const useOrdersDashboard = () => {
         }) as Order[];
         
         setOrders(transformedOrders);
+        console.log("[Dashboard] Orders fetched from DB:", ordersData.map(o => ({id: o.id, status: o.order_status})));
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -103,9 +103,12 @@ export const useOrdersDashboard = () => {
         .eq('id', orderId)
         .single();
       if (fetchError) {
-        console.warn('Could not fetch updated order for verification:', fetchError);
+        console.warn('[Dashboard] Could not fetch updated order for verification:', fetchError);
       } else {
-        console.log('Order after status update (from DB):', updatedOrder);
+        console.log('[Dashboard] Order after status update (from DB):', {
+          id: updatedOrder.id,
+          order_status: updatedOrder.order_status,
+        });
       }
 
       // Update local state

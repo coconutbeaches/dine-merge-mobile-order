@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -102,7 +101,18 @@ export const useCustomerOrders = (customerId: string | undefined) => {
           } as Order;
         });
         
-        console.log("Transformed orders:", transformedOrders);
+        // EXTRA LOGGING: show order ids & statuses from DB
+        console.log('[CustomerOrders] Raw orders from DB:', ordersData.map(order => ({
+          id: order.id,
+          db_order_status: order.order_status
+        })));
+        
+        // Log mapping result
+        console.log('[CustomerOrders] Transformed orders:', transformedOrders.map(o => ({
+          id: o.id,
+          mapped_status: o.order_status
+        })));
+        
         setOrders(transformedOrders);
       } else {
         setOrders([]);
