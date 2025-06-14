@@ -1,18 +1,22 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/types/supabaseTypes';
+import { CartItem } from '@/types';
+import { calculateTotalPrice } from '@/utils/productUtils';
 
-// Using a local CartItem type to handle potentially numeric IDs from old orders
-interface CartItem {
-  id: number | string;
+interface EnrichedOrderItem {
+  id: string;
   name: string;
   price: number;
   quantity: number;
   image_url?: string | null;
+  optionsString?: string;
+  originalCartItem: CartItem;
 }
 
 interface EnrichedOrder extends Omit<Order, 'order_items'> {
-  order_items: CartItem[];
+  order_items: EnrichedOrderItem[];
 }
 
 export const useFetchOrderById = (orderId: string | undefined) => {
@@ -36,36 +40,43 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         return null;
       }
       
-      const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[];
-      if (items.length > 0) {
-        const productIds = items.map(item => String(item.id)).filter(Boolean);
-        if (productIds.length > 0) {
-          // Fetching from 'products' table which uses string UUIDs for IDs.
-          const { data: productsData, error: productsError } = await supabase
-            .from('products')
-            .select('id, name, image_url, price')
-            .in('id', productIds);
-
-          if (productsError) {
-            console.error('Error fetching product details from products:', productsError);
-          } else if (productsData) {
-            const productMap = new Map(productsData.map(p => [p.id, p]));
-            const enrichedItems = items.map(item => {
-              const productDetails = productMap.get(String(item.id));
-              return {
-                ...item,
-                name: productDetails?.name || item.name || 'Unknown Product',
-                price: productDetails?.price ?? item.price ?? 0,
-                image_url: productDetails?.image_url || item.image_url,
-              };
-            });
-            orderData.order_items = enrichedItems as any;
-          }
+      const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as CartItem[];
+      
+      const enrichedItems: EnrichedOrderItem[] = items.map(item => {
+        if (!item.menuItem) {
+          // Fallback for any older data structures without menuItem
+          return {
+            id: item.id,
+            name: (item as any).name || 'Unknown Product',
+            price: (item as any).price || 0,
+            quantity: item.quantity,
+            image_url: (item as any).image_url,
+            originalCartItem: item,
+          };
         }
-      }
+        
+        const unitPriceWithOptions = calculateTotalPrice(item.menuItem, item.selectedOptions || {});
+        
+        const optionsString = item.selectedOptions
+            ? Object.values(item.selectedOptions).flat().filter(Boolean).join(', ')
+            : '';
+
+        return {
+          id: item.id,
+          name: item.menuItem.name,
+          price: unitPriceWithOptions,
+          quantity: item.quantity,
+          image_url: item.menuItem.image,
+          optionsString,
+          originalCartItem: item,
+        };
+      });
+
+      orderData.order_items = enrichedItems as any;
+
 
       if (orderData.total_amount === 0 && orderData.order_items) {
-        const calculatedTotal = (orderData.order_items as unknown as CartItem[]).reduce((total, item) => {
+        const calculatedTotal = (orderData.order_items as EnrichedOrderItem[]).reduce((total, item) => {
             return total + (item.price || 0) * (item.quantity || 1);
         }, 0);
         if (calculatedTotal > 0) {
@@ -92,7 +103,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         ...(orderData as Omit<Order, 'order_items'>),
         customer_name_from_profile: profileData?.name || null,
         customer_email_from_profile: profileData?.email || null,
-        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[],
+        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as EnrichedOrderItem[],
       };
       
       return enrichedData;

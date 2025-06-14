@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
@@ -92,34 +93,45 @@ const AdminOrderDetailContent = () => {
 
   return (
     <>
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Order #{String(order.id).padStart(4, '0')}</h2>
-        <Badge
-          variant="default"
-          className={cn(
-            "text-sm font-semibold capitalize px-3 py-1",
-            getStatusBadgeClasses(order.order_status),
-            canBeAdvanced && "cursor-pointer hover:opacity-80 transition-opacity",
-            isUpdatingStatus && "cursor-wait"
-          )}
-          onClick={handleStatusUpdate}
-        >
-          {isUpdatingStatus ? 'Updating...' : order.order_status}
-        </Badge>
-      </div>
-      <div className="text-sm text-muted-foreground mt-1 mb-6">
-        <div>{formatOrderDateTime(order.created_at)}</div>
-        {order.table_number && <div>Table {order.table_number}</div>}
-      </div>
+      <DialogHeader>
+        <DialogTitle className="flex justify-between items-center">
+            <span className="text-2xl font-bold">Order #{String(order.id).padStart(4, '0')}</span>
+            <Badge
+                variant="default"
+                className={cn(
+                    "text-sm font-semibold capitalize px-3 py-1",
+                    getStatusBadgeClasses(order.order_status),
+                    canBeAdvanced && "cursor-pointer hover:opacity-80 transition-opacity",
+                    isUpdatingStatus && "cursor-wait"
+                )}
+                onClick={handleStatusUpdate}
+            >
+                {isUpdatingStatus ? 'Updating...' : order.order_status}
+            </Badge>
+        </DialogTitle>
+        <DialogDescription asChild>
+            <div className="text-sm text-muted-foreground mt-1 mb-6">
+                <div>{formatOrderDateTime(order.created_at)}</div>
+                {order.table_number && <div>Table {order.table_number}</div>}
+            </div>
+        </DialogDescription>
+      </DialogHeader>
 
       <div className="space-y-2">
         {order.order_items?.map((item, index) => (
-          <div key={index} className="flex justify-between items-center text-base">
-            <span>{item.quantity}x {item.name || 'Unknown Product'}</span>
-            <span className="font-regular">
-              {formatThaiCurrency((item.price || 0) * item.quantity)}
-            </span>
-          </div>
+            <div key={item.id || index} className="space-y-1">
+                <div className="flex justify-between items-center text-base">
+                    <span>{item.quantity}x {item.name || 'Unknown Product'}</span>
+                    <span className="font-regular">
+                    {formatThaiCurrency((item.price || 0) * item.quantity)}
+                    </span>
+                </div>
+                {item.optionsString && (
+                    <div className="text-sm text-muted-foreground pl-5">
+                        {item.optionsString}
+                    </div>
+                )}
+            </div>
         ))}
         {(!order.order_items || order.order_items.length === 0) && (
           <p className="text-muted-foreground text-sm">No items in this order.</p>
