@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -92,6 +91,7 @@ const OrdersDashboard = () => {
   return (
     <Layout title="Orders Dashboard" showBackButton={false}>
       <div className="page-container p-4 md:p-6">
+        {/* Search and action buttons area */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           {/* Search field left, tools right */}
           <div className="flex-1 flex gap-2 items-center">
@@ -152,15 +152,19 @@ const OrdersDashboard = () => {
           </div>
         </div>
         
-        {/* Status Tabs */}
-        <div className="mb-2">
+        {/* Status Tabs - Adjusted for mobile responsiveness */}
+        <div className="mb-2 overflow-x-auto">
           <Tabs value={activeStatus} onValueChange={setActiveStatus}>
-            <TabsList className="w-full flex gap-1 bg-muted px-1 py-1 rounded-md border">
+            <TabsList
+              className="w-full flex gap-1 bg-muted px-1 py-1 rounded-md border overflow-x-auto no-scrollbar"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
               {tabOptions.map(tab => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="flex-1 text-xs md:text-sm font-medium rounded-sm capitalize px-2 py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground"
+                  className={`flex-1 min-w-[60px] max-w-[90px] text-xs md:text-sm font-semibold rounded-sm capitalize px-2 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors focus-visible:outline-none`}
+                  style={{ flexBasis: "0", flexGrow: 1, flexShrink: 1, whiteSpace: "nowrap" }}
                 >
                   {tab.label}
                 </TabsTrigger>
@@ -169,6 +173,7 @@ const OrdersDashboard = () => {
           </Tabs>
         </div>
 
+        {/* Orders table */}
         <Card>
           <CardHeader className="bg-muted/50 p-3">
             <OrdersTableHeader 
@@ -197,4 +202,3 @@ const OrdersDashboard = () => {
 };
 
 export default OrdersDashboard;
-
