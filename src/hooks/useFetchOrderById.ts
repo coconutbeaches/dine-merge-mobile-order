@@ -1,6 +1,7 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Order } from '@/types/supabaseTypes';
+import { Order, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
 import { CartItem } from '@/types';
 import { calculateTotalPrice } from '@/utils/productUtils';
 
@@ -96,9 +97,16 @@ export const useFetchOrderById = (orderId: string | undefined) => {
       }
 
       const enrichedData: EnrichedOrder = {
-        ...(orderData as Omit<Order, 'order_items'>),
-        customer_name_from_profile: profileData?.name || null,
-        customer_email_from_profile: profileData?.email || null,
+        id: orderData.id,
+        user_id: orderData.user_id || undefined,
+        total_amount: orderData.total_amount,
+        created_at: orderData.created_at,
+        updated_at: orderData.updated_at,
+        table_number: orderData.table_number || undefined,
+        customer_name: orderData.customer_name || undefined,
+        order_status: orderData.order_status ? mapSupabaseToOrderStatus(orderData.order_status) : 'new',
+        customer_name_from_profile: profileData?.name || undefined,
+        customer_email_from_profile: profileData?.email || undefined,
         order_items: enrichedItems,
       };
       
