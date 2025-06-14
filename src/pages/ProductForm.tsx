@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -49,6 +49,8 @@ const ProductForm = () => {
   const isEditMode = Boolean(id) && id !== 'new';
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [options, setOptions] = useState<ProductOption[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -153,11 +155,16 @@ const ProductForm = () => {
     }
   }, [productOptions]);
 
-  // Handle image change
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
+  // Handle image change (from click or drag-n-drop)
+  const handleImageChange = (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>) => {
+    let file: File | null = null;
+    if (fileOrEvent instanceof File) {
+      file = fileOrEvent;
+    } else {
+      file = fileOrEvent.target.files?.[0] || null;
+    }
     form.setValue('image', file);
-    
+
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -530,6 +537,7 @@ const ProductForm = () => {
                 <div className="mt-6">
                   <FormLabel htmlFor="image">Images</FormLabel>
                   <div className="mt-2">
+
                     {imagePreview && (
                       <div className="relative w-24 h-24 mb-4">
                         <img 
@@ -549,26 +557,48 @@ const ProductForm = () => {
                         </button>
                       </div>
                     )}
-                    
+
                     {!imagePreview && (
-                      <div className="border-2 border-dashed border-gray-300 rounded-md p-8 text-center">
+                      <div
+                        className={`
+                          border-2 border-dashed rounded-md p-8 text-center transition-all
+                          ${isDragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-white'}
+                          cursor-pointer
+                        `}
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={e => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
+                        onDragLeave={e => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                        }}
+                        onDrop={e => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          const droppedFile = e.dataTransfer.files?.[0];
+                          if (droppedFile && droppedFile.type.startsWith("image/")) {
+                            handleImageChange(droppedFile);
+                          }
+                        }}
+                      >
                         <Input
                           id="image"
                           type="file"
                           accept="image/*"
                           className="hidden"
-                          onChange={handleImageChange}
+                          onChange={e => handleImageChange(e)}
+                          ref={fileInputRef}
                         />
-                        <label htmlFor="image" className="cursor-pointer block">
-                          <div className="flex flex-col items-center">
-                            <span className="text-sm text-gray-600">
-                              Drag a file here or click to select one
-                            </span>
-                            <span className="text-xs text-gray-400 mt-1">
-                              File should not exceed 10MB. Recommended ratio is 1:1.
-                            </span>
-                          </div>
-                        </label>
+                        <div className="flex flex-col items-center pointer-events-none">
+                          <span className="text-sm text-gray-600">
+                            Drag a file here or click to select one
+                          </span>
+                          <span className="text-xs text-gray-400 mt-1">
+                            File should not exceed 10MB. Recommended ratio is 1:1.
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
