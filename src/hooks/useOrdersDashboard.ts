@@ -40,7 +40,9 @@ export const useOrdersDashboard = () => {
       if (ordersError) throw ordersError;
 
       if (ordersData) {
-        const userIds = [...new Set(ordersData.map(order => order.user_id).filter(Boolean))];
+        const userIds = [
+          ...new Set(ordersData.map(order => order.user_id).filter(Boolean))
+        ];
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, name, email')
@@ -52,13 +54,33 @@ export const useOrdersDashboard = () => {
 
         const transformedOrders = ordersData.map(order => {
           const profile = profilesData?.find(p => p.id === order.user_id);
+
+          // Fix important: handle both 'delivery' and 'out_for_delivery' (Supabase)
+          let normalizedOrderStatus: OrderStatus = 'new';
+          if (order.order_status === 'out_for_delivery') {
+            normalizedOrderStatus = 'delivery';
+          } else if (
+            order.order_status &&
+            [
+              'new',
+              'preparing',
+              'ready',
+              'delivery',
+              'completed',
+              'paid',
+              'cancelled'
+            ].includes(order.order_status)
+          ) {
+            normalizedOrderStatus = order.order_status as OrderStatus;
+          }
+
           return {
             ...order,
-            order_status: order.order_status ? mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus) : 'new',
+            order_status: normalizedOrderStatus,
             customer_name_from_profile: profile?.name || null,
             customer_email_from_profile: profile?.email || null
           };
-        }) as Order[]; // Force as our own type, not a raw supabase type
+        }) as Order[]; // Force as our own type
 
         setOrders(transformedOrders);
         console.log("[Dashboard] Orders fetched from DB:", ordersData.map(o => ({ id: o.id, status: o.order_status })));
@@ -73,7 +95,10 @@ export const useOrdersDashboard = () => {
 
   const updateOrderStatus = async (orderId: number, newStatus: OrderStatus) => {
     try {
-      const supabaseStatus = mapOrderStatusToSupabase(newStatus);
+      // Fix important: map "delivery" back to "out_for_delivery" for Supabase enum
+      let supabaseStatus: string = mapOrderStatusToSupabase(newStatus);
+      if (supabaseStatus === "delivery") supabaseStatus = "out_for_delivery";
+
       console.log(`Updating order ${orderId} status to ${newStatus} (Supabase: ${supabaseStatus})`);
 
       const { error, count } = await supabase
@@ -126,7 +151,9 @@ export const useOrdersDashboard = () => {
   const updateMultipleOrderStatuses = async (orderIds: number[], newStatus: OrderStatus) => {
     if (orderIds.length === 0) return;
     try {
-      const supabaseStatus = mapOrderStatusToSupabase(newStatus);
+      // Fix important: map "delivery" back to "out_for_delivery"
+      let supabaseStatus: string = mapOrderStatusToSupabase(newStatus);
+      if (supabaseStatus === "delivery") supabaseStatus = "out_for_delivery";
 
       const { error, count } = await supabase
         .from('orders')
