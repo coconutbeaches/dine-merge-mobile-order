@@ -45,25 +45,23 @@ export const useOrdersDashboard = () => {
           .from('profiles')
           .select('id, name, email')
           .in('id', userIds);
-          
+
         if (profilesError) {
           console.warn('Could not fetch profiles data:', profilesError);
         }
 
         const transformedOrders = ordersData.map(order => {
           const profile = profilesData?.find(p => p.id === order.user_id);
-
-          // Parse order_status and force to our local updated OrderStatus type
           return {
             ...order,
-            order_status: order.order_status ? mapSupabaseToOrderStatus(order.order_status as OrderStatus) : 'new',
+            order_status: order.order_status ? mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus) : 'new',
             customer_name_from_profile: profile?.name || null,
             customer_email_from_profile: profile?.email || null
           };
-        }) as Order[];
-        
+        }) as Order[]; // Force as our own type, not a raw supabase type
+
         setOrders(transformedOrders);
-        console.log("[Dashboard] Orders fetched from DB:", ordersData.map(o => ({id: o.id, status: o.order_status})));
+        console.log("[Dashboard] Orders fetched from DB:", ordersData.map(o => ({ id: o.id, status: o.order_status })));
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
@@ -78,10 +76,9 @@ export const useOrdersDashboard = () => {
       const supabaseStatus = mapOrderStatusToSupabase(newStatus);
       console.log(`Updating order ${orderId} status to ${newStatus} (Supabase: ${supabaseStatus})`);
 
-      // order_status field now matches the updated OrderStatus union
       const { error, count } = await supabase
         .from('orders')
-        .update({ 
+        .update({
           order_status: supabaseStatus,
           updated_at: new Date().toISOString()
         }, { count: "exact" })
@@ -112,9 +109,9 @@ export const useOrdersDashboard = () => {
         });
       }
 
-      setOrders(prevOrders => 
-        prevOrders.map(order => 
-          order.id === orderId 
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === orderId
             ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() }
             : order
         )
@@ -133,7 +130,7 @@ export const useOrdersDashboard = () => {
 
       const { error, count } = await supabase
         .from('orders')
-        .update({ 
+        .update({
           order_status: supabaseStatus,
           updated_at: new Date().toISOString(),
         }, { count: "exact" })
