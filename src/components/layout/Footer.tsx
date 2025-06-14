@@ -3,7 +3,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Home, Menu, User, ShoppingCart } from 'lucide-react';
+import { Home, User, ShoppingCart } from 'lucide-react';
 
 const Footer = () => {
   const { cart, isLoggedIn } = useAppContext();
@@ -23,14 +23,7 @@ const Footer = () => {
           <span className="text-xs">Home</span>
         </Button>
         
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/menu')}
-          className="flex flex-col items-center"
-        >
-          <Menu className="h-5 w-5 mb-1" />
-          <span className="text-xs">Menu</span>
-        </Button>
+        {/* Menu button removed */}
         
         <Button 
           variant="ghost" 
@@ -60,3 +53,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

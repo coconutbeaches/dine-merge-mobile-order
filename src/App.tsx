@@ -38,7 +38,7 @@ function App() {
           <Sonner />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/menu" element={<Menu />} />
+            {/* <Route path="/menu" element={<Menu />} /> */}
             <Route path="/menu/category/:categoryId" element={<ProductsByCategory />} />
             <Route path="/menu/item/:id" element={<MenuItemDetail />} />
             <Route path="/cart" element={<Cart />} />
@@ -72,3 +72,4 @@ function App() {
 }
 
 export default App;
+
