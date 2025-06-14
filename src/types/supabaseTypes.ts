@@ -159,7 +159,7 @@ export interface Database {
         | "new"
         | "preparing"
         | "ready"
-        | "delivery"
+        | "out_for_delivery"
         | "completed"
         | "cancelled"
         | "paid"
@@ -244,7 +244,7 @@ export type OrderStatus =
   'new' | 
   'preparing' | 
   'ready' | 
-  'delivery' | 
+  'out_for_delivery' | 
   'completed' | 
   'paid' | 
   'cancelled';
@@ -256,7 +256,7 @@ export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStat
     case 'new': return 'new';
     case 'preparing': return 'preparing';
     case 'ready': return 'ready';
-    case 'delivery': return 'delivery';
+    case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'paid': return 'paid';
     case 'cancelled': return 'cancelled';
@@ -269,7 +269,7 @@ export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStat
     case 'new': return 'new';
     case 'preparing': return 'preparing';
     case 'ready': return 'ready';
-    case 'delivery': return 'delivery';
+    case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'paid': return 'paid';
     case 'cancelled': return 'cancelled';

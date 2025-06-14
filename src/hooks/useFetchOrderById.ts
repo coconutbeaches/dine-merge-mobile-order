@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Order, CartItem } from '@/types/supabaseTypes';
@@ -33,7 +32,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
       // Enrich order items with product names
       const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[];
       if (items.length > 0) {
-        const productIds = items.map(item => item.id).filter(Boolean);
+        const productIds = items.map(item => String(item.id)).filter(Boolean);
         if (productIds.length > 0) {
           const { data: productsData, error: productsError } = await supabase
             .from('products')
@@ -45,7 +44,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
           } else if (productsData) {
             const productMap = new Map(productsData.map(p => [p.id, p]));
             const enrichedItems = items.map(item => {
-              const productDetails = productMap.get(item.id);
+              const productDetails = productMap.get(String(item.id));
               return {
                 ...item,
                 name: productDetails?.name || item.name,
@@ -89,4 +88,3 @@ export const useFetchOrderById = (orderId: string | undefined) => {
 
   return { order, isLoading, error };
 };
-
