@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Order, CartItem } from '@/types/supabaseTypes';
@@ -52,7 +51,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         ...(orderData as Omit<Order, 'order_items'>),
         customer_name_from_profile: profileData?.name || null,
         customer_email_from_profile: profileData?.email || null,
-        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as CartItem[],
+        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[],
       };
       
       return enrichedData;
