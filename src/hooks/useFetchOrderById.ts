@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/types/supabaseTypes';
@@ -72,11 +71,8 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         };
       });
 
-      orderData.order_items = enrichedItems as any;
-
-
-      if (orderData.total_amount === 0 && orderData.order_items) {
-        const calculatedTotal = (orderData.order_items as EnrichedOrderItem[]).reduce((total, item) => {
+      if (orderData.total_amount === 0 && enrichedItems.length > 0) {
+        const calculatedTotal = enrichedItems.reduce((total, item) => {
             return total + (item.price || 0) * (item.quantity || 1);
         }, 0);
         if (calculatedTotal > 0) {
