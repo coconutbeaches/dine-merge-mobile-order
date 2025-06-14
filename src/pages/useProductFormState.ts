@@ -40,10 +40,20 @@ export function useProductFormState() {
     },
   });
 
-  // Reset form when data is available for editing.
+  // Debug: log data loading state
   useEffect(() => {
-    // Only reset when in edit mode, not loading, product and categories exist, and not errored
-    if (isEditMode && !isLoading && product && categories && !error) {
+    console.log("[useProductFormState] id:", id, "isEditMode:", isEditMode, "isLoading:", isLoading, "product:", product, "categories:", categories, "error:", error);
+  }, [id, isEditMode, isLoading, product, categories, error]);
+
+  // Reset form only when all data is ready for edit mode
+  useEffect(() => {
+    if (
+      isEditMode &&
+      !isLoading &&
+      product &&
+      categories &&
+      !error
+    ) {
       const resetValues = {
         name: product.name ?? "",
         price:
@@ -54,7 +64,6 @@ export function useProductFormState() {
         category_id: product.category_id ?? null,
         image: null,
       };
-      // Debug log
       console.log("[useProductFormState] Running form.reset with:", resetValues);
       form.reset(resetValues);
       if (product.image_url) {
@@ -62,6 +71,18 @@ export function useProductFormState() {
       } else {
         setImagePreview(null);
       }
+    }
+    // For new product (not edit), ensure form is cleared if going from edit -> new
+    if (!isEditMode && !isLoading && !error) {
+      console.log("[useProductFormState] New mode: resetting form to empty values");
+      form.reset({
+        name: "",
+        price: "",
+        description: "",
+        image: null,
+        category_id: null,
+      });
+      setImagePreview(null);
     }
   }, [isEditMode, isLoading, product, categories, error]);
 
