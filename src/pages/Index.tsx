@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { restaurantInfo } from '@/data/mockData';
 import { useAppContext } from '@/context/AppContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -107,39 +106,15 @@ const Index = () => {
                   </div>
                 ))}
               </div>
-              {/* Removed the See All button */}
             </div>
           );
         })}
         
-        {/* Restaurant Info */}
-        <div className="mb-6">
-          <h2 className="section-heading">Restaurant Info</h2>
-          <Card className="border border-gray-200">
-            <div className="p-4">
-              <div className="space-y-2">
-                <div>
-                  <strong className="text-sm">Address:</strong>
-                  <p className="text-sm">{restaurantInfo.address.street}, {restaurantInfo.address.city}</p>
-                </div>
-                <div>
-                  <strong className="text-sm">Phone:</strong>
-                  <p className="text-sm">{restaurantInfo.phone}</p>
-                </div>
-                <div>
-                  <strong className="text-sm">Hours Today:</strong>
-                  <p className="text-sm">
-                    {restaurantInfo.hours[Object.keys(restaurantInfo.hours)[0]].open} - 
-                    {restaurantInfo.hours[Object.keys(restaurantInfo.hours)[0]].close}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Card>
-        </div>
+        {/* Restaurant Info removed as requested */}
       </div>
     </Layout>
   );
 };
 
 export default Index;
+
