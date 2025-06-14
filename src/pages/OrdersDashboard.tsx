@@ -41,23 +41,21 @@ const OrdersDashboard = () => {
   // New logic for toggling status tabs: clicking a selected tab will deselect it ("All")
   const handleTabChange = (tabValue: string) => {
     if (tabValue === activeStatus) {
-      setActiveStatus(ALL_TAB); // clicking again removes filter → show all
+      setActiveStatus(""); // if selected again, deselect all/show all
     } else {
       setActiveStatus(tabValue);
     }
   };
 
-  // Filter logic: filter by search and by status (if status not "all")
+  // Filter logic: show all if no status selected
   const filteredOrders = useMemo(() => {
     let filtered = orders;
 
-    // Apply search filter if needed
     if (search.trim()) {
       const s = search.trim().toLowerCase();
       filtered = filtered.filter(order => {
         const name = (order.customer_name_from_profile || order.customer_name || "").toLowerCase();
         const email = (order.customer_email_from_profile || "").toLowerCase();
-        // const phone = (order.phone || "").toLowerCase(); // field does not exist
         const orderIdStr = String(order.id);
 
         let containsProduct = false;
@@ -73,34 +71,29 @@ const OrdersDashboard = () => {
         return (
           name.includes(s) ||
           email.includes(s) ||
-          // phone.includes(s) ||
           orderIdStr.includes(s) ||
           containsProduct
         );
       });
     }
 
-    // Apply status filter, unless "all" tab is active
-    if (activeStatus !== ALL_TAB) {
+    if (activeStatus) {
       filtered = filtered.filter(order => order.order_status === activeStatus);
     }
 
     return filtered;
   }, [orders, search, activeStatus]);
 
-  // TAB options: All + each status
-  const tabOptions = [
-    { label: "All", value: ALL_TAB },
-    ...orderStatusOptions.map(status => ({
-      label: status === "delivery" ? "Delivery" : status.charAt(0).toUpperCase() + status.slice(1),
-      value: status
-    }))
-  ];
+  // Only individual statuses, no ALL tab anymore
+  const tabOptions = orderStatusOptions.map(status => ({
+    label: status === "delivery" ? "Delivery" : status.charAt(0).toUpperCase() + status.slice(1),
+    value: status
+  }));
 
   return (
     <Layout title="Orders Dashboard" showBackButton={false}>
       <div className="page-container p-4 md:p-6">
-        {/* Search and action buttons area */}
+        {/* Search and action buttons */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           {/* Search field left, tools right */}
           <div className="flex-1 flex gap-2 items-center">
@@ -161,7 +154,7 @@ const OrdersDashboard = () => {
           </div>
         </div>
         
-        {/* Status Tabs - with new button toggle logic */}
+        {/* Status Tabs - smaller and no "All" option */}
         <div className="mb-2 overflow-x-auto">
           <Tabs value={activeStatus} onValueChange={handleTabChange}>
             <TabsList
@@ -172,7 +165,7 @@ const OrdersDashboard = () => {
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className={`flex-1 min-w-[60px] max-w-[90px] text-xs md:text-sm font-semibold rounded-sm capitalize px-2 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors focus-visible:outline-none`}
+                  className={`flex-1 min-w-[54px] max-w-[84px] text-xs md:text-xs font-semibold rounded px-1 py-1 h-7 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors focus-visible:outline-none`}
                   style={{ flexBasis: "0", flexGrow: 1, flexShrink: 1, whiteSpace: "nowrap" }}
                 >
                   {tab.label}
@@ -185,11 +178,21 @@ const OrdersDashboard = () => {
         {/* Orders table */}
         <Card>
           <CardHeader className="bg-muted/50 p-3">
-            <OrdersTableHeader 
-              selectAllOrders={selectAllOrders}
-              selectedOrdersCount={selectedOrders.length}
-              totalOrdersCount={orders.length}
-            />
+            {/* Table header: Remove Table heading, adjust Amount and Date */}
+            <div
+              className="grid grid-cols-12 gap-x-1 md:gap-x-3 items-center text-xs font-bold text-muted-foreground"
+              style={{
+                // min-content (checkbox), 2.5fr (customer), 1.1fr (amount), 1.3fr (date), 3fr (status) - adjusted for space
+                gridTemplateColumns: "min-content minmax(0,2.5fr) minmax(0,1.1fr) minmax(0,1.3fr) min-content min-content min-content min-content min-content min-content min-content min-content min-content"
+              }}
+            >
+              <div className="col-span-1" />
+              <div className="col-span-3">Customer</div>
+              <div className="col-span-2 text-right pr-5">Amount</div>
+              <div className="col-span-2 text-left">Date</div>
+              {/* Removed "Table" header */}
+              <div className="col-span-3 text-left">Status</div>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
