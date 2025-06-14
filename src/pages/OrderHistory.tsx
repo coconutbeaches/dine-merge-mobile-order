@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -11,7 +12,7 @@ import { formatThaiCurrency } from '@/lib/utils';
 
 const OrderHistory = () => {
   const navigate = useNavigate();
-  const { getOrderHistory, isLoggedIn, isLoading, currentUser } = useAppContext();
+  const { getOrderHistory, isLoggedIn, isLoading } = useAppContext();
   
   React.useEffect(() => {
     if (!isLoading && !isLoggedIn) {
@@ -48,22 +49,18 @@ const OrderHistory = () => {
     }
   };
 
-  // Utility function to display selected options inline, in parentheses
-  const renderSelectedOptionsInline = (selectedOptions: any) => {
-    if (!selectedOptions || typeof selectedOptions !== "object") return null;
-    const entries = Object.entries(selectedOptions);
-    if (entries.length === 0) return null;
-    // Format: Option1: Choice1, Option2: Choice2, etc. (all in one string, comma separated)
-    const optionsStr = entries
-      .map(([option, choice]) => {
-        if (Array.isArray(choice)) {
-          return `${option}: ${choice.join(", ")}`;
-        } else {
-          return `${option}: ${typeof choice === "string" ? choice : String(choice)}`;
-        }
-      })
-      .join(", ");
-    return ` (${optionsStr})`;
+  // Helper: Format options cleanly (no "Option", no colon, no brackets, just value)
+  const getCleanOptionsString = (selectedOptions: any) => {
+    if (!selectedOptions || typeof selectedOptions !== "object") return "";
+    // Only show each value, space-separated if multiple
+    // Handle cases where option values are array or string
+    const allChosen = Object.values(selectedOptions)
+      .flat()
+      .map(c => String(c))
+      .filter(Boolean);
+    if (allChosen.length === 0) return "";
+    // Two spaces before options
+    return `  ${allChosen.join(", ")}`;
   };
 
   if (isLoading) {
@@ -101,11 +98,15 @@ const OrderHistory = () => {
                     <div>
                       <h3 className="font-semibold">Order #{order.id.toString().padStart(4, '0')}</h3>
                       <p className="text-xs text-muted-foreground">
-                        {format(new Date(order.created_at), 'MMM d, yyyy - h:mm a')}
+                        {/* Date: Jun 14 2025  8:39 PM (no dash, two spaces before time) */}
+                        {format(new Date(order.created_at), "MMM dd yyyy  h:mm a")}
                       </p>
                       {order.table_number && (
                         <p className="text-xs text-muted-foreground capitalize">
-                          {order.table_number === 'Take Away' ? 'Take Away' : `Table: ${order.table_number}`}
+                          {/* No colon, just "Table 6" or "Take Away" */}
+                          {order.table_number === 'Take Away'
+                            ? 'Take Away'
+                            : `Table ${order.table_number}`}
                         </p>
                       )}
                     </div>
@@ -115,11 +116,8 @@ const OrderHistory = () => {
                        </Badge>
                     )}
                   </div>
-                  
-                  {/* FIXED order items display */}
                   <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
                     {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
-                      // Support both shapes: {quantity, name, price, selectedOptions} or {quantity, menuItem: {name, price}, selectedOptions}
                       const name = item.name || (item.menuItem && item.menuItem.name) || "Item";
                       const price = (typeof item.price === "number"
                         ? item.price
@@ -128,18 +126,24 @@ const OrderHistory = () => {
                           : 0);
                       const selectedOptions = item.selectedOptions;
 
+                      // Clean option string, e.g., "  Leo" (no Option, brackets, or colon, styled same as muted info)
+                      const optionString = getCleanOptionsString(selectedOptions);
+
                       return (
                         <div key={idx} className="text-sm pr-2 mb-1 flex justify-between">
                           <span>
                             {item.quantity}× {name}
-                            {selectedOptions && renderSelectedOptionsInline(selectedOptions)}
+                            {optionString &&
+                              <span className="text-xs text-muted-foreground font-normal not-italic">
+                                {optionString}
+                              </span>
+                            }
                           </span>
                           <span>{formatThaiCurrency(price * item.quantity)}</span>
                         </div>
                       )
                     })}
                   </div>
-                  
                   <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center font-semibold">
                     <span>Total</span>
                     <span>{formatThaiCurrency(order.total_amount)}</span>
@@ -155,3 +159,4 @@ const OrderHistory = () => {
 };
 
 export default OrderHistory;
+
