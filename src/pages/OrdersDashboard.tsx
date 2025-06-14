@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,9 @@ import { Trash, RefreshCw, Search } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { OrderStatus } from '@/types/supabaseTypes';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+const ALL_TAB = "all";
 
 const OrdersDashboard = () => {
   const { 
@@ -27,6 +31,7 @@ const OrdersDashboard = () => {
 
   const [bulkStatus, setBulkStatus] = useState<OrderStatus | "">("");
   const [search, setSearch] = useState('');
+  const [activeStatus, setActiveStatus] = useState<string>(ALL_TAB);
 
   const handleBulkStatusChange = (value: OrderStatus) => {
     setBulkStatus(value);
@@ -34,40 +39,55 @@ const OrdersDashboard = () => {
     updateMultipleOrderStatuses(selectedOrders, value);
   };
 
-  // Filter logic
+  // Filter logic: filter by search and by status (if status not "all")
   const filteredOrders = useMemo(() => {
-    if (!search.trim()) return orders;
-    const s = search.trim().toLowerCase();
+    let filtered = orders;
 
-    return orders.filter(order => {
-      // Customer name/email from profile or from order
-      const name = (order.customer_name_from_profile || order.customer_name || "").toLowerCase();
-      const email = (order.customer_email_from_profile || "").toLowerCase();
-      // No phone search: phone field does not exist on order
-      // const phone = (order.phone || "").toLowerCase();
-      // Order number
-      const orderIdStr = String(order.id);
+    // Apply search filter if needed
+    if (search.trim()) {
+      const s = search.trim().toLowerCase();
+      filtered = filtered.filter(order => {
+        const name = (order.customer_name_from_profile || order.customer_name || "").toLowerCase();
+        const email = (order.customer_email_from_profile || "").toLowerCase();
+        // const phone = (order.phone || "").toLowerCase(); // field does not exist
+        const orderIdStr = String(order.id);
 
-      // Check order items' product names
-      let containsProduct = false;
-      if (Array.isArray(order.order_items)) {
-        containsProduct = order.order_items.some((item: any) => {
-          if (typeof item?.name === 'string') {
-            return item.name.toLowerCase().includes(s);
-          }
-          return false;
-        });
-      }
+        let containsProduct = false;
+        if (Array.isArray(order.order_items)) {
+          containsProduct = order.order_items.some((item: any) => {
+            if (typeof item?.name === 'string') {
+              return item.name.toLowerCase().includes(s);
+            }
+            return false;
+          });
+        }
 
-      return (
-        name.includes(s) ||
-        email.includes(s) ||
-        // phone.includes(s) ||
-        orderIdStr.includes(s) ||
-        containsProduct
-      );
-    });
-  }, [orders, search]);
+        return (
+          name.includes(s) ||
+          email.includes(s) ||
+          // phone.includes(s) ||
+          orderIdStr.includes(s) ||
+          containsProduct
+        );
+      });
+    }
+
+    // Apply status filter, unless "all" tab is active
+    if (activeStatus !== ALL_TAB) {
+      filtered = filtered.filter(order => order.order_status === activeStatus);
+    }
+
+    return filtered;
+  }, [orders, search, activeStatus]);
+
+  // TAB options: All + all status options in order
+  const tabOptions = [
+    { label: "All", value: ALL_TAB },
+    ...orderStatusOptions.map(status => ({
+      label: status === "delivery" ? "Delivery" : status.charAt(0).toUpperCase() + status.slice(1),
+      value: status
+    }))
+  ];
 
   return (
     <Layout title="Orders Dashboard" showBackButton={false}>
@@ -80,7 +100,7 @@ const OrdersDashboard = () => {
               <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                placeholder="Search orders (customer, order #, phone, product)..."
+                placeholder="Search orders (customer, order #, product)..."
                 className="pl-9 pr-2 py-2 text-sm"
                 type="search"
                 aria-label="Search orders"
@@ -90,7 +110,6 @@ const OrdersDashboard = () => {
           <div className="flex gap-2 flex-wrap items-center">
             <div className="flex gap-2 items-center">
               <AdminOrderCreator />
-              {/* Make Bulk Status pulldown less wide */}
               <Select
                 value={bulkStatus}
                 onValueChange={handleBulkStatusChange}
@@ -132,6 +151,24 @@ const OrdersDashboard = () => {
             </div>
           </div>
         </div>
+        
+        {/* Status Tabs */}
+        <div className="mb-2">
+          <Tabs value={activeStatus} onValueChange={setActiveStatus}>
+            <TabsList className="w-full flex gap-1 bg-muted px-1 py-1 rounded-md border">
+              {tabOptions.map(tab => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="flex-1 text-xs md:text-sm font-medium rounded-sm capitalize px-2 py-1.5 data-[state=active]:bg-background data-[state=active]:text-foreground"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
         <Card>
           <CardHeader className="bg-muted/50 p-3">
             <OrdersTableHeader 
@@ -160,3 +197,4 @@ const OrdersDashboard = () => {
 };
 
 export default OrdersDashboard;
+
