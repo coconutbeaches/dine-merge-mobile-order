@@ -259,7 +259,7 @@ export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStat
     case 'ready': return 'ready';
     case 'completed': return 'completed';
     case 'paid': return 'paid';
-    case 'cancelled': 'cancelled';
+    case 'cancelled': return 'cancelled';
     default: return 'new';
   }
 };

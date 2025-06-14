@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
@@ -8,7 +7,7 @@ import { toast } from 'sonner';
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
 import { formatThaiCurrency, cn } from '@/lib/utils';
 import { formatOrderDateTime, getStatusBadgeClasses, orderStatusOptions } from '@/utils/orderDashboardUtils';
-import { OrderStatus } from '@/types/supabaseTypes';
+import { OrderStatus, mapOrderStatusToSupabase } from '@/types/supabaseTypes';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -40,9 +39,10 @@ const AdminOrderDetailContent = () => {
   const { mutate: updateStatus, isPending: isUpdatingStatus } = useMutation({
     mutationFn: async (newStatus: OrderStatus) => {
       if (!order) return;
+      const supabaseStatus = mapOrderStatusToSupabase(newStatus);
       const { error } = await supabase
         .from('orders')
-        .update({ order_status: newStatus, updated_at: new Date().toISOString() })
+        .update({ order_status: supabaseStatus, updated_at: new Date().toISOString() })
         .eq('id', order.id);
 
       if (error) throw new Error(error.message);
