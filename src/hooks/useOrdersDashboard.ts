@@ -55,7 +55,7 @@ export const useOrdersDashboard = () => {
         const transformedOrders = ordersData.map(order => {
           const profile = profilesData?.find(p => p.id === order.user_id);
 
-          // Fix important: handle both 'delivery' and 'out_for_delivery' (Supabase)
+          // Map "out_for_delivery" (from Supabase) to "delivery" (OrderStatus)
           let normalizedOrderStatus: OrderStatus = 'new';
           if (order.order_status === 'out_for_delivery') {
             normalizedOrderStatus = 'delivery';
@@ -80,7 +80,7 @@ export const useOrdersDashboard = () => {
             customer_name_from_profile: profile?.name || null,
             customer_email_from_profile: profile?.email || null
           };
-        }) as Order[]; // Force as our own type
+        }) as Order[];
 
         setOrders(transformedOrders);
         console.log("[Dashboard] Orders fetched from DB:", ordersData.map(o => ({ id: o.id, status: o.order_status })));
@@ -95,8 +95,8 @@ export const useOrdersDashboard = () => {
 
   const updateOrderStatus = async (orderId: number, newStatus: OrderStatus) => {
     try {
-      // Fix important: map "delivery" back to "out_for_delivery" for Supabase enum
-      let supabaseStatus: string = mapOrderStatusToSupabase(newStatus);
+      // Always map "delivery" to "out_for_delivery" for database
+      let supabaseStatus: any = newStatus;
       if (supabaseStatus === "delivery") supabaseStatus = "out_for_delivery";
 
       console.log(`Updating order ${orderId} status to ${newStatus} (Supabase: ${supabaseStatus})`);
@@ -104,7 +104,14 @@ export const useOrdersDashboard = () => {
       const { error, count } = await supabase
         .from('orders')
         .update({
-          order_status: supabaseStatus,
+          order_status: supabaseStatus as
+            | "new"
+            | "preparing"
+            | "ready"
+            | "completed"
+            | "paid"
+            | "cancelled"
+            | "out_for_delivery",
           updated_at: new Date().toISOString()
         }, { count: "exact" })
         .eq('id', orderId);
@@ -151,14 +158,21 @@ export const useOrdersDashboard = () => {
   const updateMultipleOrderStatuses = async (orderIds: number[], newStatus: OrderStatus) => {
     if (orderIds.length === 0) return;
     try {
-      // Fix important: map "delivery" back to "out_for_delivery"
-      let supabaseStatus: string = mapOrderStatusToSupabase(newStatus);
+      // Map "delivery" to "out_for_delivery"
+      let supabaseStatus: any = newStatus;
       if (supabaseStatus === "delivery") supabaseStatus = "out_for_delivery";
 
       const { error, count } = await supabase
         .from('orders')
         .update({
-          order_status: supabaseStatus,
+          order_status: supabaseStatus as
+            | "new"
+            | "preparing"
+            | "ready"
+            | "completed"
+            | "paid"
+            | "cancelled"
+            | "out_for_delivery",
           updated_at: new Date().toISOString(),
         }, { count: "exact" })
         .in('id', orderIds);

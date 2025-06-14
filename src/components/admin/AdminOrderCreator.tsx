@@ -7,7 +7,6 @@ import { Plus, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { nanoid } from 'nanoid';
-import { crypto } from 'crypto';
 
 interface Customer {
   id: string;
@@ -90,10 +89,10 @@ const AdminOrderCreator = () => {
     }
     setIsCreatingGuest(true);
     try {
-      // IMPORTANT: Generate a valid UUID for guest ID.
-      const guestId = crypto.randomUUID(); // <-- Fix: use UUID not nanoid
+      // Create UUID for guestId using the browser's crypto API (do not import crypto)
+      const guestId = crypto.randomUUID();
       const uniqueEmail = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}@throwaway.com`;
-      
+
       const { data: newGuest, error } = await supabase
         .from('profiles')
         .insert({
