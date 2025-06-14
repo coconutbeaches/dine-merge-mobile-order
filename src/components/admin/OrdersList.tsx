@@ -59,9 +59,10 @@ const OrdersList = ({
         const statusButtonStyle = getStatusButtonStyles(statusVal);
 
         return (
+          // Adjusted grid: removed the table column, widen status column
           <div
             key={order.id}
-            className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
+            className="grid grid-cols-11 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
           >
             {/* Selection */}
             <div className="col-span-1 flex items-center min-w-[32px]">
@@ -71,7 +72,7 @@ const OrdersList = ({
                 aria-label={`Select order ${order.id}`}
               />
             </div>
-            {/* Customer */}
+            {/* Customer (name + table number below if present) */}
             <div className="col-span-3 min-w-0">
               {order.user_id ? (
                 <Link 
@@ -89,10 +90,14 @@ const OrdersList = ({
                   {customerDisplayName}
                 </div>
               )}
-            </div>
-            {/* Table */}
-            <div className="col-span-2 text-xs text-muted-foreground capitalize">
-              {order.table_number ? (order.table_number === 'Take Away' ? 'Take Away' : `Table ${order.table_number}`) : 'N/A'}
+              {/* Table number below name, small text, muted */}
+              {order.table_number && (
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {order.table_number === 'Take Away'
+                    ? 'Take Away'
+                    : `Table ${order.table_number}`}
+                </div>
+              )}
             </div>
             {/* Amount */}
             <div className="col-span-2 text-right">{formatThaiCurrency(order.total_amount)}</div>
@@ -102,7 +107,7 @@ const OrdersList = ({
               <span>{formatOrderTime(order.created_at)}</span>
             </div>
             {/* Status column widened */}
-            <div className="col-span-2 flex min-w-[120px] md:min-w-[160px]">
+            <div className="col-span-3 flex min-w-[140px] md:min-w-[180px]">
               <Select
                 value={statusVal}
                 onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
