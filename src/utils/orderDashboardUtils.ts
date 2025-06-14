@@ -35,6 +35,17 @@ export const formatOrderTime = (dateString: string | null) => {
   }
 };
 
+// Format to "MMM dd yyyy h:mm a"
+export const formatOrderDateTime = (dateString: string | null) => {
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    return format(date, 'MMM dd yyyy h:mm a');
+  } catch (e) {
+    return 'Invalid Date';
+  }
+};
+
 // Get the appropriate color for status indicators
 export const getStatusColorDot = (status: OrderStatus | null) => {
   switch (status) {
@@ -54,6 +65,28 @@ export const getStatusColorDot = (status: OrderStatus | null) => {
       return "bg-gray-500";
     default:
       return "bg-gray-300";
+  }
+};
+
+// Get the appropriate classes for status badges
+export const getStatusBadgeClasses = (status: OrderStatus | null) => {
+  switch (status) {
+    case 'new':
+      return "bg-red-500 text-white";
+    case 'preparing':
+      return "bg-yellow-400 text-yellow-900";
+    case 'ready':
+      return "bg-orange-500 text-white";
+    case 'delivery':
+      return "bg-blue-500 text-white";
+    case 'completed':
+      return "bg-green-500 text-white";
+    case 'paid':
+      return "bg-green-700 text-white";
+    case 'cancelled':
+      return "bg-gray-500 text-white";
+    default:
+      return "bg-gray-300 text-gray-800";
   }
 };
 

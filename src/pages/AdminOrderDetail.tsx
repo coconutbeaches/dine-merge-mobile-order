@@ -1,13 +1,14 @@
+
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatThaiCurrency } from '@/lib/utils';
-import { formatOrderDate, formatOrderTime, getStatusColorDot } from '@/utils/orderDashboardUtils';
+import { formatOrderDateTime, getStatusBadgeClasses } from '@/utils/orderDashboardUtils';
 import { Separator } from '@/components/ui/separator';
 
 const AdminOrderDetail = () => {
@@ -27,15 +28,23 @@ const AdminOrderDetail = () => {
             <Skeleton className="h-8 w-48" />
           </div>
           <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-1/3 mb-2" />
-              <Skeleton className="h-4 w-1/2" />
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
+            <CardContent className="p-4">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <Skeleton className="h-7 w-32 mb-2" />
+                  <Skeleton className="h-4 w-48 mb-1" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+                <Skeleton className="h-7 w-24 rounded-full" />
+              </div>
+              <div className="space-y-2 mb-4">
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-5 w-full" />
+              </div>
+              <Separator />
+              <div className="mt-4 flex justify-between">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-6 w-24" />
               </div>
             </CardContent>
           </Card>
@@ -62,8 +71,6 @@ const AdminOrderDetail = () => {
     );
   }
 
-  const customerDisplayName = order.customer_name_from_profile || order.customer_name || 'Guest';
-
   return (
     <Layout title={`Order #${order.id}`} showBackButton={false}>
       <div className="page-container p-4 md:p-6">
@@ -77,57 +84,39 @@ const AdminOrderDetail = () => {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Order #{order.id}</CardTitle>
-            <CardDescription>
-              Placed on {formatOrderDate(order.created_at)} at {formatOrderTime(order.created_at)}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-semibold mb-2">Customer Information</h3>
-                <p><strong>Name:</strong> {customerDisplayName}</p>
-                <p><strong>Email:</strong> {order.customer_email_from_profile || order.customer_name || 'N/A'}</p>
-                <p><strong>Table/Takeaway:</strong> {order.table_number || 'N/A'}</p>
+                <h2 className="text-xl font-bold">Order #{String(order.id).padStart(4, '0')}</h2>
+                <p className="text-sm text-muted-foreground">{formatOrderDateTime(order.created_at)}</p>
+                {order.table_number && <p className="text-sm text-muted-foreground">Table {order.table_number}</p>}
               </div>
-              <div>
-                <h3 className="font-semibold mb-2">Order Status</h3>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block w-3 h-3 rounded-full ${getStatusColorDot(order.order_status)}`}></span>
-                  <span className="capitalize font-medium">{order.order_status}</span>
+              <div className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusBadgeClasses(order.order_status)}`}>
+                <span className="capitalize">{order.order_status}</span>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              {order.order_items?.map((item, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <p>{item.quantity}x {item.name || 'Unknown Product'}</p>
+                  <p className="font-medium">
+                    {formatThaiCurrency((item.price || 0) * item.quantity)}
+                  </p>
                 </div>
-              </div>
+              ))}
+              {(!order.order_items || order.order_items.length === 0) && (
+                <p className="text-muted-foreground">No items in this order.</p>
+              )}
             </div>
 
             <Separator />
-            
-            <div>
-              <h3 className="font-semibold mb-4">Order Items</h3>
-              <div className="space-y-4">
-                {order.order_items?.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{item.name || 'Unknown Product'}</p>
-                      <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                    </div>
-                    <p className="font-medium">
-                      {formatThaiCurrency((item.price || 0) * item.quantity)}
-                    </p>
-                  </div>
-                ))}
-                {(!order.order_items || order.order_items.length === 0) && (
-                  <p className="text-muted-foreground">No items in this order.</p>
-                )}
-              </div>
+
+            <div className="flex justify-between items-center">
+              <p className="text-lg font-bold">Total</p>
+              <p className="text-lg font-bold">{formatThaiCurrency(order.total_amount)}</p>
             </div>
           </CardContent>
-          <CardFooter className="bg-muted/50 p-6 flex justify-end">
-            <div className="text-right">
-              <p className="text-muted-foreground">Total Amount</p>
-              <p className="text-2xl font-bold">{formatThaiCurrency(order.total_amount)}</p>
-            </div>
-          </CardFooter>
         </Card>
       </div>
     </Layout>
