@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   email: string;
@@ -32,6 +31,7 @@ export interface MenuItem {
 }
 
 export interface MenuItemOption {
+  id: string;
   name: string;
   choices: {
     name: string;
@@ -45,7 +45,7 @@ export interface CartItem {
   menuItem: MenuItem;
   quantity: number;
   selectedOptions?: {
-    [optionName: string]: string[] | string;
+    [optionId: string]: string[] | string;
   };
   specialInstructions?: string;
 }

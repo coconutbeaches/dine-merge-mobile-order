@@ -9,7 +9,7 @@ export const calculateTotalPrice = (
   
   // Add option prices
   (item.options || []).forEach(option => {
-    const selectedValue = options[option.name];
+    const selectedValue = options[option.id];
     
     if (option.multiSelect && Array.isArray(selectedValue)) {
       selectedValue.forEach(value => {
@@ -39,6 +39,7 @@ export const convertProductToMenuItem = (product: any): MenuItem => {
     category: product.category_id || '',
     available: true,
     options: product.options?.map((option: any) => ({
+      id: option.id,
       name: option.name,
       required: option.required,
       multiSelect: option.selection_type === 'multiple',
@@ -49,3 +50,4 @@ export const convertProductToMenuItem = (product: any): MenuItem => {
     })) || []
   };
 };
+

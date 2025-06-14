@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -53,16 +52,7 @@ const MenuItemDetail = () => {
       return;
     }
     
-    const optionsByName: Record<string, string | string[]> = {};
-    if (product.options) {
-      product.options.forEach(option => {
-        if (selectedOptions[option.id] !== undefined) {
-          optionsByName[option.name] = selectedOptions[option.id];
-        }
-      });
-    }
-    
-    addToCart(menuItemForCart, quantity, optionsByName);
+    addToCart(menuItemForCart, quantity, selectedOptions);
     
     toast({
       title: "Added to cart",
@@ -73,16 +63,7 @@ const MenuItemDetail = () => {
     navigate('/');
   };
   
-  const optionsForPriceCalc: Record<string, string | string[]> = {};
-  if (product?.options) {
-    product.options.forEach(option => {
-      if (selectedOptions[option.id] !== undefined) {
-        optionsForPriceCalc[option.name] = selectedOptions[option.id];
-      }
-    });
-  }
-  
-  const totalPrice = menuItemForCart ? calculateTotalPrice(menuItemForCart, optionsForPriceCalc) * quantity : 0;
+  const totalPrice = menuItemForCart ? calculateTotalPrice(menuItemForCart, selectedOptions) * quantity : 0;
 
   return (
     <Layout title={product?.name || 'Product Details'} showBackButton>

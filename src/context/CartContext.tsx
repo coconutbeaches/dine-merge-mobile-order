@@ -1,7 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CartItem, MenuItem } from '../types';
 import { useUserContext } from './UserContext';
+import { calculateTotalPrice } from '@/utils/productUtils';
 
 interface CartContextType {
   cart: CartItem[];
@@ -55,30 +55,8 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   
   // Calculate cart total
   const cartTotal = cart.reduce((total, item) => {
-    let itemPrice = item.menuItem.price;
-    
-    // Add option prices if there are any
-    if (item.selectedOptions && item.menuItem.options) {
-      item.menuItem.options.forEach(option => {
-        if (option.multiSelect) {
-          const selectedValues = item.selectedOptions?.[option.name] as string[] || [];
-          selectedValues.forEach(value => {
-            const choice = option.choices.find(c => c.name === value);
-            if (choice) {
-              itemPrice += choice.price;
-            }
-          });
-        } else {
-          const selectedValue = item.selectedOptions?.[option.name] as string;
-          const choice = option.choices?.find(c => c.name === selectedValue);
-          if (choice) {
-            itemPrice += choice.price;
-          }
-        }
-      });
-    }
-    
-    return total + (itemPrice * item.quantity);
+    const itemTotal = calculateTotalPrice(item.menuItem, item.selectedOptions || {});
+    return total + (itemTotal * item.quantity);
   }, 0);
   
   // Cart Management Functions
