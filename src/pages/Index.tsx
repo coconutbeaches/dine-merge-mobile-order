@@ -9,6 +9,7 @@ import { useAppContext } from '@/context/AppContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/supabaseTypes';
+import { formatThaiCurrency } from '@/lib/utils';
 
 interface Category {
   id: string;
@@ -47,12 +48,10 @@ const Index = () => {
       return data as Product[];
     },
   });
-  
+
+  // Use the global Thai currency formatter (no decimals)
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB',
-    }).format(price);
+    return formatThaiCurrency(price);
   };
   
   return (
@@ -191,3 +190,4 @@ const Index = () => {
 };
 
 export default Index;
+
