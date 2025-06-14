@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Order, Address, OrderStatus } from '@/types/supabaseTypes';
+import { Order, Address, OrderStatus, SupabaseOrderStatus, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { useCartContext } from '@/context/CartContext';
 import { CartItem, fetchUserOrders, placeOrderInSupabase, getFilteredOrderHistory } from '@/services/orderService';
@@ -61,14 +61,29 @@ export function useOrders(userId: string | undefined) {
         console.warn('Could not fetch profile data:', profileError);
       }
 
+      console.log("Orders data fetched:", ordersData);
+      console.log("Profile data fetched:", profileData);
+
       if (ordersData) {
-        const transformedOrders = ordersData.map(order => ({
-          ...order,
-          order_status: order.order_status as OrderStatus,
-          customer_name_from_profile: profileData?.name || null,
-          customer_email_from_profile: profileData?.email || null
-        })) as Order[];
+        const transformedOrders = ordersData.map(order => {
+          let appOrderStatus: OrderStatus;
+          
+          if (order.order_status) {
+            appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+          } else {
+            console.warn(`Order ${order.id} - order_status from DB is null or empty. Defaulting to 'new'. DB value: `, order.order_status);
+            appOrderStatus = 'new';
+          }
+
+          return {
+            ...order,
+            order_status: appOrderStatus,
+            customer_name_from_profile: profileData?.name || null,
+            customer_email_from_profile: profileData?.email || null
+          } as Order;
+        });
         
+        console.log("Transformed orders for user:", transformedOrders);
         setOrders(transformedOrders);
       }
     } catch (error) {
@@ -87,11 +102,13 @@ export function useOrders(userId: string | undefined) {
   ): Promise<Order | null> => {
     if (!userId) {
       console.error('User must be logged in to place an order');
+      toast.error('You must be logged in to place an order');
       return null;
     }
     
     if (cart.length === 0) {
       console.error('Cart cannot be empty');
+      toast.error('Your cart is empty');
       return null;
     }
 
@@ -105,13 +122,18 @@ export function useOrders(userId: string | undefined) {
       });
       
       // Get customer name from profile
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('name, email')
         .eq('id', userId)
         .single();
       
+      if (profileError) {
+        console.error("Error fetching profile for order:", profileError);
+      }
+      
       const customerName = profile?.name || null;
+      console.log("Customer profile found:", profile);
       
       const insertedOrderData = await placeOrderInSupabase(
         userId, 
@@ -123,6 +145,7 @@ export function useOrders(userId: string | undefined) {
 
       if (!insertedOrderData) {
         console.error("Failed to insert order in Supabase");
+        toast.error("Failed to place order. Please try again.");
         return null;
       }
 
@@ -145,9 +168,15 @@ export function useOrders(userId: string | undefined) {
       
       console.log("New order created for local state:", newOrderForLocalState);
       setOrders(prevOrders => [newOrderForLocalState, ...prevOrders]);
+      
+      // Clear cart after successful order
+      clearCart();
+      toast.success(`Order #${insertedOrderData.id} placed successfully!`);
+      
       return newOrderForLocalState;
     } catch (error) {
       console.error('Error in placeOrder:', error);
+      toast.error("Failed to place order. Please try again.");
       return null;
     }
   };
