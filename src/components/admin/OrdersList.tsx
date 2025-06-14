@@ -72,7 +72,7 @@ const OrdersList = ({
               />
             </div>
             {/* Customer name, table number below */}
-            <div className="col-span-3 min-w-0">
+            <div className="col-span-4 min-w-0">
               {order.user_id ? (
                 <Link 
                   to={`/admin/customer-orders/${order.user_id}`} 
@@ -98,26 +98,22 @@ const OrdersList = ({
               )}
             </div>
             {/* Order Amount */}
-            <Link
-              to={`/admin/order/${order.id}`}
-              className="col-span-2 text-right cursor-pointer text-primary font-bold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-1 pr-5"
-              title={`View full order #${order.id}`}
-              tabIndex={0}
+            <div
+              className="col-span-2 text-right font-bold pl-1"
+              title={`Order #${order.id}`}
               style={{ minWidth: 0 }}
             >
               {formatThaiCurrency(order.total_amount)}
-            </Link>
-            {/* Date/Time (clickable) */}
-            <Link
-              to={`/admin/order/${order.id}`}
-              className="col-span-3 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
-              title={`View full order #${order.id}`}
-              tabIndex={0}
+            </div>
+            {/* Date/Time */}
+            <div
+              className="col-span-2 text-xs text-muted-foreground flex flex-col space-y-0.5 leading-tight"
+              title={`Order #${order.id}`}
               style={{ minWidth: 0 }}
             >
               <span>{formatOrderDate(order.created_at)}</span>
               <span>{formatOrderTime(order.created_at)}</span>
-            </Link>
+            </div>
             {/* Order Status: as a small pill-shaped select */}
             <div className="col-span-3 min-w-[70px] md:min-w-[100px] flex items-center justify-end">
               <Select

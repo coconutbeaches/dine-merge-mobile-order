@@ -1,9 +1,7 @@
-
 import React, { useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useOrdersDashboard } from '@/hooks/useOrdersDashboard';
-import OrdersTableHeader from '@/components/admin/OrdersTableHeader';
 import OrdersList from '@/components/admin/OrdersList';
 import { orderStatusOptions } from '@/utils/orderDashboardUtils';
 import { OrderStatus } from '@/types/supabaseTypes';
@@ -21,7 +19,6 @@ const OrdersDashboard = () => {
     updateOrderStatus,
     deleteSelectedOrders,
     toggleSelectOrder,
-    selectAllOrders,
     updateMultipleOrderStatuses
   } = useOrdersDashboard();
 
@@ -108,13 +105,6 @@ const OrdersDashboard = () => {
         />
 
         <Card>
-          <CardHeader className="bg-muted/50 p-3">
-            <OrdersTableHeader 
-              selectAllOrders={selectAllOrders}
-              selectedOrdersCount={selectedOrders.length}
-              totalOrdersCount={orders.length}
-            />
-          </CardHeader>
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-6 text-center text-muted-foreground">Loading orders...</div>
