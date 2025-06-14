@@ -24,12 +24,12 @@ export const formatOrderDate = (dateString: string | null) => {
   }
 };
 
-// Format to "11:23 AM"
+// Format to "21:00" (24-hour format)
 export const formatOrderTime = (dateString: string | null) => {
   if (!dateString) return '--:--';
   try {
     const date = new Date(dateString);
-    return format(date, 'hh:mm a');
+    return format(date, 'HH:mm'); // Changed from 'hh:mm a' to 'HH:mm' for 24-hour format
   } catch (e) {
     return '--:--';
   }
