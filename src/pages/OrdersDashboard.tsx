@@ -162,18 +162,16 @@ const OrdersDashboard = () => {
         </div>
         
         {/* Status Tabs - with new button toggle logic */}
-        <div className="mb-2 overflow-x-auto">
+        <div className="mb-2">
           <Tabs value={activeStatus} onValueChange={handleTabChange}>
             <TabsList
-              className="w-full flex gap-1 bg-muted px-1 py-1 rounded-md border overflow-x-auto no-scrollbar"
-              style={{ WebkitOverflowScrolling: 'touch' }}
+              className="w-full flex flex-wrap gap-1 bg-muted px-1 py-1 rounded-md border"
             >
               {tabOptions.map(tab => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className={`flex-1 min-w-[60px] max-w-[90px] text-xs md:text-sm font-semibold rounded-sm capitalize px-2 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors focus-visible:outline-none`}
-                  style={{ flexBasis: "0", flexGrow: 1, flexShrink: 1, whiteSpace: "nowrap" }}
+                  className={`whitespace-nowrap rounded-sm px-2 py-1 text-xs font-semibold capitalize transition-colors focus-visible:outline-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground`}
                 >
                   {tab.label}
                 </TabsTrigger>
