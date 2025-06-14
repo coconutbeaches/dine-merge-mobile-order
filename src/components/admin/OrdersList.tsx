@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -50,6 +49,31 @@ const OrdersList = ({
 
   return (
     <div>
+      {/* Table Heading Row */}
+      <div className="grid grid-cols-11 gap-x-1 md:gap-x-3 p-3 items-center border-b font-semibold text-xs md:text-sm bg-muted">
+        {/* Selection */}
+        <div className="col-span-1 flex items-center min-w-[32px]">
+          {/* Empty, no header for checkbox */}
+        </div>
+        {/* Customer */}
+        <div className="col-span-3 min-w-0">
+          Customer
+          {/* Removed Table heading */}
+        </div>
+        {/* Amount - No heading so we keep an empty heading for "Amount" */}
+        <div className="col-span-2 text-right">
+          {/* No label here so it looks less cluttered */}
+        </div>
+        {/* Date */}
+        <div className="col-span-2 text-xs text-muted-foreground flex flex-col">
+          {/* No label here */}
+        </div>
+        {/* Status */}
+        <div className="col-span-3 flex min-w-[140px] md:min-w-[180px]">
+          Status
+        </div>
+      </div>
+
       {orders.map((order) => {
         const customerDisplayName = order.customer_name_from_profile || 
                                   order.customer_name || 
@@ -59,7 +83,6 @@ const OrdersList = ({
         const statusButtonStyle = getStatusButtonStyles(statusVal);
 
         return (
-          // Adjusted grid: removed the table column, widen status column
           <div
             key={order.id}
             className="grid grid-cols-11 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
@@ -100,12 +123,24 @@ const OrdersList = ({
               )}
             </div>
             {/* Amount */}
-            <div className="col-span-2 text-right">{formatThaiCurrency(order.total_amount)}</div>
+            <Link
+              to={`/admin/order/${order.id}`}
+              className="col-span-2 text-right cursor-pointer text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
+              title={`View full order #${order.id}`}
+              tabIndex={0}
+            >
+              {formatThaiCurrency(order.total_amount)}
+            </Link>
             {/* Date */}
-            <div className="col-span-2 text-xs text-muted-foreground flex flex-col space-y-0.5 leading-tight">
+            <Link
+              to={`/admin/order/${order.id}`}
+              className="col-span-2 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
+              title={`View full order #${order.id}`}
+              tabIndex={0}
+            >
               <span>{formatOrderDate(order.created_at)}</span>
               <span>{formatOrderTime(order.created_at)}</span>
-            </div>
+            </Link>
             {/* Status column widened */}
             <div className="col-span-3 flex min-w-[140px] md:min-w-[180px]">
               <Select
@@ -145,4 +180,3 @@ const OrdersList = ({
 };
 
 export default OrdersList;
-
