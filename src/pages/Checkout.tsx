@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -18,6 +17,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { calculateTotalPrice } from '@/utils/productUtils';
 
 const Checkout = () => {
   const navigate = useNavigate();
@@ -115,15 +115,33 @@ const Checkout = () => {
               <>
                 <div className="space-y-4">
                   <h2 className="text-lg font-semibold">Order Summary</h2>
-                  {cart.map((item) => (
-                    <div key={`${item.menuItem.id}-${JSON.stringify(item.selectedOptions)}`} className="flex justify-between items-center">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">{item.quantity}x</span>
-                        <span>{item.menuItem.name}</span>
+                  {cart.map((item) => {
+                    const itemTotalWithOptions = calculateTotalPrice(
+                      item.menuItem,
+                      item.selectedOptions || {}
+                    );
+                    const lineItemTotal = itemTotalWithOptions * item.quantity;
+                    const optionsString = item.selectedOptions
+                      ? Object.values(item.selectedOptions).flat().filter(Boolean).join(', ')
+                      : '';
+
+                    return (
+                      <div key={item.id} className="flex justify-between items-start">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-baseline space-x-2">
+                            <span className="font-medium">{item.quantity}x</span>
+                            <span className="font-semibold">{item.menuItem.name}</span>
+                          </div>
+                          {optionsString && (
+                            <p className="text-sm text-muted-foreground pl-6">
+                              {optionsString}
+                            </p>
+                          )}
+                        </div>
+                        <span className="font-semibold">{formatThaiCurrency(lineItemTotal)}</span>
                       </div>
-                      <span>{formatThaiCurrency(item.menuItem.price * item.quantity)}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <Separator />
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total:</span>
@@ -166,7 +184,7 @@ const Checkout = () => {
                     Processing...
                   </>
                 ) : (
-                  <>Place Order ({formatThaiCurrency(cartTotal)})</>
+                  <>Place Order {formatThaiCurrency(cartTotal)}</>
                 )}
               </Button>
             </CardFooter>
