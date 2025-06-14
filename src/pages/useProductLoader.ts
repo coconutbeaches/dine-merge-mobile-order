@@ -12,8 +12,11 @@ interface Category {
 
 export function useProductLoader() {
   const params = useParams();
-  // Carefully extract id as a string (not object, not undefined)
-  const id = typeof params.id === "string" ? params.id : undefined;
+  // Support both 'id' and 'productId' param keys
+  const idParam = typeof params.id === "string" ? params.id 
+               : typeof params.productId === "string" ? params.productId 
+               : undefined;
+  const id = idParam;
   const isEditMode = Boolean(id) && id !== "new";
 
   // Debug log params and id
