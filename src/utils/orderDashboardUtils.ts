@@ -123,6 +123,27 @@ export const getStatusBadgeClasses = (status: OrderStatus | null) => {
   }
 };
 
+export const getStatusBadgeHoverClasses = (status: OrderStatus | null) => {
+  switch (status) {
+    case 'new':
+      return "hover:bg-red-400";
+    case 'preparing':
+      return "hover:bg-yellow-300";
+    case 'ready':
+      return "hover:bg-orange-400";
+    case 'delivery':
+      return "hover:bg-blue-400";
+    case 'completed':
+      return "hover:bg-green-400";
+    case 'paid':
+      return "hover:bg-green-600";
+    case 'cancelled':
+      return "hover:bg-gray-400";
+    default:
+      return "";
+  }
+};
+
 // Updated orderStatuses to use 'delivery' for frontend consistency.
 export const orderStatusOptions: OrderStatus[] = [
   'new',

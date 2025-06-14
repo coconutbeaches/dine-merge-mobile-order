@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
 import { formatThaiCurrency, cn } from '@/lib/utils';
-import { formatOrderDateTime, getStatusBadgeClasses } from '@/utils/orderDashboardUtils';
+import { formatOrderDateTime, getStatusBadgeClasses, getStatusBadgeHoverClasses } from '@/utils/orderDashboardUtils';
 import { OrderStatus, mapOrderStatusToSupabase } from '@/types/supabaseTypes';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -58,7 +58,7 @@ const AdminOrderDetailContent = () => {
     },
   });
   
-  const statusSequence: OrderStatus[] = ['new', 'preparing', 'ready', 'delivery', 'completed'];
+  const statusSequence: OrderStatus[] = ['new', 'preparing', 'ready', 'delivery', 'completed', 'paid', 'cancelled'];
   const currentStatusIndex = order ? statusSequence.indexOf(order.order_status) : -1;
   const canBeAdvanced = currentStatusIndex > -1 && currentStatusIndex < statusSequence.length - 1;
 
@@ -101,7 +101,8 @@ const AdminOrderDetailContent = () => {
                 className={cn(
                     "text-sm font-semibold capitalize px-3 py-1",
                     getStatusBadgeClasses(order.order_status),
-                    canBeAdvanced && "cursor-pointer hover:opacity-80 transition-opacity",
+                    canBeAdvanced && "cursor-pointer transition-colors",
+                    canBeAdvanced && getStatusBadgeHoverClasses(order.order_status),
                     isUpdatingStatus && "cursor-wait"
                 )}
                 onClick={handleStatusUpdate}
