@@ -162,10 +162,10 @@ const OrdersDashboard = () => {
         </div>
         
         {/* Status Tabs - with new button toggle logic */}
-        <div className="mb-2">
+        <div className="mb-4">
           <Tabs value={activeStatus} onValueChange={handleTabChange}>
             <TabsList
-              className="w-full flex flex-wrap gap-1 bg-muted px-1 py-1 rounded-md border"
+              className="w-full flex flex-wrap gap-1 bg-muted p-2 rounded-md border"
             >
               {tabOptions.map(tab => (
                 <TabsTrigger
