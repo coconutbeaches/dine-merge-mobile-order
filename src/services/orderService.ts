@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { CartItem as CartItemType } from '@/types/CartItem';
+import { CartItem as CartItemType } from '@/types';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 
 // Export CartItem for compatibility
