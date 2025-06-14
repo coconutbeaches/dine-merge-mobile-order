@@ -1,11 +1,13 @@
-import { useState, useEffect, useRef } from "react";
+
+import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
-import type { Product, ProductOption, ProductOptionChoice } from "@/types/supabaseTypes";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import type { ProductOption, ProductOptionChoice } from "@/types/supabaseTypes";
+import { useProductLoader } from "./useProductLoader";
 
 // For brevity, interface definition
 interface Category {
@@ -21,17 +23,25 @@ interface FormValues {
 }
 
 const useProductForm = () => {
-  const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isEditMode = Boolean(id) && id !== "new";
+
+  // Use loader for all data
+  const {
+    id,
+    isEditMode,
+    product,
+    categories,
+    productOptions,
+    isLoading,
+    error,
+  } = useProductLoader();
+
+  // UI state
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [options, setOptions] = useState<ProductOption[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // ADD: categories state
-  const [categories, setCategories] = useState<Category[]>([]);
 
   // react-hook-form for field state
   const form = useForm<FormValues>({
@@ -40,112 +50,40 @@ const useProductForm = () => {
       price: "",
       description: "",
       image: null,
-      category_id: null
-    }
-  });
-
-  // Get categories
-  const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("id, name")
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      return data as Category[];
-    }
-  });
-
-  // vvv move category injection out of react-hook-form
-  useEffect(() => {
-    if (categoriesData) {
-      setCategories(categoriesData);
-    }
-  }, [categoriesData]);
-  
-  // Product
-  const { data: product, isLoading: isProductLoading, error: productError } = useQuery({
-    queryKey: ["product", id],
-    queryFn: async () => {
-      if (!isEditMode) return null;
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-      if (error) throw error;
-      return data as Product | null;
+      category_id: null,
     },
-    enabled: isEditMode
   });
 
-  // Not found / error condition
-  let error = null;
-  if (productError) error = productError;
-  if (isEditMode && !isProductLoading && !product) {
-    error = `Product not found (ID: ${id})`;
-  }
-
-  // Set form fields when product and categories are loaded
+  // Reset form when data is available for editing
   useEffect(() => {
-    // Only run when both product and categories are loaded, or not in edit mode
-    if (!isEditMode) return;
-    if (!product) return;
-    if (isCategoriesLoading) return;
-    // DEBUG: Show what will be set
-    console.log("Resetting form with product:", product);
-    form.reset({
-      name: product.name ?? "",
-      price: product.price !== undefined && product.price !== null ? String(product.price) : "",
-      description: product.description ?? "",
-      category_id: product.category_id ?? null,
-      image: null
-    });
-    if (product.image_url) {
-      setImagePreview(product.image_url);
-    } else {
-      setImagePreview(null);
-    }
-  }, [product, isEditMode, isCategoriesLoading]);
-
-  // Product options for edit mode
-  const { data: productOptions } = useQuery({
-    queryKey: ["productOptions", id],
-    queryFn: async () => {
-      if (!isEditMode) return [];
-      const { data: optionsData, error: optionsError } = await supabase
-        .from("product_options")
-        .select("*")
-        .eq("product_id", id)
-        .order("sort_order", { ascending: true });
-      if (optionsError) throw optionsError;
-
-      const options: ProductOption[] = [];
-      for (const option of optionsData) {
-        const { data: choicesData, error: choicesError } = await supabase
-          .from("product_option_choices")
-          .select("*")
-          .eq("option_id", option.id)
-          .order("sort_order", { ascending: true });
-        if (choicesError) throw choicesError;
-
-        options.push({
-          ...option,
-          selection_type: option.selection_type as "single" | "multiple",
-          choices: choicesData as ProductOptionChoice[]
-        });
+    if (isEditMode) {
+      // Only reset when everything is here
+      if (!product || !categories) return;
+      console.log("Resetting form with product", product);
+      form.reset({
+        name: product.name ?? "",
+        price:
+          product.price !== undefined && product.price !== null
+            ? String(product.price)
+            : "",
+        description: product.description ?? "",
+        category_id: product.category_id ?? null,
+        image: null,
+      });
+      if (product.image_url) {
+        setImagePreview(product.image_url);
+      } else {
+        setImagePreview(null);
       }
-      return options;
-    },
-    enabled: isEditMode
-  });
+    }
+  }, [product, categories, isEditMode]);
 
+  // Load options when fetched (edit mode)
   useEffect(() => {
-    if (productOptions) {
+    if (isEditMode && productOptions) {
       setOptions(productOptions);
     }
-  }, [productOptions]);
+  }, [isEditMode, productOptions]);
 
   // Image upload handler
   const handleImageChange = (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>) => {
@@ -165,7 +103,7 @@ const useProductForm = () => {
     }
   };
 
-  // Upload to supabase
+  // Supabase upload util
   const uploadImage = async (file: File) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${nanoid()}.${fileExt}`;
@@ -185,7 +123,7 @@ const useProductForm = () => {
     return publicUrl;
   };
 
-  // Create product
+  // Create product mutation
   const createProductMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       let imageUrl = null;
@@ -246,7 +184,7 @@ const useProductForm = () => {
     }
   });
 
-  // Update product
+  // Update product mutation
   const updateProductMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       if (!id) return;
@@ -370,14 +308,16 @@ const useProductForm = () => {
     handleOptionChange,
     handleDeleteOption,
     isEditMode,
-    isLoading: isProductLoading,
+    isLoading,
     error,
     createProductMutation,
     updateProductMutation,
     navigate,
     id,
-    categories, // ADD, so we can pass it to form fields
+    categories,
   };
 };
 
 export default useProductForm;
+
+// NOTE: This file is now also getting large; please consider asking for a further split/refactor for long-term maintainability.
