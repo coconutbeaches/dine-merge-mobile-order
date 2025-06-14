@@ -31,6 +31,9 @@ const useProductForm = () => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // ADD: categories state
+  const [categories, setCategories] = useState<Category[]>([]);
+
   // react-hook-form for field state
   const form = useForm<FormValues>({
     defaultValues: {
@@ -43,7 +46,7 @@ const useProductForm = () => {
   });
 
   // Get categories
-  const { data: categories } = useQuery({
+  const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -55,12 +58,12 @@ const useProductForm = () => {
     }
   });
 
-  // Load categories into the form for select rendering (injected as special value)
+  // vvv FIX: move category injection out of react-hook-form
   useEffect(() => {
-    if (categories) {
-      form.setValue("_categories", categories as any);
+    if (categoriesData) {
+      setCategories(categoriesData);
     }
-  }, [categories]); // eslint-disable-line
+  }, [categoriesData]);
 
   // Product
   const { data: product, isLoading, error: productError } = useQuery({
@@ -371,6 +374,7 @@ const useProductForm = () => {
     updateProductMutation,
     navigate,
     id,
+    categories, // ADD, so we can pass it to form fields
   };
 };
 

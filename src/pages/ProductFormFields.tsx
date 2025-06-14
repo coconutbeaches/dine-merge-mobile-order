@@ -6,9 +6,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Textarea } from "@/components/ui/textarea";
 
 // The form prop is react-hook-form's useForm return
-const ProductFormFields = ({ form }) => {
-  // Category select options
-  const categories = form.getValues("_categories") || [];
+// categories is now a prop (no longer fetched from form state)
+const ProductFormFields = ({ form, categories }) => {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

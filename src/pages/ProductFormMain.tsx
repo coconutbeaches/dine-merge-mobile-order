@@ -33,6 +33,7 @@ const ProductFormMain = () => {
     updateProductMutation,
     navigate,
     id,
+    categories // <-- Add categories here
   } = formLogic;
 
   // Loading / error / not found states
@@ -58,7 +59,7 @@ const ProductFormMain = () => {
       <div className="container mx-auto py-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <ProductFormFields form={form} />
+            <ProductFormFields form={form} categories={categories} />
             <ProductImageUpload
               form={form}
               imagePreview={imagePreview}
