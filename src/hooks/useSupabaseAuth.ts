@@ -12,6 +12,7 @@ export const useSupabaseAuth = (onProfileFetch: (userId: string) => Promise<void
     let isMounted = true;
     let authSubscription: { unsubscribe: () => void } | null = null;
 
+    // Always use setTimeout to avoid using `await` in the callback
     const authListener = supabase.auth.onAuthStateChange((event, session) => {
       if (!isMounted) return;
       console.log('[useSupabaseAuth] Auth state change:', event, session);
@@ -35,7 +36,7 @@ export const useSupabaseAuth = (onProfileFetch: (userId: string) => Promise<void
         setSupabaseSession(session ?? null);
         setSupabaseUser(session?.user ?? null);
         if (session?.user) {
-          await onProfileFetch(session.user.id);
+          await onProfileFetch(session.user.id); // This is allowed, we are inside an async function
         } else {
           await onProfileFetch('');
         }
@@ -54,4 +55,4 @@ export const useSupabaseAuth = (onProfileFetch: (userId: string) => Promise<void
   }, [onProfileFetch]);
 
   return { supabaseUser, supabaseSession, isLoading };
-};
+}
