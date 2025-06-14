@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, ReactNode } from 'react';
-import { Order, Address } from '../types/supabaseTypes';
+import { Address, Order } from '../types/supabaseTypes';
 import { useUserContext } from './UserContext';
 import { useAppCart } from '@/hooks/useAppCart';
 import { useAdminCustomerContext } from '@/hooks/useAdminCustomerContext';
@@ -16,15 +17,15 @@ interface AppContextType {
   getOrderHistory: () => Order[];
   adminCustomerContext: AdminCustomerContext | null;
   setAdminCustomerContext: (context: AdminCustomerContext | null) => void;
-  
+
   // Auth related
   isLoggedIn: boolean;
   isLoading: boolean;
   currentUser: any;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
-  
-  // Cart related (from CartContext)
+
+  // Cart related
   cart: any[];
   addToCart: (item: any, quantity: number, selectedOptions?: any) => void;
   removeFromCart: (itemId: string) => void;
@@ -47,32 +48,31 @@ interface AppProviderProps {
 }
 
 export const AppProvider = ({ children }: AppProviderProps) => {
+  // Auth-related context
   const { currentUser, isLoggedIn, isLoading, login, signup } = useUserContext();
 
-  // Admin customer context
+  // Customer context for admin operations
   const { adminCustomerContext, setAdminCustomerContext } = useAdminCustomerContext();
 
-  // Cart logic
+  // Shopping cart context
   const { cart, addToCart, removeFromCart, updateCartItemQuantity, cartTotal } = useAppCart();
 
-  // Order logic
+  // Orders: Use correct user (regular or admin-customer)
   const effectiveUserId = adminCustomerContext?.customerId || currentUser?.id;
   const { placeOrder, getOrderHistory } = useAppOrders(effectiveUserId, adminCustomerContext, currentUser);
 
-  const value = {
+  const value: AppContextType = {
     // Order related
     placeOrder,
     getOrderHistory,
     adminCustomerContext,
     setAdminCustomerContext,
-    
     // Auth related
     isLoggedIn,
     isLoading,
     currentUser,
     login,
     signup,
-    
     // Cart related
     cart,
     addToCart,
