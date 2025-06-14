@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -6,6 +7,28 @@ import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
 import { formatOrderDate, formatOrderTime, getStatusColorDot } from '@/utils/orderDashboardUtils';
 
+// Helper for pill-style status badge (smaller, rounded, colored)
+const getStatusPillStyles = (status: OrderStatus) => {
+  switch (status) {
+    case 'new':
+      return 'bg-red-100 text-red-700 border border-red-200';
+    case 'preparing':
+      return 'bg-yellow-300 text-yellow-900 border border-yellow-400';
+    case 'ready':
+      return 'bg-orange-200 text-orange-800 border border-orange-400';
+    case 'delivery':
+      return 'bg-blue-100 text-blue-700 border border-blue-300';
+    case 'completed':
+      return 'bg-green-100 text-green-800 border border-green-300';
+    case 'paid':
+      return 'bg-green-200 text-green-900 border border-green-400';
+    case 'cancelled':
+      return 'bg-gray-200 text-gray-600 border border-gray-300';
+    default:
+      return 'bg-gray-100 text-gray-800 border border-gray-300';
+  }
+};
+
 interface OrdersListProps {
   orders: Order[];
   selectedOrders: number[];
@@ -13,28 +36,6 @@ interface OrdersListProps {
   updateOrderStatus: (orderId: number, newStatus: OrderStatus) => void;
   orderStatusOptions: OrderStatus[];
 }
-
-// Helper: returns bg/fg ring/label per status for the button redesign
-const getStatusButtonStyles = (status: OrderStatus) => {
-  switch (status) {
-    case 'new':
-      return 'bg-red-100 text-red-700 border-red-300';
-    case 'preparing':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-    case 'ready':
-      return 'bg-orange-100 text-orange-800 border-orange-300';
-    case 'delivery':
-      return 'bg-blue-100 text-blue-700 border-blue-300';
-    case 'completed':
-      return 'bg-green-100 text-green-800 border-green-300';
-    case 'paid':
-      return 'bg-green-200 text-green-900 border-green-400';
-    case 'cancelled':
-      return 'bg-gray-200 text-gray-700 border-gray-300';
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-300';
-  }
-};
 
 const OrdersList = ({ 
   orders, 
@@ -49,45 +50,23 @@ const OrdersList = ({
 
   return (
     <div>
-      {/* Table Heading Row */}
-      <div className="grid grid-cols-11 gap-x-1 md:gap-x-3 p-3 items-center border-b font-semibold text-xs md:text-sm bg-muted">
-        {/* Selection */}
-        <div className="col-span-1 flex items-center min-w-[32px]">
-          {/* Empty, no header for checkbox */}
-        </div>
-        {/* Customer */}
-        <div className="col-span-3 min-w-0">
-          Customer
-          {/* Removed Table heading */}
-        </div>
-        {/* Amount - No heading so we keep an empty heading for "Amount" */}
-        <div className="col-span-2 text-right">
-          {/* No label here so it looks less cluttered */}
-        </div>
-        {/* Date */}
-        <div className="col-span-2 text-xs text-muted-foreground flex flex-col">
-          {/* No label here */}
-        </div>
-        {/* Status */}
-        <div className="col-span-3 flex min-w-[140px] md:min-w-[180px]">
-          Status
-        </div>
-      </div>
-
+      {/* Removed table heading (Pink box) */}
+      {/* Orders rows */}
       {orders.map((order) => {
         const customerDisplayName = order.customer_name_from_profile || 
                                   order.customer_name || 
                                   `Order #${order.id}`;
 
         const statusVal: OrderStatus = order.order_status || "new";
-        const statusButtonStyle = getStatusButtonStyles(statusVal);
+        const statusPillStyle = getStatusPillStyles(statusVal);
 
         return (
           <div
             key={order.id}
             className="grid grid-cols-11 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
+            style={{ gridTemplateColumns: "min-content minmax(0,1.7fr) min-content min-content minmax(0,1.15fr) minmax(0,1.15fr) min-content min-content min-content min-content min-content" }}
           >
-            {/* Selection */}
+            {/* Checkbox */}
             <div className="col-span-1 flex items-center min-w-[32px]">
               <Checkbox 
                 checked={selectedOrders.includes(order.id)} 
@@ -95,7 +74,7 @@ const OrdersList = ({
                 aria-label={`Select order ${order.id}`}
               />
             </div>
-            {/* Customer (name + table number below if present) */}
+            {/* Customer name (plus table number below, small text) */}
             <div className="col-span-3 min-w-0">
               {order.user_id ? (
                 <Link 
@@ -113,7 +92,6 @@ const OrdersList = ({
                   {customerDisplayName}
                 </div>
               )}
-              {/* Table number below name, small text, muted */}
               {order.table_number && (
                 <div className="text-xs text-muted-foreground mt-0.5">
                   {order.table_number === 'Take Away'
@@ -122,41 +100,41 @@ const OrdersList = ({
                 </div>
               )}
             </div>
-            {/* Amount */}
+            {/* Order Amount (moved left, less padding, clickable) */}
             <Link
               to={`/admin/order/${order.id}`}
-              className="col-span-2 text-right cursor-pointer text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
+              className="col-span-2 text-right cursor-pointer text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-1 pr-0" // pl-1 pulls it left
               title={`View full order #${order.id}`}
               tabIndex={0}
+              style={{ minWidth: 0 }}
             >
               {formatThaiCurrency(order.total_amount)}
             </Link>
-            {/* Date */}
+            {/* Date/Time (clickable) */}
             <Link
               to={`/admin/order/${order.id}`}
               className="col-span-2 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
               title={`View full order #${order.id}`}
               tabIndex={0}
+              style={{ minWidth: 0 }}
             >
               <span>{formatOrderDate(order.created_at)}</span>
               <span>{formatOrderTime(order.created_at)}</span>
             </Link>
-            {/* Status column widened */}
-            <div className="col-span-3 flex min-w-[140px] md:min-w-[180px]">
+            {/* Order Status: as a small pill-shaped select */}
+            <div className="col-span-3 min-w-[85px] md:min-w-[120px] flex items-center">
               <Select
                 value={statusVal}
                 onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
               >
                 <SelectTrigger
-                  className={`w-full h-9 px-3 text-xs md:text-sm font-semibold border ${statusButtonStyle} flex items-center gap-2 shadow-sm focus:ring-2 focus:ring-ring focus:ring-offset-1 transition-colors`}
-                  style={{ minWidth: 0 }} // prevent overflow
+                  className={`min-w-[85px] max-w-full h-7 px-2 text-xs font-semibold border-0 bg-transparent shadow-none focus:ring-0 ${statusPillStyle} rounded-full transition`}
+                  style={{ boxShadow: 'none', minWidth: 0, height: 28 }}
                 >
                   <span
-                    className={`inline-block w-2.5 h-2.5 rounded-full mr-1 ${getStatusColorDot(statusVal)}`}
+                    className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusColorDot(statusVal)}`}
                   ></span>
-                  <span className="capitalize">
-                    {statusVal === 'delivery' ? 'Delivery' : statusVal}
-                  </span>
+                  <span className="capitalize">{statusVal === 'delivery' ? 'Delivery' : statusVal}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {orderStatusOptions.map(statusOption => (
@@ -165,7 +143,7 @@ const OrdersList = ({
                       value={statusOption}
                       className="flex items-center gap-2 text-xs capitalize"
                     >
-                      <span className={`inline-block w-2.5 h-2.5 rounded-full ${getStatusColorDot(statusOption)}`}></span>
+                      <span className={`inline-block w-2 h-2 rounded-full ${getStatusColorDot(statusOption)}`}></span>
                       {statusOption === 'delivery' ? 'Delivery' : statusOption}
                     </SelectItem>
                   ))}
