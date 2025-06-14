@@ -3,6 +3,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { Order, Address } from '../types/supabaseTypes';
 import { useUserContext } from './UserContext';
 import { useOrders } from '@/hooks/useOrders';
+import { useCartContext } from './CartContext';
 
 interface AdminCustomerContext {
   customerId: string;
@@ -10,13 +11,25 @@ interface AdminCustomerContext {
 }
 
 interface AppContextType {
+  // Order related
   placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string) => Promise<Order | null>;
   getOrderHistory: () => Order[];
   adminCustomerContext: AdminCustomerContext | null;
   setAdminCustomerContext: (context: AdminCustomerContext | null) => void;
+  
+  // Auth related
   isLoggedIn: boolean;
   isLoading: boolean;
   currentUser: any;
+  login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, name: string) => Promise<boolean>;
+  
+  // Cart related (from CartContext)
+  cart: any[];
+  addToCart: (item: any, quantity: number, selectedOptions?: any) => void;
+  removeFromCart: (itemId: string) => void;
+  updateCartItemQuantity: (itemId: string, quantity: number) => void;
+  cartTotal: number;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -34,7 +47,8 @@ interface AppProviderProps {
 }
 
 export const AppProvider = ({ children }: AppProviderProps) => {
-  const { currentUser, isLoggedIn, isLoading } = useUserContext();
+  const { currentUser, isLoggedIn, isLoading, login, signup } = useUserContext();
+  const { cart, addToCart, removeFromCart, updateCartItemQuantity, cartTotal } = useCartContext();
   const [adminCustomerContext, setAdminCustomerContext] = React.useState<AdminCustomerContext | null>(null);
   
   // Use admin customer ID if available, otherwise use current user ID
@@ -72,13 +86,25 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   };
 
   const value = {
+    // Order related
     placeOrder: handlePlaceOrder,
     getOrderHistory,
     adminCustomerContext,
     setAdminCustomerContext,
+    
+    // Auth related
     isLoggedIn,
     isLoading,
-    currentUser
+    currentUser,
+    login,
+    signup,
+    
+    // Cart related
+    cart,
+    addToCart,
+    removeFromCart,
+    updateCartItemQuantity,
+    cartTotal
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

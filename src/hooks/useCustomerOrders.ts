@@ -58,25 +58,31 @@ export const useCustomerOrders = (customerId: string | undefined) => {
 
   const fetchCustomerOrders = async (userId: string) => {
     try {
-      // Fetch orders with customer profile information
-      const { data, error } = await supabase
+      // First fetch orders
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles!orders_user_id_fkey (
-            name,
-            email
-          )
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
-      console.log("Customer orders raw data:", data);
+      if (ordersError) throw ordersError;
       
-      if (data) {
+      // Then fetch profile data separately
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', userId)
+        .single();
+        
+      if (profileError) {
+        console.warn('Could not fetch profile data:', profileError);
+      }
+      
+      console.log("Customer orders raw data:", ordersData);
+      
+      if (ordersData) {
         // Transform the data to correctly handle the order_status and add customer info
-        const transformedOrders = data.map(order => {
+        const transformedOrders = ordersData.map(order => {
           let appOrderStatus: OrderStatus;
           
           if (order.order_status) {
@@ -91,8 +97,8 @@ export const useCustomerOrders = (customerId: string | undefined) => {
           return {
             ...order,
             order_status: appOrderStatus,
-            customer_name_from_profile: order.profiles?.name,
-            customer_email_from_profile: order.profiles?.email
+            customer_name_from_profile: profileData?.name || null,
+            customer_email_from_profile: profileData?.email || null
           } as Order;
         });
         

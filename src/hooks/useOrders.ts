@@ -41,26 +41,32 @@ export function useOrders(userId: string | undefined) {
   const loadUserOrders = async (userId: string) => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      // First fetch orders
+      const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select(`
-          *,
-          profiles!orders_user_id_fkey (
-            name,
-            email
-          )
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (ordersError) throw ordersError;
 
-      if (data) {
-        const transformedOrders = data.map(order => ({
+      // Then fetch profile data separately
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', userId)
+        .single();
+        
+      if (profileError) {
+        console.warn('Could not fetch profile data:', profileError);
+      }
+
+      if (ordersData) {
+        const transformedOrders = ordersData.map(order => ({
           ...order,
           order_status: order.order_status as OrderStatus,
-          customer_name_from_profile: order.profiles?.name,
-          customer_email_from_profile: order.profiles?.email
+          customer_name_from_profile: profileData?.name || null,
+          customer_email_from_profile: profileData?.email || null
         })) as Order[];
         
         setOrders(transformedOrders);
@@ -101,7 +107,7 @@ export function useOrders(userId: string | undefined) {
       // Get customer name from profile
       const { data: profile } = await supabase
         .from('profiles')
-        .select('name')
+        .select('name, email')
         .eq('id', userId)
         .single();
       
@@ -134,7 +140,7 @@ export function useOrders(userId: string | undefined) {
         table_number: insertedOrderData.table_number || tableNumberInput,
         customer_name: insertedOrderData.customer_name,
         customer_name_from_profile: customerName,
-        customer_email_from_profile: profile?.email
+        customer_email_from_profile: profile?.email || null
       };
       
       console.log("New order created for local state:", newOrderForLocalState);
