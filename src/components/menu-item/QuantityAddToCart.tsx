@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, Minus } from 'lucide-react';
+import { formatThaiCurrency } from '@/lib/utils'; // Import the formatter
 
 interface QuantityAddToCartProps {
   quantity: number;
@@ -46,7 +47,7 @@ const QuantityAddToCart: React.FC<QuantityAddToCartProps> = ({
           onClick={onAddToCart}
           className="bg-black hover:bg-black/90 text-white"
         >
-          Add to Cart - ${totalPrice.toFixed(2)}
+          Add to Cart - {formatThaiCurrency(totalPrice)}
         </Button>
       </div>
     </div>

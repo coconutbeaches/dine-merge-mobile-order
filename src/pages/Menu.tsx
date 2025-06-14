@@ -109,11 +109,11 @@ const Menu = () => {
     setFilteredProducts(filtered);
   }, [searchQuery, activeCategory, products]);
   
+  // Replace the old formatPrice with the global standardized format
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('th-TH', {
-      style: 'currency',
-      currency: 'THB',
-    }).format(price);
+    // Use our global formatter that always uses no decimals
+    // Import at the top: import { formatThaiCurrency } from '@/lib/utils';
+    return formatThaiCurrency(price);
   };
   
   return (
