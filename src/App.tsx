@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +6,6 @@ import AppContextProvider from "./context/AppContextProvider";
 
 // Pages
 import Index from "./pages/Index";
-import Menu from "./pages/Menu";
 import MenuItemDetail from "./pages/MenuItemDetail";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -72,4 +70,3 @@ function App() {
 }
 
 export default App;
-
