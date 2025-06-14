@@ -239,11 +239,18 @@ export interface CartItem {
     image_url?: string | null;
 }
 
-// Remove 'out_for_delivery', only include allowed statuses:
-export type OrderStatus = 'new' | 'preparing' | 'ready' | 'delivery' | 'completed' | 'cancelled' | 'paid';
-export type SupabaseOrderStatus = 'new' | 'preparing' | 'ready' | 'delivery' | 'completed' | 'cancelled' | 'paid';
+// Remove 'out_for_delivery', only include allowed statuses in new order:
+export type OrderStatus = 
+  'new' | 
+  'preparing' | 
+  'ready' | 
+  'delivery' | 
+  'completed' | 
+  'paid' | 
+  'cancelled';
+export type SupabaseOrderStatus = OrderStatus;
 
-// Mapping functions - all only map to/from valid statuses:
+// Update mapping functions and their comments:
 export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStatus => {
   switch (status) {
     case 'new': return 'new';
@@ -251,8 +258,8 @@ export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStat
     case 'ready': return 'ready';
     case 'delivery': return 'delivery';
     case 'completed': return 'completed';
-    case 'cancelled': return 'cancelled';
     case 'paid': return 'paid';
+    case 'cancelled': return 'cancelled';
     default: return 'new';
   }
 };
@@ -264,10 +271,8 @@ export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStat
     case 'ready': return 'ready';
     case 'delivery': return 'delivery';
     case 'completed': return 'completed';
-    case 'cancelled': return 'cancelled';
     case 'paid': return 'paid';
-    // if an old value ever comes up, coerce to 'delivery'
-    // case 'out_for_delivery': return 'delivery';
+    case 'cancelled': return 'cancelled';
     default: return 'new';
   }
 };

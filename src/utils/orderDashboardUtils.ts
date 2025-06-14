@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { OrderStatus, SupabaseOrderStatus } from '@/types/supabaseTypes';
+import { OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
 
 // Format date to a shorter, more readable format
@@ -48,6 +48,8 @@ export const getStatusColorDot = (status: OrderStatus | null) => {
       return "bg-blue-500";
     case 'completed':
       return "bg-green-500";
+    case 'paid':
+      return "bg-green-700";
     case 'cancelled':
       return "bg-gray-500";
     default:
@@ -55,12 +57,13 @@ export const getStatusColorDot = (status: OrderStatus | null) => {
   }
 };
 
-// Define the order statuses for the dropdown. (replaces "out_for_delivery" with "delivery")
+// Updated orderStatuses to place "paid" after "completed" but before "cancelled"
 export const orderStatusOptions: OrderStatus[] = [
   'new',
   'preparing',
   'ready',
   'delivery',
   'completed',
+  'paid',
   'cancelled'
 ];

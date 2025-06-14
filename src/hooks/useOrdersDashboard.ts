@@ -53,10 +53,9 @@ export const useOrdersDashboard = () => {
         const transformedOrders = ordersData.map(order => {
           const profile = profilesData?.find(p => p.id === order.user_id);
 
-          // Type assertion updated here: force the result to fit the new Order type
+          // Make sure we parse order_status correctly; our types now expect "paid"
           return {
             ...order,
-            // Map *from* the DB value (which is SupabaseOrderStatus) to our local OrderStatus
             order_status: order.order_status ? mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus) : 'new' as OrderStatus,
             customer_name_from_profile: profile?.name || null,
             customer_email_from_profile: profile?.email || null
