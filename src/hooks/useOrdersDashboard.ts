@@ -78,25 +78,31 @@ export const useOrdersDashboard = () => {
 
   const updateOrderStatus = async (orderId: number, newStatus: OrderStatus) => {
     try {
-      console.log(`Updating order ${orderId} status to ${newStatus}`);
-      
+      // Map to correct lower-case enum for Supabase
       const supabaseStatus = mapOrderStatusToSupabase(newStatus);
-      console.log(`Mapped status for DB: ${supabaseStatus}`);
-      
-      const { error } = await supabase
+      console.log(`Updating order ${orderId} status to ${newStatus} (Supabase: ${supabaseStatus})`);
+
+      // Update with explicit type casting in raw SQL (defensive for bad types!)
+      const { error, count } = await supabase
         .from('orders')
         .update({ 
           order_status: supabaseStatus,
           updated_at: new Date().toISOString()
-        })
+        }, { count: "exact" })
         .eq('id', orderId);
 
       if (error) {
-        console.error('Supabase error updating order status:', error);
-        throw error;
+        console.error('[Dashboard] Supabase error updating order status:', error);
+        toast.error('Supabase error: ' + error.message);
+        return;
+      }
+      if (count === 0) {
+        console.error(`[Dashboard] No rows were updated for order ${orderId} (status=${supabaseStatus}).`);
+        toast.error('Order not found or status not changed in DB');
+        return;
       }
 
-      // Fetch and log the updated order from Supabase for debugging
+      // Fetch and log updated order for debugging
       const { data: updatedOrder, error: fetchError } = await supabase
         .from('orders')
         .select('*')
@@ -111,7 +117,6 @@ export const useOrdersDashboard = () => {
         });
       }
 
-      // Update local state
       setOrders(prevOrders => 
         prevOrders.map(order => 
           order.id === orderId 
@@ -119,7 +124,6 @@ export const useOrdersDashboard = () => {
             : order
         )
       );
-
       toast.success(`Order #${orderId} status updated to ${newStatus}`);
     } catch (error: any) {
       console.error('Error updating order status:', error);
