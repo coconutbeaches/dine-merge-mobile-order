@@ -13,12 +13,12 @@ export const formatDate = (dateString: string | null) => {
   }
 };
 
-// Format to "Jun 02 25"
+// Format to "Jun 02"
 export const formatOrderDate = (dateString: string | null) => {
   if (!dateString) return 'N/A';
   try {
     const date = new Date(dateString);
-    return format(date, 'MMM dd yy');
+    return format(date, 'MMM dd'); // Removed year
   } catch (e) {
     return 'Invalid Date';
   }
