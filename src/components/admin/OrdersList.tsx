@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -34,6 +35,8 @@ interface OrdersListProps {
   toggleSelectOrder: (orderId: number) => void;
   updateOrderStatus: (orderId: number, newStatus: OrderStatus) => void;
   orderStatusOptions: OrderStatus[];
+  selectAllOrders: () => void;
+  clearSelection: () => void;
 }
 
 const OrdersList = ({ 
@@ -41,14 +44,38 @@ const OrdersList = ({
   selectedOrders, 
   toggleSelectOrder,
   updateOrderStatus,
-  orderStatusOptions
+  orderStatusOptions,
+  selectAllOrders,
+  clearSelection,
 }: OrdersListProps) => {
   if (orders.length === 0) {
     return <div className="p-6 text-center text-muted-foreground">No orders found.</div>;
   }
 
+  const allSelected = orders.length > 0 && selectedOrders.length === orders.length;
+  const isIndeterminate = selectedOrders.length > 0 && !allSelected;
+
+  const handleSelectAllChange = () => {
+    if (allSelected) {
+      clearSelection();
+    } else {
+      selectAllOrders();
+    }
+  };
+
   return (
     <div>
+      {/* Header row for select all */}
+      <div className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b bg-muted/50 text-sm font-medium text-muted-foreground">
+        <div className="col-span-1 flex items-center min-w-[32px]">
+            <Checkbox 
+                checked={isIndeterminate ? 'indeterminate' : allSelected}
+                onCheckedChange={handleSelectAllChange}
+                aria-label="Select all orders"
+            />
+        </div>
+        <div className="col-span-11"></div>
+      </div>
       {/* Orders rows */}
       {orders.map((order) => {
         const customerDisplayName = order.customer_name_from_profile || 
@@ -99,11 +126,13 @@ const OrdersList = ({
             </div>
             {/* Order Amount */}
             <div
-              className="col-span-2 text-right font-bold pl-1"
+              className="col-span-2 text-right font-bold pl-1 pr-4"
               title={`Order #${order.id}`}
               style={{ minWidth: 0 }}
             >
-              {formatThaiCurrency(order.total_amount)}
+              <Link to={`/admin/orders/${order.id}`} className="hover:underline">
+                {formatThaiCurrency(order.total_amount)}
+              </Link>
             </div>
             {/* Date/Time */}
             <div

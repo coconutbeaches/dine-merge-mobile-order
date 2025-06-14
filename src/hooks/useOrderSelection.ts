@@ -13,8 +13,9 @@ export const useOrderSelection = (orders: Order[]) => {
     );
   }, []);
 
-  const selectAllOrders = useCallback(() => {
-    setSelectedOrders(orders.map(order => order.id));
+  const selectAllOrders = useCallback((orderIds?: number[]) => {
+    const idsToSelect = orderIds || orders.map(order => order.id);
+    setSelectedOrders(idsToSelect);
   }, [orders]);
 
   const clearSelection = useCallback(() => {

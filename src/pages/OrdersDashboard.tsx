@@ -19,7 +19,9 @@ const OrdersDashboard = () => {
     updateOrderStatus,
     deleteSelectedOrders,
     toggleSelectOrder,
-    updateMultipleOrderStatuses
+    updateMultipleOrderStatuses,
+    selectAllOrders,
+    clearSelection
   } = useOrdersDashboard();
 
   const [bulkStatus, setBulkStatus] = useState<OrderStatus | "">("");
@@ -115,6 +117,8 @@ const OrdersDashboard = () => {
                 toggleSelectOrder={toggleSelectOrder}
                 updateOrderStatus={updateOrderStatus}
                 orderStatusOptions={orderStatusOptions}
+                selectAllOrders={() => selectAllOrders(filteredOrders.map(o => o.id))}
+                clearSelection={clearSelection}
               />
             )}
           </CardContent>

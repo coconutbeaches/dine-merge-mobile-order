@@ -18,7 +18,7 @@ const StatusTabs = ({ activeStatus, onTabChange, tabOptions }: StatusTabsProps) 
     <div className="mb-4">
       <Tabs value={activeStatus} onValueChange={onTabChange}>
         <TabsList
-          className="w-full flex flex-wrap gap-1 bg-muted p-2 rounded-md border"
+          className="w-full h-auto flex flex-wrap gap-1 bg-muted p-2 rounded-md border"
         >
           {tabOptions.map(tab => (
             <TabsTrigger
