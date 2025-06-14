@@ -53,10 +53,10 @@ export const useOrdersDashboard = () => {
         const transformedOrders = ordersData.map(order => {
           const profile = profilesData?.find(p => p.id === order.user_id);
 
-          // Make sure we parse order_status correctly; our types now expect "paid"
+          // Parse order_status and force to our local updated OrderStatus type
           return {
             ...order,
-            order_status: order.order_status ? mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus) : 'new' as OrderStatus,
+            order_status: order.order_status ? mapSupabaseToOrderStatus(order.order_status as OrderStatus) : 'new',
             customer_name_from_profile: profile?.name || null,
             customer_email_from_profile: profile?.email || null
           };
@@ -78,7 +78,7 @@ export const useOrdersDashboard = () => {
       const supabaseStatus = mapOrderStatusToSupabase(newStatus);
       console.log(`Updating order ${orderId} status to ${newStatus} (Supabase: ${supabaseStatus})`);
 
-      // Type for order_status matches SupabaseOrderStatus (not including out_for_delivery)
+      // order_status field now matches the updated OrderStatus union
       const { error, count } = await supabase
         .from('orders')
         .update({ 
@@ -98,7 +98,6 @@ export const useOrdersDashboard = () => {
         return;
       }
 
-      // Fetch and log updated order for debugging
       const { data: updatedOrder, error: fetchError } = await supabase
         .from('orders')
         .select('*')
@@ -132,7 +131,6 @@ export const useOrdersDashboard = () => {
     try {
       const supabaseStatus = mapOrderStatusToSupabase(newStatus);
 
-      // order_status field now correctly typed
       const { error, count } = await supabase
         .from('orders')
         .update({ 
