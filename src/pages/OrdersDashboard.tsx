@@ -1,17 +1,14 @@
+
 import React, { useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import AdminOrderCreator from '@/components/admin/AdminOrderCreator';
 import { useOrdersDashboard } from '@/hooks/useOrdersDashboard';
 import OrdersTableHeader from '@/components/admin/OrdersTableHeader';
 import OrdersList from '@/components/admin/OrdersList';
 import { orderStatusOptions } from '@/utils/orderDashboardUtils';
-import { Trash, RefreshCw, Search } from "lucide-react";
-import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
 import { OrderStatus } from '@/types/supabaseTypes';
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import OrdersDashboardHeader from '@/components/admin/OrdersDashboardHeader';
+import StatusTabs from '@/components/admin/StatusTabs';
 
 const ALL_TAB = "all";
 
@@ -38,26 +35,22 @@ const OrdersDashboard = () => {
     updateMultipleOrderStatuses(selectedOrders, value);
   };
 
-  // New logic for toggling status tabs: clicking a selected tab will deselect it ("All")
   const handleTabChange = (tabValue: string) => {
     if (tabValue === activeStatus) {
-      setActiveStatus(ALL_TAB); // clicking again removes filter → show all
+      setActiveStatus(ALL_TAB);
     } else {
       setActiveStatus(tabValue);
     }
   };
 
-  // Filter logic: filter by search and by status (if status not "all")
   const filteredOrders = useMemo(() => {
     let filtered = orders;
 
-    // Apply search filter if needed
     if (search.trim()) {
       const s = search.trim().toLowerCase();
       filtered = filtered.filter(order => {
         const name = (order.customer_name_from_profile || order.customer_name || "").toLowerCase();
         const email = (order.customer_email_from_profile || "").toLowerCase();
-        // const phone = (order.phone || "").toLowerCase(); // field does not exist
         const orderIdStr = String(order.id);
 
         let containsProduct = false;
@@ -73,14 +66,12 @@ const OrdersDashboard = () => {
         return (
           name.includes(s) ||
           email.includes(s) ||
-          // phone.includes(s) ||
           orderIdStr.includes(s) ||
           containsProduct
         );
       });
     }
 
-    // Apply status filter, unless "all" tab is active
     if (activeStatus !== ALL_TAB) {
       filtered = filtered.filter(order => order.order_status === activeStatus);
     }
@@ -88,7 +79,6 @@ const OrdersDashboard = () => {
     return filtered;
   }, [orders, search, activeStatus]);
 
-  // TAB options: All + each status
   const tabOptions = [
     { label: "All", value: ALL_TAB },
     ...orderStatusOptions.map(status => ({
@@ -100,87 +90,23 @@ const OrdersDashboard = () => {
   return (
     <Layout title="Orders Dashboard" showBackButton={false}>
       <div className="page-container p-4 md:p-6">
-        {/* Search and action buttons area */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          {/* Search field left, tools right */}
-          <div className="flex-1 flex gap-2 items-center">
-            <div className="relative w-full max-w-xs">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5 pointer-events-none" />
-              <Input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search orders (customer, order #, product)..."
-                className="pl-9 pr-2 py-2 text-sm"
-                type="search"
-                aria-label="Search orders"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2 flex-wrap items-center">
-            <div className="flex gap-2 items-center">
-              <AdminOrderCreator />
-              <Select
-                value={bulkStatus}
-                onValueChange={handleBulkStatusChange}
-                disabled={selectedOrders.length === 0 || isLoading}
-              >
-                <SelectTrigger className="w-28 h-9 text-sm font-medium border-gray-300 [&>span]:font-bold">
-                  <SelectValue placeholder="Bulk Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {orderStatusOptions.map(status => (
-                    <SelectItem
-                      key={status}
-                      value={status}
-                      className="capitalize text-xs"
-                    >
-                      {status === 'delivery' ? 'Delivery' : status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button 
-                variant="destructive" 
-                disabled={selectedOrders.length === 0 || isLoading}
-                onClick={deleteSelectedOrders}
-                size="icon"
-                aria-label="Delete selected"
-              >
-                <Trash size={18} />
-              </Button>
-              <Button 
-                onClick={fetchOrders} 
-                disabled={isLoading}
-                size="icon"
-                variant="secondary"
-                aria-label="Refresh"
-              >
-                <RefreshCw size={18} />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <OrdersDashboardHeader
+          search={search}
+          setSearch={setSearch}
+          bulkStatus={bulkStatus}
+          handleBulkStatusChange={handleBulkStatusChange}
+          selectedOrders={selectedOrders}
+          isLoading={isLoading}
+          deleteSelectedOrders={deleteSelectedOrders}
+          fetchOrders={fetchOrders}
+        />
         
-        {/* Status Tabs - with new button toggle logic */}
-        <div className="mb-4">
-          <Tabs value={activeStatus} onValueChange={handleTabChange}>
-            <TabsList
-              className="w-full flex flex-wrap gap-1 bg-muted p-2 rounded-md border"
-            >
-              {tabOptions.map(tab => (
-                <TabsTrigger
-                  key={tab.value}
-                  value={tab.value}
-                  className={`whitespace-nowrap rounded-sm px-2 py-1 text-xs font-semibold capitalize transition-colors focus-visible:outline-none data-[state=active]:bg-primary data-[state=active]:text-primary-foreground`}
-                >
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </div>
+        <StatusTabs 
+          activeStatus={activeStatus}
+          onTabChange={handleTabChange}
+          tabOptions={tabOptions}
+        />
 
-        {/* Orders table */}
         <Card>
           <CardHeader className="bg-muted/50 p-3">
             <OrdersTableHeader 
