@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/supabaseTypes';
 import { useAppContext } from '@/context/AppContext';
+import { formatThaiCurrency } from '@/lib/utils';
 
 interface Category {
   id: string;
@@ -112,7 +113,6 @@ const Menu = () => {
   // Replace the old formatPrice with the global standardized format
   const formatPrice = (price: number) => {
     // Use our global formatter that always uses no decimals
-    // Import at the top: import { formatThaiCurrency } from '@/lib/utils';
     return formatThaiCurrency(price);
   };
   
