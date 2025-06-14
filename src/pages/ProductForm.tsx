@@ -163,22 +163,26 @@ const ProductForm = () => {
 
   // Set form values when product data is loaded
   useEffect(() => {
-    if (product) {
+    // Populate form only when editing and product changes
+    if (isEditMode && product) {
       form.reset({
         name: product.name ?? '',
-        price: product.price ?? '',
+        price: product.price !== undefined && product.price !== null ? String(product.price) : '',
         description: product.description ?? '',
         category_id: product.category_id ?? null,
-        // NOTE: intentionally NOT setting 'image' here as it is only for upload
+        image: null, // never prefill image upload, that's user-provided only
       });
 
+      // Show preview if image url exists
       if (product.image_url) {
         setImagePreview(product.image_url);
       } else {
         setImagePreview(null);
       }
     }
-  }, [product, form]);
+    // Only runs when product changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product, isEditMode]); // add isEditMode in deps for clarity
 
   // Set options when product options are loaded
   useEffect(() => {
