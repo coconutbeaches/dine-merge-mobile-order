@@ -176,7 +176,7 @@ const MenuItemDetail = () => {
       description: `${quantity} × ${product.name} added to your cart`,
     });
     
-    navigate('/menu');
+    navigate('/');
   };
   
   // Calculate total price for display
