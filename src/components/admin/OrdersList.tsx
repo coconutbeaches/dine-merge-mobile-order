@@ -64,7 +64,7 @@ const OrdersList = ({
             key={order.id}
             className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
             style={{
-              gridTemplateColumns: "min-content minmax(0,3fr) minmax(0,1.5fr) minmax(0,1.8fr) minmax(0,2fr)"
+              gridTemplateColumns: "min-content minmax(0,2.5fr) minmax(0,1.1fr) minmax(0,1.2fr) min-content min-content min-content min-content min-content min-content min-content min-content"
             }}
           >
             {/* Checkbox */}
@@ -75,9 +75,8 @@ const OrdersList = ({
                 aria-label={`Select order ${order.id}`}
               />
             </div>
-            
-            {/* Customer name (left aligned), table number below */}
-            <div className="col-span-3 min-w-0 text-left">
+            {/* Customer name, table number below */}
+            <div className="col-span-3 min-w-0">
               {order.user_id ? (
                 <Link 
                   to={`/admin/customer-orders/${order.user_id}`} 
@@ -102,22 +101,20 @@ const OrdersList = ({
                 </div>
               )}
             </div>
-            
-            {/* Order Amount */}
+            {/* Order Amount (now moved left, add extra space after) */}
             <Link
               to={`/admin/order/${order.id}`}
-              className="col-span-2 text-right cursor-pointer text-primary font-bold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
+              className="col-span-2 text-right cursor-pointer text-primary font-bold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-1 pr-5"
               title={`View full order #${order.id}`}
               tabIndex={0}
               style={{ minWidth: 0 }}
             >
               {formatThaiCurrency(order.total_amount)}
             </Link>
-            
-            {/* Date/Time (clickable, wider for 2 lines) */}
+            {/* Date/Time (clickable) */}
             <Link
               to={`/admin/order/${order.id}`}
-              className="col-span-3 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
+              className="col-span-2 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
               title={`View full order #${order.id}`}
               tabIndex={0}
               style={{ minWidth: 0 }}
@@ -125,9 +122,8 @@ const OrdersList = ({
               <span>{formatOrderDate(order.created_at)}</span>
               <span>{formatOrderTime(order.created_at)}</span>
             </Link>
-            
-            {/* Order Status: as a small pill-shaped select (right aligned) */}
-            <div className="col-span-3 min-w-[70px] md:min-w-[100px] flex items-center justify-end">
+            {/* Order Status: as a small pill-shaped select */}
+            <div className="col-span-3 min-w-[70px] md:min-w-[100px] flex items-center">
               <Select
                 value={statusVal}
                 onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
