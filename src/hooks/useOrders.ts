@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Order, Address, OrderStatus, SupabaseOrderStatus, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,15 +16,57 @@ export function useOrders(userId: string | undefined) {
     if (userId) {
       loadUserOrders(userId);
       
-      // Setup real-time subscription for orders
       const channel = supabase
         .channel(`orders-${userId}`)
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}` },
-          (payload) => {
+          async (payload) => {
             console.log("Real-time order update in orders hook:", payload);
-            loadUserOrders(userId);
+
+            const enrichAndTransformOrder = async (order: any): Promise<Order> => {
+              let profileData = null;
+              if (order.user_id) {
+                const { data: pData, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('name, email')
+                  .eq('id', order.user_id)
+                  .maybeSingle(); // Use maybeSingle to avoid errors if profile not found
+                  
+                if (profileError) {
+                  console.warn('Could not fetch profile data for realtime update:', profileError);
+                } else {
+                  profileData = pData;
+                }
+              }
+              
+              const appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+              
+              return {
+                ...order,
+                order_status: appOrderStatus,
+                customer_name_from_profile: profileData?.name || order.customer_name_from_profile || null,
+                customer_email_from_profile: profileData?.email || order.customer_email_from_profile || null
+              } as Order;
+            };
+
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const transformedOrder = await enrichAndTransformOrder(payload.new);
+              setOrders(prevOrders => {
+                const index = prevOrders.findIndex(o => o.id === transformedOrder.id);
+                if (index !== -1) {
+                  const newOrders = [...prevOrders];
+                  newOrders[index] = transformedOrder;
+                  return newOrders;
+                } else {
+                  return [transformedOrder, ...prevOrders];
+                }
+              });
+            } else if (payload.eventType === 'DELETE') {
+              if (payload.old.id) {
+                setOrders(prevOrders => prevOrders.filter(o => o.id !== payload.old.id));
+              }
+            }
           }
         )
         .subscribe();

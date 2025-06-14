@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
+import { calculateTotalPrice } from '@/utils/productUtils';
 
 const OrderHistory = () => {
   const navigate = useNavigate();
@@ -104,21 +105,22 @@ const OrderHistory = () => {
                   </div>
                   <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
                     {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
-                      const name = item.name || (item.menuItem && item.menuItem.name) || "Item";
-                      const price = (typeof item.price === "number"
-                        ? item.price
-                        : item.menuItem && typeof item.menuItem.price === "number"
-                          ? item.menuItem.price
-                          : 0);
+                      const hasMenuItem = item.menuItem && typeof item.menuItem === 'object';
+                      const name = hasMenuItem ? item.menuItem.name : (item.name || "Item");
+                      const quantity = item.quantity || 1;
                       const selectedOptions = item.selectedOptions;
 
+                      const lineItemTotal = hasMenuItem 
+                        ? calculateTotalPrice(item.menuItem, selectedOptions || {}) * quantity
+                        : (item.price || 0) * quantity;
+                      
                       return (
                         <div key={idx} className="text-sm mb-1">
                           <div className="flex justify-between pr-2">
                             <span>
-                              {item.quantity}× {name}
+                              {quantity}× {name}
                             </span>
-                            <span>{formatThaiCurrency(price * item.quantity)}</span>
+                            <span>{formatThaiCurrency(lineItemTotal)}</span>
                           </div>
 
                           {selectedOptions && Object.keys(selectedOptions).length > 0 && (
