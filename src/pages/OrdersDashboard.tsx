@@ -47,7 +47,7 @@ const OrdersDashboard = () => {
               onValueChange={handleBulkStatusChange}
               disabled={selectedOrders.length === 0 || isLoading}
             >
-              <SelectTrigger className="w-[140px] h-10 text-sm font-medium [&>span]:font-bold">
+              <SelectTrigger className="w-[140px] h-10 text-sm font-medium border-gray-300 [&>span]:font-bold">
                 <SelectValue placeholder="Bulk Status" />
               </SelectTrigger>
               <SelectContent>
