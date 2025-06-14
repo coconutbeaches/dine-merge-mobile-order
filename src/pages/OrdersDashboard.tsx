@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -9,7 +10,7 @@ import OrdersList from '@/components/admin/OrdersList';
 import { orderStatusOptions } from '@/utils/orderDashboardUtils';
 import { Trash, RefreshCw } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from '@/components/ui/select';
-import { useState } from "react";
+import { OrderStatus } from '@/types/supabaseTypes';
 
 const OrdersDashboard = () => {
   const { 
@@ -24,10 +25,10 @@ const OrdersDashboard = () => {
     updateMultipleOrderStatuses
   } = useOrdersDashboard();
 
-  const [bulkStatus, setBulkStatus] = useState<string>("");
+  // Fix #1: Make bulkStatus type OrderStatus | ""
+  const [bulkStatus, setBulkStatus] = useState<OrderStatus | "">("");
 
-  // Bulk status handler
-  const handleBulkStatusChange = (value: string) => {
+  const handleBulkStatusChange = (value: OrderStatus) => {
     setBulkStatus(value);
     if (selectedOrders.length === 0) return;
     updateMultipleOrderStatuses(selectedOrders, value);
@@ -39,9 +40,11 @@ const OrdersDashboard = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <h1 className="text-xl font-bold">Orders Dashboard</h1>
           <div className="flex gap-2 flex-wrap items-center">
-            <AdminOrderCreator buttonText="New Order" />
+            {/* Fix #2: Remove buttonText prop */}
+            <AdminOrderCreator />
             <Select 
               value={bulkStatus}
+              // Set bulkStatus always as OrderStatus for onValueChange
               onValueChange={handleBulkStatusChange}
               disabled={selectedOrders.length === 0 || isLoading}
             >
