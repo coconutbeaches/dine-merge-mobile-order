@@ -23,7 +23,10 @@ const OrderHistory = () => {
   // The getOrderHistory from context already filters by user and sorts.
   const orders = getOrderHistory();
   
-  const totalSpent = orders.reduce((total, order) => total + (order.total_amount || 0), 0);
+  // Only count non-cancelled orders in the spent total
+  const totalSpent = orders
+    .filter(order => order.order_status !== 'cancelled')
+    .reduce((total, order) => total + (order.total_amount || 0), 0);
   
   const getStatusColor = (status: OrderStatus | null) => {
     switch (status) {
@@ -120,3 +123,4 @@ const OrderHistory = () => {
 };
 
 export default OrderHistory;
+
