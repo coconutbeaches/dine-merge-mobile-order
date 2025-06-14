@@ -88,16 +88,22 @@ const OrdersList = ({
                   {order.order_status && (
                     <>
                       <span className={`inline-block w-2.5 h-2.5 rounded-full ${getStatusColorDot(order.order_status)}`}></span>
-                      <span className="capitalize">{order.order_status}</span>
+                      <span className="capitalize">
+                        {order.order_status === 'delivery' ? 'Delivery' : order.order_status}
+                      </span>
                     </>
                   )}
                   {!order.order_status && <span className="text-muted-foreground">Select...</span>}
                 </SelectTrigger>
                 <SelectContent>
                   {orderStatusOptions.map(statusVal => (
-                    <SelectItem key={statusVal} value={statusVal} className="flex items-center gap-2 text-xs capitalize">
+                    <SelectItem 
+                      key={statusVal} 
+                      value={statusVal} 
+                      className="flex items-center gap-2 text-xs capitalize"
+                    >
                       <span className={`inline-block w-2.5 h-2.5 rounded-full ${getStatusColorDot(statusVal)}`}></span>
-                      {statusVal}
+                      {statusVal === 'delivery' ? 'Delivery' : statusVal}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -111,3 +117,4 @@ const OrdersList = ({
 };
 
 export default OrdersList;
+

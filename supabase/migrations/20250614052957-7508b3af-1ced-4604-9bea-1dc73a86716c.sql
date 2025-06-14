@@ -1,7 +1,4 @@
 
--- First, check what columns exist in the orders table and recreate the enum properly
--- Looking at the database schema, the column exists, so let's handle this more carefully
-
 -- Drop the existing enum if it exists
 DROP TYPE IF EXISTS order_status CASCADE;
 
@@ -10,7 +7,7 @@ CREATE TYPE order_status AS ENUM (
   'new',
   'preparing', 
   'ready',
-  'out_for_delivery',
+  'delivery',
   'completed',
   'cancelled',
   'paid'
@@ -28,7 +25,13 @@ ALTER TABLE orders ALTER COLUMN order_status DROP DEFAULT;
 -- Update the column type (this will handle any existing data)
 ALTER TABLE orders 
 ALTER COLUMN order_status TYPE order_status 
-USING COALESCE(order_status::text::order_status, 'new'::order_status);
+USING COALESCE(
+  CASE 
+    WHEN order_status = 'out_for_delivery' THEN 'delivery'
+    ELSE order_status
+  END::order_status, 
+  'new'::order_status
+);
 
 -- Set the default value
 ALTER TABLE orders 

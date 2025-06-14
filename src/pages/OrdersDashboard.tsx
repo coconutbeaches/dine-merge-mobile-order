@@ -57,7 +57,7 @@ const OrdersDashboard = () => {
                     value={status} 
                     className="capitalize text-xs"
                   >
-                    {status}
+                    {status === 'delivery' ? 'Delivery' : status}
                   </SelectItem>
                 ))}
               </SelectContent>

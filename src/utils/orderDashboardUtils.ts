@@ -44,7 +44,7 @@ export const getStatusColorDot = (status: OrderStatus | null) => {
       return "bg-yellow-500";
     case 'ready':
       return "bg-orange-500";
-    case 'out_for_delivery':
+    case 'delivery':
       return "bg-blue-500";
     case 'completed':
       return "bg-green-500";
@@ -55,5 +55,12 @@ export const getStatusColorDot = (status: OrderStatus | null) => {
   }
 };
 
-// Define the order statuses for the dropdown
-export const orderStatusOptions: OrderStatus[] = ['new', 'preparing', 'ready', 'out_for_delivery', 'completed', 'cancelled'];
+// Define the order statuses for the dropdown. (replaces "out_for_delivery" with "delivery")
+export const orderStatusOptions: OrderStatus[] = [
+  'new',
+  'preparing',
+  'ready',
+  'delivery',
+  'completed',
+  'cancelled'
+];

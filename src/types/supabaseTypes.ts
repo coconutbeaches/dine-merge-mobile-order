@@ -1,4 +1,3 @@
-
 export type Json =
   | string
   | number
@@ -160,7 +159,7 @@ export interface Database {
         | "new"
         | "preparing"
         | "ready"
-        | "out_for_delivery"
+        | "delivery"
         | "completed"
         | "cancelled"
         | "paid"
@@ -240,15 +239,15 @@ export interface CartItem {
     image_url?: string | null;
 }
 
-export type OrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled' | 'paid';
-export type SupabaseOrderStatus = 'new' | 'preparing' | 'ready' | 'out_for_delivery' | 'completed' | 'cancelled' | 'paid';
+export type OrderStatus = 'new' | 'preparing' | 'ready' | 'delivery' | 'completed' | 'cancelled' | 'paid';
+export type SupabaseOrderStatus = 'new' | 'preparing' | 'ready' | 'delivery' | 'completed' | 'cancelled' | 'paid';
 
 export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStatus => {
   switch (status) {
     case 'new': return 'new';
     case 'preparing': return 'preparing';
     case 'ready': return 'ready';
-    case 'out_for_delivery': return 'out_for_delivery';
+    case 'delivery': return 'delivery';
     case 'completed': return 'completed';
     case 'cancelled': return 'cancelled';
     case 'paid': return 'paid';
@@ -261,7 +260,7 @@ export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStat
     case 'new': return 'new';
     case 'preparing': return 'preparing';
     case 'ready': return 'ready';
-    case 'out_for_delivery': return 'out_for_delivery';
+    case 'delivery': return 'delivery';
     case 'completed': return 'completed';
     case 'cancelled': return 'cancelled';
     case 'paid': return 'paid';
