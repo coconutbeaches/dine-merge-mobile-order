@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Order } from '@/types/supabaseTypes';
@@ -66,7 +65,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
       }
 
       if (orderData.total_amount === 0 && orderData.order_items) {
-        const calculatedTotal = (orderData.order_items as CartItem[]).reduce((total, item) => {
+        const calculatedTotal = (orderData.order_items as unknown as CartItem[]).reduce((total, item) => {
             return total + (item.price || 0) * (item.quantity || 1);
         }, 0);
         if (calculatedTotal > 0) {
