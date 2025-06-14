@@ -1,4 +1,3 @@
-
 import { format } from 'date-fns';
 import { OrderStatus, SupabaseOrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
@@ -11,6 +10,28 @@ export const formatDate = (dateString: string | null) => {
     return format(date, 'dd MMM yy HH:mm'); // Shorter date format
   } catch (e) {
     return 'Invalid Date';
+  }
+};
+
+// Format to "Jun 02 25"
+export const formatOrderDate = (dateString: string | null) => {
+  if (!dateString) return 'N/A';
+  try {
+    const date = new Date(dateString);
+    return format(date, 'MMM dd yy');
+  } catch (e) {
+    return 'Invalid Date';
+  }
+};
+
+// Format to "11:23 AM"
+export const formatOrderTime = (dateString: string | null) => {
+  if (!dateString) return '--:--';
+  try {
+    const date = new Date(dateString);
+    return format(date, 'hh:mm a');
+  } catch (e) {
+    return '--:--';
   }
 };
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -6,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
 import { formatDate, getStatusColorDot } from '@/utils/orderDashboardUtils';
+import { formatOrderDate, formatOrderTime } from '@/utils/orderDashboardUtils';
 
 interface OrdersListProps {
   orders: Order[];
@@ -74,7 +74,13 @@ const OrdersList = ({
               {order.table_number ? (order.table_number === 'Take Away' ? 'Take Away' : `Table ${order.table_number}`) : 'N/A'}
             </div>
             <div className="col-span-2 text-right">{formatThaiCurrency(order.total_amount)}</div>
-            <div className="col-span-2 text-xs text-muted-foreground">{formatDate(order.created_at)}</div>
+            <div className="col-span-2 text-xs text-muted-foreground">
+              <div>
+                <span>{formatOrderDate(order.created_at)}</span>
+                <span className="mx-2 text-muted">•</span>
+                <span>{formatOrderTime(order.created_at)}</span>
+              </div>
+            </div>
             
             <div className="col-span-2">
               <Select
