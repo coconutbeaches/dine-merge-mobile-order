@@ -37,22 +37,22 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         return null;
       }
       
-      const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as CartItem[];
+      const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[];
       if (items.length > 0) {
-        const productIds = items.map(item => item.id).filter(Boolean);
+        const productIds = items.map(item => String(item.id)).filter(Boolean);
         if (productIds.length > 0) {
-          // Assuming old orders refer to menu_items with numeric IDs
+          // Fetching from 'products' table which uses string UUIDs for IDs.
           const { data: productsData, error: productsError } = await supabase
-            .from('menu_items')
+            .from('products')
             .select('id, name, image_url, price')
-            .in('id', productIds as any[]);
+            .in('id', productIds);
 
           if (productsError) {
-            console.error('Error fetching product details from menu_items:', productsError);
+            console.error('Error fetching product details from products:', productsError);
           } else if (productsData) {
             const productMap = new Map(productsData.map(p => [p.id, p]));
             const enrichedItems = items.map(item => {
-              const productDetails = productMap.get(item.id);
+              const productDetails = productMap.get(String(item.id));
               return {
                 ...item,
                 name: productDetails?.name || item.name || 'Unknown Product',
@@ -93,7 +93,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         ...(orderData as Omit<Order, 'order_items'>),
         customer_name_from_profile: profileData?.name || null,
         customer_email_from_profile: profileData?.email || null,
-        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as CartItem[],
+        order_items: (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[],
       };
       
       return enrichedData;
