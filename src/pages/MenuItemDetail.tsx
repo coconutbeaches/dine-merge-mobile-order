@@ -174,6 +174,7 @@ const MenuItemDetail = () => {
     toast({
       title: "Added to cart",
       description: `${quantity} × ${product.name} added to your cart`,
+      duration: 1000,
     });
     
     navigate('/');
