@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -98,13 +99,23 @@ const OrderHistory = () => {
                     )}
                   </div>
                   
+                  {/* FIXED order items display */}
                   <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
-                    {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => (
-                      <div key={idx} className="text-sm flex justify-between mb-1 pr-2">
-                        <span>{item.quantity}× {item.name}</span>
-                        <span>{formatThaiCurrency(item.price * item.quantity)}</span>
-                      </div>
-                    ))}
+                    {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
+                      // Support both shapes: {quantity, name, price} or {quantity, menuItem: {name, price}}
+                      const name = item.name || (item.menuItem && item.menuItem.name) || 'Item';
+                      const price = (typeof item.price === 'number'
+                        ? item.price
+                        : item.menuItem && typeof item.menuItem.price === 'number'
+                          ? item.menuItem.price
+                          : 0);
+                      return (
+                        <div key={idx} className="text-sm flex justify-between mb-1 pr-2">
+                          <span>{item.quantity}× {name}</span>
+                          <span>{formatThaiCurrency(price * item.quantity)}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                   
                   <div className="border-t border-gray-200 mt-3 pt-3 flex justify-between items-center font-semibold">
@@ -122,3 +133,4 @@ const OrderHistory = () => {
 };
 
 export default OrderHistory;
+
