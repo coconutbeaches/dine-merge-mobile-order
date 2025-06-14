@@ -48,23 +48,22 @@ const OrderHistory = () => {
     }
   };
 
-  // Utility function to render selected options (friendlier output)
-  const renderSelectedOptions = (selectedOptions: any) => {
+  // Utility function to display selected options inline, in parentheses
+  const renderSelectedOptionsInline = (selectedOptions: any) => {
     if (!selectedOptions || typeof selectedOptions !== "object") return null;
-    // Format: { optionName: value, ... } where value can be string or array
-    return (
-      <ul className="ml-4 text-xs text-muted-foreground space-y-0.5">
-        {Object.entries(selectedOptions).map(([option, choice], idx) => (
-          <li key={idx}>
-            {option}: {
-              Array.isArray(choice)
-                ? choice.join(", ")
-                : (typeof choice === "string" ? choice : String(choice))
-            }
-          </li>
-        ))}
-      </ul>
-    );
+    const entries = Object.entries(selectedOptions);
+    if (entries.length === 0) return null;
+    // Format: Option1: Choice1, Option2: Choice2, etc. (all in one string, comma separated)
+    const optionsStr = entries
+      .map(([option, choice]) => {
+        if (Array.isArray(choice)) {
+          return `${option}: ${choice.join(", ")}`;
+        } else {
+          return `${option}: ${typeof choice === "string" ? choice : String(choice)}`;
+        }
+      })
+      .join(", ");
+    return ` (${optionsStr})`;
   };
 
   if (isLoading) {
@@ -121,21 +120,21 @@ const OrderHistory = () => {
                   <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
                     {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
                       // Support both shapes: {quantity, name, price, selectedOptions} or {quantity, menuItem: {name, price}, selectedOptions}
-                      const name = item.name || (item.menuItem && item.menuItem.name) || 'Item';
-                      const price = (typeof item.price === 'number'
+                      const name = item.name || (item.menuItem && item.menuItem.name) || "Item";
+                      const price = (typeof item.price === "number"
                         ? item.price
-                        : item.menuItem && typeof item.menuItem.price === 'number'
+                        : item.menuItem && typeof item.menuItem.price === "number"
                           ? item.menuItem.price
                           : 0);
                       const selectedOptions = item.selectedOptions;
 
                       return (
-                        <div key={idx} className="text-sm pr-2 mb-1">
-                          <div className="flex justify-between">
-                            <span>{item.quantity}× {name}</span>
-                            <span>{formatThaiCurrency(price * item.quantity)}</span>
-                          </div>
-                          {selectedOptions && renderSelectedOptions(selectedOptions)}
+                        <div key={idx} className="text-sm pr-2 mb-1 flex justify-between">
+                          <span>
+                            {item.quantity}× {name}
+                            {selectedOptions && renderSelectedOptionsInline(selectedOptions)}
+                          </span>
+                          <span>{formatThaiCurrency(price * item.quantity)}</span>
                         </div>
                       )
                     })}
