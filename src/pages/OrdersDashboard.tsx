@@ -79,7 +79,7 @@ const OrdersDashboard = () => {
     return filtered;
   }, [orders, search, activeStatus]);
 
-  // TAB options: All + all status options in order
+  // TAB options: All + all status options in order (Force All to be first)
   const tabOptions = [
     { label: "All", value: ALL_TAB },
     ...orderStatusOptions.map(status => ({
