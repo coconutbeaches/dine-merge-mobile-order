@@ -24,13 +24,12 @@ const OrdersTableHeader = ({
         />
       </div>
       <div className="col-span-3">Customer</div>
-      <div className="col-span-2">Table/Type</div>
+      <div className="col-span-2">Table</div>
       <div className="col-span-2 text-right">Amount</div>
-      <div className="col-span-3">Date</div>
-      <div className="col-span-1">Status</div>
+      <div className="col-span-2">Date</div>
+      <div className="col-span-2">Status</div>
     </div>
   );
 };
 
 export default OrdersTableHeader;
-
