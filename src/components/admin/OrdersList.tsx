@@ -62,10 +62,12 @@ const OrdersList = ({
         return (
           <div
             key={order.id}
-            className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
+            className="grid grid-cols-12 gap-x-1 md:gap-x-2 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
             style={{
               // Checkbox | Customer | Amount | Date | Status
-              gridTemplateColumns: "min-content minmax(0,2.5fr) minmax(0,1.1fr) minmax(0,1.3fr) min-content min-content min-content min-content min-content min-content min-content min-content"
+              // 1. Checkbox (min) | 2.5fr Customer | 1.1fr Amount | 1.7fr Date | 2.2fr Status | hidden columns
+              gridTemplateColumns:
+                "min-content minmax(0,2.5fr) minmax(0,1.08fr) minmax(0,1.62fr) minmax(0,2.2fr) min-content min-content min-content min-content min-content min-content min-content"
             }}
           >
             {/* Checkbox */}
@@ -76,8 +78,8 @@ const OrdersList = ({
                 aria-label={`Select order ${order.id}`}
               />
             </div>
-            {/* Customer name, small table below */}
-            <div className="col-span-3 min-w-0">
+            {/* Customer name: now as far left as possible */}
+            <div className="col-span-2 truncate min-w-0">
               {order.user_id ? (
                 <Link 
                   to={`/admin/customer-orders/${order.user_id}`} 
@@ -102,39 +104,39 @@ const OrdersList = ({
                 </div>
               )}
             </div>
-            {/* Order Amount */}
+            {/* Order Amounts, now moved left, pruned padding, header aligns above */}
             <Link
               to={`/admin/order/${order.id}`}
-              className="col-span-2 text-right cursor-pointer text-primary font-bold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-1 pr-5"
+              className="col-span-2 text-right cursor-pointer text-primary font-bold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-0 pr-2"
               title={`View full order #${order.id}`}
               tabIndex={0}
               style={{ minWidth: 0 }}
             >
               {formatThaiCurrency(order.total_amount)}
             </Link>
-            {/* Date/Time (wider, clickable) */}
+            {/* Date/Time, now wider so date/time always fits on 2 lines (never 3), left aligned */}
             <Link
               to={`/admin/order/${order.id}`}
-              className="col-span-2 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition"
+              className="col-span-2 text-xs text-primary flex flex-col space-y-0.5 leading-tight cursor-pointer hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition text-left"
               title={`View full order #${order.id}`}
               tabIndex={0}
-              style={{ minWidth: 0 }}
+              style={{ minWidth: 0, maxWidth: '90px', wordBreak: 'break-word' }}
             >
               <span>{formatOrderDate(order.created_at)}</span>
               <span>{formatOrderTime(order.created_at)}</span>
             </Link>
-            {/* Order Status: smaller, styled like pill (mimic badge) */}
-            <div className="col-span-3 min-w-[70px] md:min-w-[88px] flex items-center">
+            {/* Order Status */}
+            <div className="col-span-2 min-w-[60px] md:min-w-[80px] flex items-center">
               <Select
                 value={statusVal}
                 onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
               >
                 <SelectTrigger
-                  className={`min-w-[65px] max-w-full h-[26px] px-2 text-xs font-semibold border-0 shadow-none focus:ring-0 rounded-full transition`}
+                  className={`min-w-[60px] max-w-full h-[24px] px-2 text-xs font-semibold border-0 shadow-none focus:ring-0 rounded-full transition`}
                   style={{
                     boxShadow: 'none',
                     minWidth: 0,
-                    height: 26,
+                    height: 24,
                     background: 'rgba(0,0,0,0.03)',
                     border: 0
                   }}

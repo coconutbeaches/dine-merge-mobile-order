@@ -178,20 +178,20 @@ const OrdersDashboard = () => {
         {/* Orders table */}
         <Card>
           <CardHeader className="bg-muted/50 p-3">
-            {/* Table header: Remove Table heading, adjust Amount and Date */}
+            {/* Table header: No Table heading. Align Amount and Date above values */}
             <div
-              className="grid grid-cols-12 gap-x-1 md:gap-x-3 items-center text-xs font-bold text-muted-foreground"
+              className="grid grid-cols-12 gap-x-1 md:gap-x-2 items-center text-xs font-bold text-muted-foreground"
               style={{
-                // min-content (checkbox), 2.5fr (customer), 1.1fr (amount), 1.3fr (date), 3fr (status) - adjusted for space
-                gridTemplateColumns: "min-content minmax(0,2.5fr) minmax(0,1.1fr) minmax(0,1.3fr) min-content min-content min-content min-content min-content min-content min-content min-content min-content"
+                // Checkbox | Customer | Amount | Date | Status | more hidden
+                gridTemplateColumns:
+                  "min-content minmax(0,2.5fr) minmax(0,1.08fr) minmax(0,1.62fr) minmax(0,2.2fr) min-content min-content min-content min-content min-content min-content min-content"
               }}
             >
-              <div className="col-span-1" />
-              <div className="col-span-3">Customer</div>
-              <div className="col-span-2 text-right pr-5">Amount</div>
+              <div className="col-span-1" /> {/* Checkbox */}
+              <div className="col-span-2">Customer</div>
+              <div className="col-span-2 text-right pr-2">Amount</div>
               <div className="col-span-2 text-left">Date</div>
-              {/* Removed "Table" header */}
-              <div className="col-span-3 text-left">Status</div>
+              <div className="col-span-2 text-left">Status</div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
