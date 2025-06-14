@@ -96,6 +96,18 @@ export const useOrdersDashboard = () => {
         throw error;
       }
 
+      // Fetch and log the updated order from Supabase for debugging
+      const { data: updatedOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+      if (fetchError) {
+        console.warn('Could not fetch updated order for verification:', fetchError);
+      } else {
+        console.log('Order after status update (from DB):', updatedOrder);
+      }
+
       // Update local state
       setOrders(prevOrders => 
         prevOrders.map(order => 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Order, Address, OrderStatus, SupabaseOrderStatus, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,8 +60,7 @@ export function useOrders(userId: string | undefined) {
         console.warn('Could not fetch profile data:', profileError);
       }
 
-      console.log("Orders data fetched:", ordersData);
-      console.log("Profile data fetched:", profileData);
+      console.log("Orders data fetched (DB):", ordersData);
 
       if (ordersData) {
         const transformedOrders = ordersData.map(order => {
@@ -74,6 +72,8 @@ export function useOrders(userId: string | undefined) {
             console.warn(`Order ${order.id} - order_status from DB is null or empty. Defaulting to 'new'. DB value: `, order.order_status);
             appOrderStatus = 'new';
           }
+
+          console.log(`[UserOrders] Order ${order.id}: Supabase raw status='${order.order_status}', mapped app status='${appOrderStatus}'`);
 
           return {
             ...order,
