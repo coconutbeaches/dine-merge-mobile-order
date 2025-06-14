@@ -131,6 +131,41 @@ export const useOrdersDashboard = () => {
     }
   };
 
+  const updateMultipleOrderStatuses = async (orderIds: number[], newStatus: OrderStatus) => {
+    if (orderIds.length === 0) return;
+    try {
+      const supabaseStatus = mapOrderStatusToSupabase(newStatus);
+
+      const { error, count } = await supabase
+        .from('orders')
+        .update({ 
+          order_status: supabaseStatus,
+          updated_at: new Date().toISOString(),
+        }, { count: "exact" })
+        .in('id', orderIds);
+
+      if (error) {
+        toast.error('Bulk update failed: ' + error.message);
+        return;
+      }
+      if (!count || count === 0) {
+        toast.error('No orders updated');
+        return;
+      }
+
+      setOrders(prev =>
+        prev.map(order =>
+          orderIds.includes(order.id)
+            ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() }
+            : order
+        )
+      );
+      toast.success(`Bulk status set to ${newStatus} for ${orderIds.length} orders`);
+    } catch (e: any) {
+      toast.error("Bulk update failed: " + e.message);
+    }
+  };
+
   const deleteSelectedOrders = async () => {
     if (selectedOrders.length === 0) return;
     
@@ -179,6 +214,7 @@ export const useOrdersDashboard = () => {
     toggleSelectOrder,
     selectAllOrders,
     clearSelection,
-    fetchOrders
+    fetchOrders,
+    updateMultipleOrderStatuses
   };
 };
