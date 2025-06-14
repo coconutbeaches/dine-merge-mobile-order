@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -29,7 +28,9 @@ const Login = () => {
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    console.log('[Login.tsx] handleLogin called', { email, password });
+
     if (!email || !password) {
       toast({
         title: "Error",
@@ -38,20 +39,19 @@ const Login = () => {
       });
       return;
     }
-    
+
     setIsLoading(true);
-    
     try {
+      console.log('[Login.tsx] Calling login(email, password)...');
       const success = await login(email, password);
-      
+      console.log('[Login.tsx] login(email, password) resolved:', success);
+
       if (success) {
-        // Toast for successful login removed as requested
-        // toast({
-        //   title: "Success",
-        //   description: "You've been logged in successfully"
-        // });
+        // toast(...); // removed as requested
+        console.log('[Login.tsx] Navigating to:', returnTo);
         navigate(returnTo);
       } else {
+        console.log('[Login.tsx] Login failed - bad credentials');
         toast({
           title: "Error",
           description: "Invalid email or password. Please check your credentials and try again.",
@@ -59,6 +59,7 @@ const Login = () => {
         });
       }
     } catch (error) {
+      console.error('[Login.tsx] Login error:', error);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
@@ -66,6 +67,7 @@ const Login = () => {
       });
     } finally {
       setIsLoading(false);
+      console.log('[Login.tsx] handleLogin done, setIsLoading(false)');
     }
   };
 
@@ -168,4 +170,3 @@ const Login = () => {
 };
 
 export default Login;
-

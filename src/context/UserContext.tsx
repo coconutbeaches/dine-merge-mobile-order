@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,10 +40,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     const initializeAuth = async () => {
       // 1. Set up auth state listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
+        (event, session) => {
           if (!isMounted) return;
-
-          console.log("Auth state changed:", event, session);
+          console.log('[UserContext] Auth state change event:', event, session);
           if (session && session.user) {
             setSupabaseSession(session);
             setSupabaseUser(session.user);
@@ -112,9 +110,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     const initializeAuth = async () => {
       // 1. Set up auth state listener
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
+        (event, session) => {
           if (!isMounted) return;
-          console.log("Auth state changed (new):", event, session);
+          console.log('[UserContext] Auth state change event (new):', event, session);
           if (session && session.user) {
             setSupabaseSession(session);
             setSupabaseUser(session.user);
@@ -164,7 +162,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       }
     };
   }, []);
-
 
   // Fetch user profile from Supabase
   const fetchUserProfile = async (userId: string) => {
@@ -226,28 +223,23 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   };
 
   // User Management Functions
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
+    console.log('[UserContext] login called:', email);
     try {
-      console.log("Logging in user:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        console.error('Error signing in:', error);
+        console.log('[UserContext] login error:', error);
         return false;
       }
-
-      console.log("Login successful:", data);
+      console.log('[UserContext] login success, session:', data?.session);
       return true;
-    } catch (error) {
-      console.error('Unexpected error during login:', error);
+    } catch (err) {
+      console.error('[UserContext] login try/catch error:', err);
       return false;
     }
   };
   
-  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
+  const signup = async (email: string, password: string, name: string) => {
     try {
       console.log("Signing up user:", email);
       const { data, error } = await supabase.auth.signUp({
