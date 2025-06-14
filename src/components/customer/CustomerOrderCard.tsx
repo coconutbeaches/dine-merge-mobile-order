@@ -19,12 +19,14 @@ const CustomerOrderCard = ({ order }: CustomerOrderCardProps) => {
         return "bg-yellow-500";
       case 'ready':
         return "bg-orange-500";
-      case 'out_for_delivery':
+      case 'delivery':
         return "bg-blue-500";
       case 'completed':
         return "bg-green-500";
       case 'cancelled':
         return "bg-gray-500";
+      case 'paid':
+        return "bg-green-700";
       default:
         return "bg-gray-400";
     }
@@ -39,7 +41,7 @@ const CustomerOrderCard = ({ order }: CustomerOrderCardProps) => {
               <h3 className="font-semibold">Order #{order.id.toString().padStart(4, '0')}</h3>
               {order.order_status && (
                 <Badge className={`${getStatusColor(order.order_status)} text-white capitalize`}>
-                  {order.order_status}
+                  {order.order_status === 'delivery' ? 'Delivery' : order.order_status}
                 </Badge>
               )}
             </div>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -36,7 +35,7 @@ const OrderHistory = () => {
         return "bg-yellow-500";
       case 'ready':
         return "bg-orange-500";
-      case 'out_for_delivery':
+      case 'delivery':
         return "bg-blue-500";
       case 'completed':
         return "bg-green-500";
@@ -94,7 +93,7 @@ const OrderHistory = () => {
                     </div>
                     {order.order_status && (
                        <Badge className={`${getStatusColor(order.order_status)} text-white capitalize`}>
-                         {order.order_status}
+                         {order.order_status === 'delivery' ? 'Delivery' : order.order_status}
                        </Badge>
                     )}
                   </div>
@@ -123,4 +122,3 @@ const OrderHistory = () => {
 };
 
 export default OrderHistory;
-
