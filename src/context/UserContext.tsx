@@ -68,6 +68,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         } else if (session && session.user) {
           setSupabaseSession(session);
           setSupabaseUser(session.user);
+          // this is fine to await fetchUserProfile here because we're inside async
           await fetchUserProfile(session.user.id);
         } else {
           setCurrentUser(null);
@@ -89,18 +90,11 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       };
     };
 
-    const unsubscribePromise = initializeAuth();
+    // call initializeAuth
+    initializeAuth();
 
     return () => {
-      // Ensure the returned unsubscribe function from initializeAuth (which is async) is handled correctly
-      // This might require initializeAuth to directly return the unsubscribe function
-      // For simplicity here, we'll assume the structure above handles it.
-      // The key is `subscription.unsubscribe()` which initializeAuth's return should cover.
-      // To be fully robust, initializeAuth should return the actual unsubscribe function.
-      // Let's refine this:
-      // initializeAuth().then(cleanup => { /* store cleanup for return */ });
-      // This is getting complex for a simple useEffect return.
-      // The original structure of returning subscription.unsubscribe() is fine if initializeAuth is called directly.
+      // No change needed here, cleanup in returned function
     };
   }, []);
   
@@ -141,6 +135,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         } else if (session && session.user) {
           setSupabaseSession(session);
           setSupabaseUser(session.user);
+          // this is fine to await fetchUserProfile here because we're inside async
           await fetchUserProfile(session.user.id);
         } else {
           setCurrentUser(null);
