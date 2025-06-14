@@ -43,7 +43,8 @@ const OrdersDashboard = () => {
       // Customer name/email from profile or from order
       const name = (order.customer_name_from_profile || order.customer_name || "").toLowerCase();
       const email = (order.customer_email_from_profile || "").toLowerCase();
-      const phone = (order.phone || "").toLowerCase(); // if phone exists
+      // No phone search: phone field does not exist on order
+      // const phone = (order.phone || "").toLowerCase();
       // Order number
       const orderIdStr = String(order.id);
 
@@ -61,7 +62,7 @@ const OrdersDashboard = () => {
       return (
         name.includes(s) ||
         email.includes(s) ||
-        phone.includes(s) ||
+        // phone.includes(s) ||
         orderIdStr.includes(s) ||
         containsProduct
       );
