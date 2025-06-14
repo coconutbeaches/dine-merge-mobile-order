@@ -77,22 +77,51 @@ const ProductForm = () => {
   });
 
   // Fetch product if in edit mode
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading, error: productError } = useQuery({
     queryKey: ['product', id],
     queryFn: async () => {
       if (!isEditMode) return null;
-      
+
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .eq('id', id)
-        .single();
-        
+        .maybeSingle(); // change from .single() to .maybeSingle()
       if (error) throw error;
-      return data as Product;
+      return data as Product | null;
     },
     enabled: isEditMode
   });
+
+  // Display loading or error states
+  if (isLoading && isEditMode) {
+    return (
+      <Layout title="Loading Product...">
+        <div className="container mx-auto py-6">Loading...</div>
+      </Layout>
+    );
+  }
+
+  if (productError) {
+    return (
+      <Layout title="Product Not Found">
+        <div className="container mx-auto py-6 text-red-500">
+          Error loading product. {String(productError)}
+        </div>
+      </Layout>
+    );
+  }
+
+  // If product is null (not found), show message
+  if (isEditMode && !product) {
+    return (
+      <Layout title="Product Not Found">
+        <div className="container mx-auto py-6 text-red-500">
+          Product not found (ID: {id}).
+        </div>
+      </Layout>
+    );
+  }
 
   // Fetch product options if in edit mode
   const { data: productOptions } = useQuery({
@@ -417,10 +446,6 @@ const ProductForm = () => {
     newOptions.splice(index, 1);
     setOptions(newOptions.map((option, i) => ({ ...option, sort_order: i })));
   };
-
-  if (isLoading && isEditMode) {
-    return <Layout title="Loading Product..."><div className="container mx-auto py-6">Loading...</div></Layout>;
-  }
 
   return (
     <Layout title={isEditMode ? 'Edit Product' : 'Add Product'} showBackButton>
