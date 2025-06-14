@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -74,15 +75,11 @@ const OrdersList = ({
               {order.table_number ? (order.table_number === 'Take Away' ? 'Take Away' : `Table ${order.table_number}`) : 'N/A'}
             </div>
             <div className="col-span-2 text-right">{formatThaiCurrency(order.total_amount)}</div>
-            <div className="col-span-2 text-xs text-muted-foreground">
-              <div>
-                <span>{formatOrderDate(order.created_at)}</span>
-                <span className="mx-2 text-muted">•</span>
-                <span>{formatOrderTime(order.created_at)}</span>
-              </div>
+            <div className="col-span-3 text-xs text-muted-foreground flex flex-col space-y-0.5 leading-tight">
+              <span>{formatOrderDate(order.created_at)}</span>
+              <span>{formatOrderTime(order.created_at)}</span>
             </div>
-            
-            <div className="col-span-2">
+            <div className="col-span-1">
               <Select
                 value={order.order_status || 'new'}
                 onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
@@ -114,3 +111,4 @@ const OrdersList = ({
 };
 
 export default OrdersList;
+
