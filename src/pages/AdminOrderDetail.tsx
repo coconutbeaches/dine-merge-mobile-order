@@ -110,7 +110,7 @@ const AdminOrderDetailContent = () => {
             </Badge>
         </DialogTitle>
         <DialogDescription asChild>
-            <div className="text-sm text-muted-foreground mt-1 mb-6">
+            <div className="text-sm text-muted-foreground mt-1 mb-6 text-left">
                 <div>{formatOrderDateTime(order.created_at)}</div>
                 {order.table_number && <div>Table {order.table_number}</div>}
             </div>
