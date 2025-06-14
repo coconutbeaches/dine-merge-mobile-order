@@ -42,6 +42,7 @@ export interface MenuItemOption {
 }
 
 export interface CartItem {
+  id: string;
   menuItem: MenuItem;
   quantity: number;
   selectedOptions?: {

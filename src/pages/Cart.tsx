@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -16,14 +15,12 @@ const Cart = () => {
   const { cart, removeFromCart, updateCartItemQuantity, cartTotal, isLoggedIn } = useAppContext();
   const { toast } = useToast();
   
-  const handleQuantityChange = (itemId: string, currentQuantity: number, change: number) => {
+  const handleQuantityChange = (cartItemId: string, currentQuantity: number, change: number) => {
     const newQuantity = currentQuantity + change;
     if (newQuantity <= 0) {
-      // Create a unique ID for this specific cart item instance if options make it unique
-      // For now, assuming itemId (product.id) is sufficient if specialInstructions and detailed options uniqueness is handled by AppContext
-      removeFromCart(itemId); 
+      removeFromCart(cartItemId); 
     } else {
-      updateCartItemQuantity(itemId, newQuantity);
+      updateCartItemQuantity(cartItemId, newQuantity);
     }
   };
   
@@ -62,16 +59,13 @@ const Cart = () => {
         <div className="mb-6">
           <h2 className="section-heading">Cart Items</h2>
           <div className="space-y-3">
-            {cart.map((item, index) => {
+            {cart.map((item) => {
               // Calculate the item's total price including options
               const itemTotalWithOptions = calculateTotalPrice(item.menuItem, item.selectedOptions || {});
               const lineItemTotal = itemTotalWithOptions * item.quantity;
-              
-              // Create a unique key for items, especially if options can vary for the same product ID
-              const itemKey = `${item.menuItem.id}-${JSON.stringify(item.selectedOptions)}-${index}`;
 
               return (
-                <Card key={itemKey} className="food-card">
+                <Card key={item.id} className="food-card">
                   <CardContent className="p-3">
                     <div className="flex">
                       <div 
@@ -85,7 +79,7 @@ const Cart = () => {
                             variant="ghost" 
                             size="icon" 
                             className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
-                            onClick={() => removeFromCart(item.menuItem.id)} // Consider a more specific ID if options differentiate cart items
+                            onClick={() => removeFromCart(item.id)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -93,13 +87,12 @@ const Cart = () => {
                         
                         {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
                           <div className="text-xs text-muted-foreground mt-1">
-                            {Object.values(item.selectedOptions)
-                              .flat()
-                              .filter(Boolean)
-                              .map((value, index) => {
-                                const displayValue = String(value);
-                                return <p key={index} className="truncate">{displayValue}</p>;
-                              })}
+                             <p className="truncate">
+                              {Object.values(item.selectedOptions)
+                                .flat()
+                                .filter(Boolean)
+                                .join(', ')}
+                            </p>
                           </div>
                         )}
                         
@@ -111,7 +104,7 @@ const Cart = () => {
                               variant="outline" 
                               size="icon"
                               className="h-6 w-6"
-                              onClick={() => handleQuantityChange(item.menuItem.id, item.quantity, -1)}
+                              onClick={() => handleQuantityChange(item.id, item.quantity, -1)}
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -120,7 +113,7 @@ const Cart = () => {
                               variant="outline" 
                               size="icon"
                               className="h-6 w-6"
-                              onClick={() => handleQuantityChange(item.menuItem.id, item.quantity, 1)}
+                              onClick={() => handleQuantityChange(item.id, item.quantity, 1)}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
@@ -172,4 +165,3 @@ const Cart = () => {
 };
 
 export default Cart;
-

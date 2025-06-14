@@ -2,12 +2,13 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, MenuItem } from '../types';
 import { useUserContext } from './UserContext';
 import { calculateTotalPrice } from '@/utils/productUtils';
+import { nanoid } from 'nanoid';
 
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: MenuItem, quantity: number, selectedOptions?: any) => void;
-  removeFromCart: (itemId: string) => void;
-  updateCartItemQuantity: (itemId: string, quantity: number) => void;
+  removeFromCart: (cartItemId: string) => void;
+  updateCartItemQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
 }
@@ -78,6 +79,7 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       setCart([
         ...cart,
         {
+          id: nanoid(),
           menuItem: item,
           quantity,
           selectedOptions
@@ -86,13 +88,13 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     }
   };
   
-  const removeFromCart = (itemId: string) => {
-    setCart(cart.filter(item => item.menuItem.id !== itemId));
+  const removeFromCart = (cartItemId: string) => {
+    setCart(cart.filter(item => item.id !== cartItemId));
   };
   
-  const updateCartItemQuantity = (itemId: string, quantity: number) => {
+  const updateCartItemQuantity = (cartItemId: string, quantity: number) => {
     setCart(cart.map(item => {
-      if (item.menuItem.id === itemId) {
+      if (item.id === cartItemId) {
         return { ...item, quantity };
       }
       return item;

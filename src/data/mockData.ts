@@ -1,4 +1,3 @@
-
 import { MenuItem, RestaurantInfo, Category, OrderStatus } from '../types';
 
 export const restaurantInfo: RestaurantInfo = {
@@ -97,6 +96,7 @@ export const menuItems: MenuItem[] = [
     allergies: ["dairy", "eggs", "gluten"],
     options: [
       {
+        id: "pasta-type-3",
         name: "Pasta Type",
         choices: [
           { name: "Spaghetti", price: 0 },
@@ -119,6 +119,7 @@ export const menuItems: MenuItem[] = [
     allergies: ["dairy", "gluten"],
     options: [
       {
+        id: "protein-addons-4",
         name: "Protein Add-ons",
         choices: [
           { name: "Grilled Chicken", price: 4 },
@@ -144,6 +145,7 @@ export const menuItems: MenuItem[] = [
     allergies: ["dairy", "gluten"],
     options: [
       {
+        id: "pizza-size-5",
         name: "Size",
         choices: [
           { name: "10\"", price: 0 },
@@ -154,6 +156,7 @@ export const menuItems: MenuItem[] = [
         multiSelect: false
       },
       {
+        id: "pizza-crust-5",
         name: "Crust",
         choices: [
           { name: "Thin", price: 0 },
@@ -202,6 +205,7 @@ export const menuItems: MenuItem[] = [
     available: true,
     options: [
       {
+        id: "soda-flavor-8",
         name: "Flavor",
         choices: [
           { name: "Cherry", price: 0 },
@@ -213,6 +217,7 @@ export const menuItems: MenuItem[] = [
         multiSelect: false
       },
       {
+        id: "soda-size-8",
         name: "Size",
         choices: [
           { name: "Regular", price: 0 },
