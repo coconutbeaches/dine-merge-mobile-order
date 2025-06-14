@@ -81,7 +81,7 @@ const OrdersDashboard = () => {
   const tabOptions = [
     { label: "All", value: ALL_TAB },
     ...orderStatusOptions.map(status => ({
-      label: status === "out_for_delivery" ? "Delivery" : status.charAt(0).toUpperCase() + status.slice(1),
+      label: status === "delivery" ? "Delivery" : status.charAt(0).toUpperCase() + status.slice(1),
       value: status
     }))
   ];

@@ -66,7 +66,7 @@ export const getStatusColorDot = (status: OrderStatus | null) => {
       return "bg-yellow-500";
     case 'ready':
       return "bg-orange-500";
-    case 'out_for_delivery':
+    case 'delivery':
       return "bg-blue-500";
     case 'completed':
       return "bg-green-500";
@@ -88,7 +88,7 @@ export const getNewStatusBadgeClasses = (status: OrderStatus | null) => {
       return "border-yellow-500 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300";
     case 'ready':
       return "border-orange-500 bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300";
-    case 'out_for_delivery':
+    case 'delivery':
       return "border-blue-500 bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300";
     case 'completed':
       return "border-green-500 bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300";
@@ -110,7 +110,7 @@ export const getStatusBadgeClasses = (status: OrderStatus | null) => {
       return "bg-yellow-400 text-yellow-900";
     case 'ready':
       return "bg-orange-500 text-white";
-    case 'out_for_delivery':
+    case 'delivery':
       return "bg-blue-500 text-white";
     case 'completed':
       return "bg-green-500 text-white";
@@ -123,12 +123,12 @@ export const getStatusBadgeClasses = (status: OrderStatus | null) => {
   }
 };
 
-// Updated orderStatuses to place "paid" after "completed" but before "cancelled"
+// Updated orderStatuses to use 'delivery' for frontend consistency.
 export const orderStatusOptions: OrderStatus[] = [
   'new',
   'preparing',
   'ready',
-  'out_for_delivery',
+  'delivery',
   'completed',
   'paid',
   'cancelled'

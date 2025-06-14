@@ -232,44 +232,44 @@ export interface ProductOption {
 }
 
 export interface CartItem {
-    id: number;
+    id: string;
     name: string;
     price: number;
     quantity: number;
     image_url?: string | null;
 }
 
-// Remove 'out_for_delivery', only include allowed statuses in new order:
+// Reverted to 'delivery' to align with existing frontend code and fix build errors.
 export type OrderStatus = 
   'new' | 
   'preparing' | 
   'ready' | 
-  'out_for_delivery' | 
+  'delivery' | 
   'completed' | 
   'paid' | 
   'cancelled';
-export type SupabaseOrderStatus = OrderStatus;
+export type SupabaseOrderStatus = Database["public"]["Enums"]["order_status"];
 
-// Update mapping functions and their comments:
+// Update mapping functions to handle frontend 'delivery' and backend 'out_for_delivery'.
 export const mapOrderStatusToSupabase = (status: OrderStatus): SupabaseOrderStatus => {
   switch (status) {
+    case 'delivery': return 'out_for_delivery';
     case 'new': return 'new';
     case 'preparing': return 'preparing';
     case 'ready': return 'ready';
-    case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'paid': return 'paid';
-    case 'cancelled': return 'cancelled';
+    case 'cancelled': 'cancelled';
     default: return 'new';
   }
 };
 
 export const mapSupabaseToOrderStatus = (status: SupabaseOrderStatus): OrderStatus => {
   switch (status) {
+    case 'out_for_delivery': return 'delivery';
     case 'new': return 'new';
     case 'preparing': return 'preparing';
     case 'ready': return 'ready';
-    case 'out_for_delivery': return 'out_for_delivery';
     case 'completed': return 'completed';
     case 'paid': return 'paid';
     case 'cancelled': return 'cancelled';
