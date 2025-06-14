@@ -1,31 +1,22 @@
 
 import React, { createContext, useContext, ReactNode } from 'react';
+import { Order, Address } from '../types/supabaseTypes';
 import { useUserContext } from './UserContext';
-import { useCartContext } from './CartContext';
-import { useOrderContext } from './OrderContext';
+import { useOrders } from '@/hooks/useOrders';
+
+interface AdminCustomerContext {
+  customerId: string;
+  customerName: string;
+}
 
 interface AppContextType {
-  // User Management
-  currentUser: ReturnType<typeof useUserContext>['currentUser'];
-  isLoggedIn: ReturnType<typeof useUserContext>['isLoggedIn'];
-  login: ReturnType<typeof useUserContext>['login'];
-  signup: ReturnType<typeof useUserContext>['signup'];
-  logout: ReturnType<typeof useUserContext>['logout'];
-  
-  // Cart Management
-  cart: ReturnType<typeof useCartContext>['cart'];
-  addToCart: ReturnType<typeof useCartContext>['addToCart'];
-  removeFromCart: ReturnType<typeof useCartContext>['removeFromCart'];
-  updateCartItemQuantity: ReturnType<typeof useCartContext>['updateCartItemQuantity'];
-  clearCart: ReturnType<typeof useCartContext>['clearCart'];
-  cartTotal: ReturnType<typeof useCartContext>['cartTotal'];
-  
-  // Order Management
-  placeOrder: ReturnType<typeof useOrderContext>['placeOrder'];
-  getOrderHistory: ReturnType<typeof useOrderContext>['getOrderHistory'];
-  
-  // Loading state
-  isLoading: ReturnType<typeof useUserContext>['isLoading'];
+  placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string) => Promise<Order | null>;
+  getOrderHistory: () => Order[];
+  adminCustomerContext: AdminCustomerContext | null;
+  setAdminCustomerContext: (context: AdminCustomerContext | null) => void;
+  isLoggedIn: boolean;
+  isLoading: boolean;
+  currentUser: any;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -43,32 +34,51 @@ interface AppProviderProps {
 }
 
 export const AppProvider = ({ children }: AppProviderProps) => {
-  const userContext = useUserContext();
-  const cartContext = useCartContext();
-  const orderContext = useOrderContext();
+  const { currentUser, isLoggedIn, isLoading } = useUserContext();
+  const [adminCustomerContext, setAdminCustomerContext] = React.useState<AdminCustomerContext | null>(null);
+  
+  // Use admin customer ID if available, otherwise use current user ID
+  const effectiveUserId = adminCustomerContext?.customerId || currentUser?.id;
+  const { placeOrder, getOrderHistory } = useOrders(effectiveUserId);
 
-  const value: AppContextType = {
-    // User Management
-    currentUser: userContext.currentUser,
-    isLoggedIn: userContext.isLoggedIn,
-    login: userContext.login,
-    signup: userContext.signup,
-    logout: userContext.logout,
-    
-    // Cart Management
-    cart: cartContext.cart,
-    addToCart: cartContext.addToCart,
-    removeFromCart: cartContext.removeFromCart,
-    updateCartItemQuantity: cartContext.updateCartItemQuantity,
-    clearCart: cartContext.clearCart,
-    cartTotal: cartContext.cartTotal,
-    
-    // Order Management
-    placeOrder: orderContext.placeOrder,
-    getOrderHistory: orderContext.getOrderHistory,
-    
-    // Loading state
-    isLoading: userContext.isLoading
+  // Enhanced order placement function with admin customer context
+  const handlePlaceOrder = async (
+    address: Address | null, 
+    paymentMethod: string, 
+    tableNumber?: string
+  ): Promise<Order | null> => {
+    try {
+      console.log("AppContext: Placing order with:", { 
+        effectiveUserId,
+        adminContext: adminCustomerContext,
+        currentUserId: currentUser?.id,
+        address, 
+        paymentMethod, 
+        tableNumber
+      });
+      
+      if (!effectiveUserId) {
+        console.error("AppContext: No user ID available for order placement");
+        return null;
+      }
+      
+      const result = await placeOrder(address, paymentMethod, tableNumber);
+      console.log("AppContext: Order placement result:", result);
+      return result;
+    } catch (error) {
+      console.error("AppContext: Error placing order:", error);
+      return null;
+    }
+  };
+
+  const value = {
+    placeOrder: handlePlaceOrder,
+    getOrderHistory,
+    adminCustomerContext,
+    setAdminCustomerContext,
+    isLoggedIn,
+    isLoading,
+    currentUser
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

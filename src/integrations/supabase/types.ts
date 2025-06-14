@@ -208,7 +208,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
-          id: string
+          id?: string
           name?: string | null
           phone?: string | null
           role?: string | null
@@ -240,11 +240,12 @@ export type Database = {
         | "fulfilled"
       order_status:
         | "new"
-        | "confirmed"
+        | "preparing"
+        | "ready"
+        | "out_for_delivery"
         | "completed"
-        | "delivered"
-        | "paid"
         | "cancelled"
+        | "paid"
       payment_status:
         | "unpaid"
         | "confirming_payment"
@@ -374,11 +375,12 @@ export const Constants = {
       ],
       order_status: [
         "new",
-        "confirmed",
+        "preparing",
+        "ready",
+        "out_for_delivery",
         "completed",
-        "delivered",
-        "paid",
         "cancelled",
+        "paid",
       ],
       payment_status: [
         "unpaid",

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -9,6 +8,7 @@ import { Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/supabaseTypes';
+import { useAppContext } from '@/context/AppContext';
 
 interface Category {
   id: string;
@@ -20,6 +20,7 @@ interface Category {
 const Menu = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { setAdminCustomerContext } = useAppContext();
   
   // Get category from URL query params
   const searchParams = new URLSearchParams(location.search);
@@ -28,6 +29,26 @@ const Menu = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(selectedCategoryId);
+  
+  // Check if this is an admin creating an order for a customer
+  const adminCustomerContext = location.state as { adminCustomerId?: string; adminCustomerName?: string } | null;
+  
+  // Set admin customer context if present
+  useEffect(() => {
+    if (adminCustomerContext?.adminCustomerId) {
+      setAdminCustomerContext({
+        customerId: adminCustomerContext.adminCustomerId,
+        customerName: adminCustomerContext.adminCustomerName || 'Customer'
+      });
+    }
+    
+    // Cleanup when leaving the page
+    return () => {
+      if (adminCustomerContext?.adminCustomerId) {
+        setAdminCustomerContext(null);
+      }
+    };
+  }, [adminCustomerContext, setAdminCustomerContext]);
   
   // Fetch categories
   const { data: categories } = useQuery({
@@ -96,8 +117,19 @@ const Menu = () => {
   };
   
   return (
-    <Layout title="Menu" showBackButton>
+    <Layout 
+      title={adminCustomerContext?.adminCustomerId ? `Creating Order for ${adminCustomerContext.adminCustomerName}` : "Menu"} 
+      showBackButton
+    >
       <div className="page-container">
+        {adminCustomerContext?.adminCustomerId && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              Creating order for: <strong>{adminCustomerContext.adminCustomerName}</strong>
+            </p>
+          </div>
+        )}
+        
         {/* Search Bar */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />

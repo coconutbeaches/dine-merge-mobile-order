@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Order, Address, OrderStatus } from '@/types/supabaseTypes'; // Use supabaseTypes consistently
+import { Order, Address, OrderStatus } from '@/types/supabaseTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { useCartContext } from '@/context/CartContext';
 import { CartItem, fetchUserOrders, placeOrderInSupabase, getFilteredOrderHistory } from '@/services/orderService';
@@ -37,13 +37,33 @@ export function useOrders(userId: string | undefined) {
     }
   }, [userId]);
 
-  // Load user orders
+  // Load user orders with profile information
   const loadUserOrders = async (userId: string) => {
     setIsLoading(true);
     try {
-      const userOrders = await fetchUserOrders(userId);
-      if (userOrders) {
-        setOrders(userOrders);
+      const { data, error } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          profiles!orders_user_id_fkey (
+            name,
+            email
+          )
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const transformedOrders = data.map(order => ({
+          ...order,
+          order_status: order.order_status as OrderStatus,
+          customer_name_from_profile: order.profiles?.name,
+          customer_email_from_profile: order.profiles?.email
+        })) as Order[];
+        
+        setOrders(transformedOrders);
       }
     } catch (error) {
       console.error("Error loading user orders:", error);
@@ -78,12 +98,18 @@ export function useOrders(userId: string | undefined) {
         tableNumberInput
       });
       
-      // Use the first item's name or userId as customer name
-      const userName = cart[0]?.menuItem?.name ? cart[0].menuItem.name : null;
+      // Get customer name from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', userId)
+        .single();
+      
+      const customerName = profile?.name || null;
       
       const insertedOrderData = await placeOrderInSupabase(
         userId, 
-        userName, 
+        customerName, 
         cart as CartItem[], 
         cartTotal, 
         tableNumberInput
@@ -106,7 +132,9 @@ export function useOrders(userId: string | undefined) {
         updated_at: insertedOrderData.updated_at,
         order_items: insertedOrderData.order_items,
         table_number: insertedOrderData.table_number || tableNumberInput,
-        customer_name: insertedOrderData.customer_name
+        customer_name: insertedOrderData.customer_name,
+        customer_name_from_profile: customerName,
+        customer_email_from_profile: profile?.email
       };
       
       console.log("New order created for local state:", newOrderForLocalState);

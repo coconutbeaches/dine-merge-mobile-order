@@ -58,9 +58,16 @@ export const useCustomerOrders = (customerId: string | undefined) => {
 
   const fetchCustomerOrders = async (userId: string) => {
     try {
+      // Fetch orders with customer profile information
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          profiles!orders_user_id_fkey (
+            name,
+            email
+          )
+        `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
         
@@ -68,15 +75,13 @@ export const useCustomerOrders = (customerId: string | undefined) => {
       console.log("Customer orders raw data:", data);
       
       if (data) {
-        // Transform the data to correctly handle the order_status
+        // Transform the data to correctly handle the order_status and add customer info
         const transformedOrders = data.map(order => {
           let appOrderStatus: OrderStatus;
           
           if (order.order_status) {
-            // Map Supabase order_status to our application OrderStatus
             appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
           } else {
-            // Default fallback
             console.warn(`Order ${order.id} - order_status from DB is null or empty. Defaulting to 'new'. DB value: `, order.order_status);
             appOrderStatus = 'new';
           }
@@ -85,7 +90,9 @@ export const useCustomerOrders = (customerId: string | undefined) => {
           
           return {
             ...order,
-            order_status: appOrderStatus
+            order_status: appOrderStatus,
+            customer_name_from_profile: order.profiles?.name,
+            customer_email_from_profile: order.profiles?.email
           } as Order;
         });
         
