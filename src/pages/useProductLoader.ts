@@ -11,8 +11,13 @@ interface Category {
 }
 
 export function useProductLoader() {
-  const { id } = useParams();
+  const params = useParams();
+  // Carefully extract id as a string (not object, not undefined)
+  const id = typeof params.id === "string" ? params.id : undefined;
   const isEditMode = Boolean(id) && id !== "new";
+
+  // Debug log params and id
+  console.log("[useProductLoader] useParams:", params, "resolved id:", id, "isEditMode:", isEditMode);
 
   // Fetch categories
   const {
@@ -38,13 +43,16 @@ export function useProductLoader() {
     error: productError,
   } = useQuery({
     queryKey: ["product", id],
+    // Add debug about id
     queryFn: async () => {
+      console.log("[useProductLoader][PRODUCT] id in queryFn:", id, "isEditMode:", isEditMode);
       if (!isEditMode) return null;
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .eq("id", id)
         .maybeSingle();
+      console.log("[useProductLoader][PRODUCT] fetched:", data, "error:", error);
       if (error) throw error;
       return data as Product | null;
     },
@@ -59,6 +67,7 @@ export function useProductLoader() {
   } = useQuery({
     queryKey: ["productOptions", id],
     queryFn: async () => {
+      console.log("[useProductLoader][OPTIONS] id in queryFn:", id, "isEditMode:", isEditMode);
       if (!isEditMode) return [];
       const { data: optionsData, error: optionsError } = await supabase
         .from("product_options")
@@ -82,6 +91,7 @@ export function useProductLoader() {
           choices: choicesData as ProductOptionChoice[],
         });
       }
+      console.log("[useProductLoader][OPTIONS] fetched:", options);
       return options;
     },
     enabled: isEditMode,
@@ -110,4 +120,3 @@ export function useProductLoader() {
     error,
   };
 }
-
