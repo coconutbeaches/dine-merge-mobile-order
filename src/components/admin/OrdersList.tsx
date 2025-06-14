@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency, cn } from '@/lib/utils';
-import { formatOrderDate, formatOrderTime, getStatusColorDot, getStatusBadgeClasses, getStatusBadgeHoverClasses } from '@/utils/orderDashboardUtils';
+import { formatOrderDate, formatOrderTime, getStatusBadgeClasses, getStatusBadgeHoverClasses } from '@/utils/orderDashboardUtils';
 
 // Helper for pill-style status badge (smaller, rounded, colored)
 const getStatusPillStyles = (status: OrderStatus) => {
@@ -164,9 +164,12 @@ const OrdersList = ({
                     <SelectItem
                       key={statusOption}
                       value={statusOption}
-                      className="flex items-center gap-2 text-xs capitalize"
+                      className={cn(
+                        "capitalize text-xs font-semibold rounded-full m-1 pr-3 py-1 cursor-pointer outline-none border-0 pl-8",
+                        getStatusBadgeClasses(statusOption),
+                        getStatusBadgeHoverClasses(statusOption)
+                      )}
                     >
-                      <span className={`inline-block w-2 h-2 rounded-full ${getStatusColorDot(statusOption)}`}></span>
                       {statusOption === 'delivery' ? 'Delivery' : statusOption}
                     </SelectItem>
                   ))}

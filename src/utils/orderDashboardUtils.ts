@@ -126,21 +126,21 @@ export const getStatusBadgeClasses = (status: OrderStatus | null) => {
 export const getStatusBadgeHoverClasses = (status: OrderStatus | null) => {
   switch (status) {
     case 'new':
-      return "hover:bg-red-400";
+      return "hover:bg-red-400 focus:bg-red-400 focus:text-white";
     case 'preparing':
-      return "hover:bg-yellow-300";
+      return "hover:bg-yellow-300 focus:bg-yellow-300 focus:text-yellow-900";
     case 'ready':
-      return "hover:bg-orange-400";
+      return "hover:bg-orange-400 focus:bg-orange-400 focus:text-white";
     case 'delivery':
-      return "hover:bg-blue-400";
+      return "hover:bg-blue-400 focus:bg-blue-400 focus:text-white";
     case 'completed':
-      return "hover:bg-green-400";
+      return "hover:bg-green-400 focus:bg-green-400 focus:text-white";
     case 'paid':
-      return "hover:bg-green-600";
+      return "hover:bg-green-600 focus:bg-green-600 focus:text-white";
     case 'cancelled':
-      return "hover:bg-gray-400";
+      return "hover:bg-gray-400 focus:bg-gray-400 focus:text-white";
     default:
-      return "";
+      return "hover:bg-gray-200 focus:bg-gray-200 focus:text-gray-800";
   }
 };
 
