@@ -46,7 +46,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           if (session && session.user) {
             setSupabaseSession(session);
             setSupabaseUser(session.user);
-            await fetchUserProfile(session.user.id); // Await here
+            setTimeout(() => {
+              fetchUserProfile(session.user.id);
+            }, 0);
           } else {
             setSupabaseSession(null);
             setSupabaseUser(null);
@@ -66,7 +68,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
         } else if (session && session.user) {
           setSupabaseSession(session);
           setSupabaseUser(session.user);
-          await fetchUserProfile(session.user.id); // Await completion
+          await fetchUserProfile(session.user.id);
         } else {
           setCurrentUser(null);
         }
@@ -116,7 +118,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
           if (session && session.user) {
             setSupabaseSession(session);
             setSupabaseUser(session.user);
-            await fetchUserProfile(session.user.id);
+            setTimeout(() => {
+              fetchUserProfile(session.user.id);
+            }, 0);
           } else {
             setSupabaseSession(null);
             setSupabaseUser(null);
