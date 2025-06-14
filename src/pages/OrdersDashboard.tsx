@@ -38,6 +38,15 @@ const OrdersDashboard = () => {
     updateMultipleOrderStatuses(selectedOrders, value);
   };
 
+  // New logic for toggling status tabs: clicking a selected tab will deselect it ("All")
+  const handleTabChange = (tabValue: string) => {
+    if (tabValue === activeStatus) {
+      setActiveStatus(ALL_TAB); // clicking again removes filter → show all
+    } else {
+      setActiveStatus(tabValue);
+    }
+  };
+
   // Filter logic: filter by search and by status (if status not "all")
   const filteredOrders = useMemo(() => {
     let filtered = orders;
@@ -79,7 +88,7 @@ const OrdersDashboard = () => {
     return filtered;
   }, [orders, search, activeStatus]);
 
-  // TAB options: All + all status options in order (Force All to be first)
+  // TAB options: All + each status
   const tabOptions = [
     { label: "All", value: ALL_TAB },
     ...orderStatusOptions.map(status => ({
@@ -152,9 +161,9 @@ const OrdersDashboard = () => {
           </div>
         </div>
         
-        {/* Status Tabs - Adjusted for mobile responsiveness */}
+        {/* Status Tabs - with new button toggle logic */}
         <div className="mb-2 overflow-x-auto">
-          <Tabs value={activeStatus} onValueChange={setActiveStatus}>
+          <Tabs value={activeStatus} onValueChange={handleTabChange}>
             <TabsList
               className="w-full flex gap-1 bg-muted px-1 py-1 rounded-md border overflow-x-auto no-scrollbar"
               style={{ WebkitOverflowScrolling: 'touch' }}

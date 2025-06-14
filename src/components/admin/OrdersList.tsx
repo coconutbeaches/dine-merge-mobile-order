@@ -50,7 +50,6 @@ const OrdersList = ({
 
   return (
     <div>
-      {/* Removed table heading (Pink box) */}
       {/* Orders rows */}
       {orders.map((order) => {
         const customerDisplayName = order.customer_name_from_profile || 
@@ -63,8 +62,10 @@ const OrdersList = ({
         return (
           <div
             key={order.id}
-            className="grid grid-cols-11 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
-            style={{ gridTemplateColumns: "min-content minmax(0,1.7fr) min-content min-content minmax(0,1.15fr) minmax(0,1.15fr) min-content min-content min-content min-content min-content" }}
+            className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
+            style={{
+              gridTemplateColumns: "min-content minmax(0,2.5fr) minmax(0,1.1fr) minmax(0,1.2fr) min-content min-content min-content min-content min-content min-content min-content min-content"
+            }}
           >
             {/* Checkbox */}
             <div className="col-span-1 flex items-center min-w-[32px]">
@@ -74,7 +75,7 @@ const OrdersList = ({
                 aria-label={`Select order ${order.id}`}
               />
             </div>
-            {/* Customer name (plus table number below, small text) */}
+            {/* Customer name, table number below */}
             <div className="col-span-3 min-w-0">
               {order.user_id ? (
                 <Link 
@@ -100,10 +101,10 @@ const OrdersList = ({
                 </div>
               )}
             </div>
-            {/* Order Amount (moved left, less padding, clickable) */}
+            {/* Order Amount (now moved left, add extra space after) */}
             <Link
               to={`/admin/order/${order.id}`}
-              className="col-span-2 text-right cursor-pointer text-primary hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-1 pr-0" // pl-1 pulls it left
+              className="col-span-2 text-right cursor-pointer text-primary font-bold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary transition pl-1 pr-5"
               title={`View full order #${order.id}`}
               tabIndex={0}
               style={{ minWidth: 0 }}
@@ -122,14 +123,14 @@ const OrdersList = ({
               <span>{formatOrderTime(order.created_at)}</span>
             </Link>
             {/* Order Status: as a small pill-shaped select */}
-            <div className="col-span-3 min-w-[85px] md:min-w-[120px] flex items-center">
+            <div className="col-span-3 min-w-[70px] md:min-w-[100px] flex items-center">
               <Select
                 value={statusVal}
                 onValueChange={(value: OrderStatus) => updateOrderStatus(order.id, value)}
               >
                 <SelectTrigger
-                  className={`min-w-[85px] max-w-full h-7 px-2 text-xs font-semibold border-0 bg-transparent shadow-none focus:ring-0 ${statusPillStyle} rounded-full transition`}
-                  style={{ boxShadow: 'none', minWidth: 0, height: 28 }}
+                  className={`min-w-[70px] max-w-full h-6 px-2 text-xs font-semibold border-0 shadow-none focus:ring-0 ${statusPillStyle} rounded-full transition`}
+                  style={{ boxShadow: 'none', minWidth: 0, height: 24 }}
                 >
                   <span
                     className={`inline-block w-2 h-2 rounded-full mr-1 ${getStatusColorDot(statusVal)}`}
