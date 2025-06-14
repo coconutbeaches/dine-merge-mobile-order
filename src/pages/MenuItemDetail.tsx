@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
@@ -12,8 +12,7 @@ import ProductImageHeader from '@/components/menu-item/ProductImageHeader';
 import ProductOptions from '@/components/menu-item/ProductOptions';
 import QuantityAddToCart from '@/components/menu-item/QuantityAddToCart';
 import { calculateTotalPrice, convertProductToMenuItem } from '@/utils/productUtils';
-import { formatThaiCurrency } from '@/lib/utils'; // Import for currency formatting
-import { useNavigate } from 'react-router-dom';
+import { formatThaiCurrency } from '@/lib/utils';
 
 const MenuItemDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -96,40 +95,37 @@ const MenuItemDetail = () => {
   });
   
   const [quantity, setQuantity] = useState(1);
+  // State will be keyed by option ID to handle duplicate option names correctly.
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string | string[]>>({});
   
-  // Initialize selectedOptions with default values when product loads
+  // Initialize selectedOptions with default values when product loads, using option.id
   React.useEffect(() => {
     if (product?.options) {
       const defaults: Record<string, string | string[]> = {};
       product.options.forEach(option => {
         if (option.required && option.selection_type === 'single') {
-          // Set first choice as default for required single-select options
           if (option.choices && option.choices.length > 0) {
-            defaults[option.name] = option.choices[0].name;
+            defaults[option.id] = option.choices[0].name;
           }
         } else if (option.required && option.selection_type === 'multiple') {
-          // Set empty array for required multi-select options
-          defaults[option.name] = [];
+          defaults[option.id] = [];
         }
-        // Non-required options will not have a default pre-selected
       });
       setSelectedOptions(defaults);
     }
   }, [product]);
 
-  // Convert product to MenuItem format for cart early to avoid reference errors
   const menuItemForCart: MenuItem | null = product ? convertProductToMenuItem(product) : null;
   
-  const handleOptionChange = (optionName: string, value: string | string[]) => {
+  const handleOptionChange = (optionId: string, value: string | string[]) => {
     setSelectedOptions(prev => ({
       ...prev,
-      [optionName]: value
+      [optionId]: value
     }));
   };
   
-  const handleCheckboxChange = (optionName: string, value: string, checked: boolean) => {
-    const currentValues = selectedOptions[optionName] as string[] || []; // Ensure currentValues is an array
+  const handleCheckboxChange = (optionId: string, value: string, checked: boolean) => {
+    const currentValues = (selectedOptions[optionId] as string[]) || [];
     
     let newValues: string[];
     if (checked) {
@@ -138,22 +134,20 @@ const MenuItemDetail = () => {
       newValues = currentValues.filter(v => v !== value);
     }
     
-    handleOptionChange(optionName, newValues);
+    handleOptionChange(optionId, newValues);
   };
   
   const handleAddToCart = () => {
     if (!menuItemForCart || !product) return;
     
-    // Validate required options
+    // Validate required options using option.id
     const missingRequiredOptions = (product?.options || [])
       .filter(option => option.required)
       .filter(option => {
-        const selected = selectedOptions[option.name];
-        // For multi-select, check if the array is empty or undefined
+        const selected = selectedOptions[option.id];
         if (option.selection_type === 'multiple') {
           return !selected || (Array.isArray(selected) && selected.length === 0);
         }
-        // For single-select, check if it's undefined or an empty string
         return !selected;
       });
     
@@ -166,10 +160,17 @@ const MenuItemDetail = () => {
       return;
     }
     
-    // Calculate total price including options
-    let totalItemPrice = calculateTotalPrice(menuItemForCart, selectedOptions);
+    // Convert selected options from being keyed by ID to being keyed by name for cart context
+    const optionsByName: Record<string, string | string[]> = {};
+    if (product.options) {
+      product.options.forEach(option => {
+        if (selectedOptions[option.id] !== undefined) {
+          optionsByName[option.name] = selectedOptions[option.id];
+        }
+      });
+    }
     
-    addToCart(menuItemForCart, quantity, selectedOptions);
+    addToCart(menuItemForCart, quantity, optionsByName);
     
     toast({
       title: "Added to cart",
@@ -180,8 +181,17 @@ const MenuItemDetail = () => {
     navigate('/');
   };
   
-  // Calculate total price for display
-  const totalPrice = menuItemForCart ? calculateTotalPrice(menuItemForCart, selectedOptions) * quantity : 0;
+  // For display, convert options to be keyed by name to use the existing price calculation utility
+  const optionsForPriceCalc: Record<string, string | string[]> = {};
+  if (product?.options) {
+    product.options.forEach(option => {
+      if (selectedOptions[option.id] !== undefined) {
+        optionsForPriceCalc[option.name] = selectedOptions[option.id];
+      }
+    });
+  }
+  
+  const totalPrice = menuItemForCart ? calculateTotalPrice(menuItemForCart, optionsForPriceCalc) * quantity : 0;
 
   return (
     <Layout title={product?.name || 'Product Details'} showBackButton>
@@ -206,7 +216,7 @@ const MenuItemDetail = () => {
             
             <QuantityAddToCart 
               quantity={quantity}
-              totalPrice={totalPrice} // Already calculated with options
+              totalPrice={totalPrice}
               onQuantityDecrease={() => quantity > 1 && setQuantity(q => q - 1)}
               onQuantityIncrease={() => setQuantity(q => q + 1)}
               onAddToCart={handleAddToCart}

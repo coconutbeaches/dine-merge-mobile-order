@@ -9,8 +9,8 @@ import { ProductOption } from '@/types/supabaseTypes';
 interface ProductOptionsProps {
   options: ProductOption[];
   selectedOptions: Record<string, string | string[]>;
-  onOptionChange: (optionName: string, value: string | string[]) => void;
-  onCheckboxChange: (optionName: string, value: string, checked: boolean) => void;
+  onOptionChange: (optionId: string, value: string | string[]) => void;
+  onCheckboxChange: (optionId: string, value: string, checked: boolean) => void;
 }
 
 const ProductOptions: React.FC<ProductOptionsProps> = ({
@@ -26,7 +26,7 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
   return (
     <div className="mb-6 space-y-4">
       {options.map((option) => (
-        <Card key={option.name} className="border border-gray-200">
+        <Card key={option.id} className="border border-gray-200">
           <CardContent className="p-4">
             <Label className="text-base font-medium mb-2 block">
               {option.name}
@@ -39,15 +39,15 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
                 {option.choices.map((choice) => (
                   <div key={choice.name} className="flex items-center space-x-2">
                     <Checkbox 
-                      id={`${option.name}-${choice.name}`}
-                      checked={(selectedOptions[option.name] as string[] || []).includes(choice.name)}
+                      id={`${option.id}-${choice.name}`}
+                      checked={(selectedOptions[option.id] as string[] || []).includes(choice.name)}
                       onCheckedChange={(checked) => {
-                        onCheckboxChange(option.name, choice.name, checked as boolean);
+                        onCheckboxChange(option.id, choice.name, checked as boolean);
                       }}
                       className="border-black data-[state=checked]:bg-black data-[state=checked]:text-white"
                     />
                     <label 
-                      htmlFor={`${option.name}-${choice.name}`}
+                      htmlFor={`${option.id}-${choice.name}`}
                       className="text-sm cursor-pointer flex justify-between w-full"
                     >
                       <span>{choice.name}</span>
@@ -59,19 +59,19 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
             ) : (
               // Single-select options (radio buttons)
               <RadioGroup 
-                value={selectedOptions[option.name] as string || ''}
-                onValueChange={(value) => onOptionChange(option.name, value)}
+                value={selectedOptions[option.id] as string || ''}
+                onValueChange={(value) => onOptionChange(option.id, value)}
                 className="space-y-2"
               >
                 {option.choices.map((choice) => (
                   <div key={choice.name} className="flex items-center space-x-2">
                     <RadioGroupItem 
                       value={choice.name} 
-                      id={`${option.name}-${choice.name}`} 
+                      id={`${option.id}-${choice.name}`} 
                       className="border-black text-black"
                     />
                     <label 
-                      htmlFor={`${option.name}-${choice.name}`}
+                      htmlFor={`${option.id}-${choice.name}`}
                       className="text-sm cursor-pointer flex justify-between w-full"
                     >
                       <span>{choice.name}</span>
