@@ -1,4 +1,3 @@
-
 import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
@@ -54,13 +53,11 @@ const useProductForm = () => {
     },
   });
 
-  // Reset form when data is available for editing
+  // Reset form when data is available for editing.
   useEffect(() => {
-    if (isEditMode) {
-      // Only reset when everything is here
-      if (!product || !categories) return;
-      console.log("Resetting form with product", product);
-      form.reset({
+    // Only reset when in edit mode, not loading, product and categories exist, and not errored
+    if (isEditMode && !isLoading && product && categories && !error) {
+      const resetValues = {
         name: product.name ?? "",
         price:
           product.price !== undefined && product.price !== null
@@ -69,14 +66,16 @@ const useProductForm = () => {
         description: product.description ?? "",
         category_id: product.category_id ?? null,
         image: null,
-      });
+      };
+      console.log("[useProductForm] Running form.reset with:", resetValues);
+      form.reset(resetValues);
       if (product.image_url) {
         setImagePreview(product.image_url);
       } else {
         setImagePreview(null);
       }
     }
-  }, [product, categories, isEditMode]);
+  }, [isEditMode, isLoading, product, categories, error]);
 
   // Load options when fetched (edit mode)
   useEffect(() => {
