@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -57,36 +56,6 @@ const Index = () => {
   return (
     <Layout>
       <div className="page-container">
-        {/* Hero Section */}
-        <div className="mb-6">
-          <Card className="overflow-hidden border-none shadow-none">
-            <div 
-              className="h-40 bg-center bg-cover" 
-              style={{ backgroundImage: `url(${restaurantInfo.coverImage})` }}
-            />
-            <div className="p-4 bg-white">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h1 className="text-2xl font-bold text-black">{restaurantInfo.name}</h1>
-                  <p className="text-sm text-gray-600 mt-1">{restaurantInfo.description}</p>
-                </div>
-                <div className="flex items-center bg-black text-white px-2 py-1 rounded-md">
-                  <span className="text-sm font-bold">{restaurantInfo.rating} ★</span>
-                </div>
-              </div>
-              
-              <div className="mt-4">
-                <Button 
-                  className="w-full bg-black hover:bg-black/90 text-white" 
-                  onClick={() => navigate('/menu')}
-                >
-                  View Menu
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-        
         {/* Welcome Back - for logged in users */}
         {isLoggedIn && currentUser && (
           <div className="mb-6">
@@ -94,22 +63,13 @@ const Index = () => {
               <div className="p-4">
                 <h2 className="text-lg font-semibold">Welcome back, {currentUser.name.split(' ')[0]}!</h2>
                 <p className="text-sm text-gray-600 mb-3">Ready to order your favorites?</p>
-                
-                {currentUser.orderHistory && currentUser.orderHistory.length > 0 ? (
+                {currentUser.orderHistory && currentUser.orderHistory.length > 0 && (
                   <Button 
                     className="w-full border-black text-black hover:bg-gray-100" 
                     variant="outline"
                     onClick={() => navigate('/order-history')}
                   >
                     View Order History
-                  </Button>
-                ) : (
-                  <Button 
-                    className="w-full border-black text-black hover:bg-gray-100" 
-                    variant="outline"
-                    onClick={() => navigate('/menu')}
-                  >
-                    Start Ordering
                   </Button>
                 )}
               </div>
@@ -190,4 +150,3 @@ const Index = () => {
 };
 
 export default Index;
-
