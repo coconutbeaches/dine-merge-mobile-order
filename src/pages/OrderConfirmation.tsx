@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, MessageSquare } from 'lucide-react';
 
 const OrderConfirmation = () => {
   const location = useLocation();
@@ -20,6 +20,13 @@ const OrderConfirmation = () => {
     }
   }, [orderId, navigate]);
 
+  const handleSendWhatsApp = () => {
+    const phoneNumber = '660926025572';
+    const message = `Hello, I have a new order. Order ID: #${orderId}`;
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <Layout title="Order Confirmation" showBackButton={false}>
       <div className="container py-12">
@@ -32,19 +39,12 @@ const OrderConfirmation = () => {
             {orderId ? (
               <div className="space-y-4">
                 <p className="text-lg">
-                  Thank you for your order. Your order number is: <strong>#{orderId}</strong>
+                  Thank you for your order!
                 </p>
                 <p>
-                  We have received your order and are processing it now. 
-                  You will receive updates on your order status.
+                  Please send your order details to us via WhatsApp to complete the process.
                 </p>
-                <div className="border rounded-lg p-4 bg-gray-50 mt-6">
-                  <h3 className="font-medium text-lg mb-2">What's Next?</h3>
-                  <p>
-                    You can check the status of your order in your order history. 
-                    We'll notify you when your order is ready for pickup or on its way.
-                  </p>
-                </div>
+                <p className="font-bold">Order ID: #{orderId}</p>
               </div>
             ) : (
               <p className="text-yellow-600">
@@ -53,8 +53,13 @@ const OrderConfirmation = () => {
             )}
           </CardContent>
           <CardFooter className="flex justify-center space-x-4">
-            <Button onClick={() => navigate('/order-history')}>View Order History</Button>
-            <Button variant="outline" onClick={() => navigate('/menu')}>Continue Shopping</Button>
+            <Button variant="outline" onClick={() => navigate('/order-history')}>View Order History</Button>
+            {orderId && (
+              <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700 text-white">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Send via WhatsApp
+              </Button>
+            )}
           </CardFooter>
         </Card>
       </div>
