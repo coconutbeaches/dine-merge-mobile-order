@@ -9,10 +9,9 @@ interface UserContextType {
   isLoggedIn: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (updatedUser: User) => void;
-  loginOrSignup: (email: string, password: string) => Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }>;
+  loginOrSignup: (email: string, password: string, name?: string) => Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -54,27 +53,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     }
   };
 
-  const signup = async (email: string, password: string, name: string) => {
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name },
-          emailRedirectTo: window.location.origin
-        }
-      });
-      if (error) {
-        console.error('Error signing up:', error);
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error('Unexpected error during signup:', error);
-      return false;
-    }
-  };
-
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -84,13 +62,14 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     }
   };
 
-  const loginOrSignup = async (email: string, password: string): Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }> => {
+  const loginOrSignup = async (email: string, password: string, name?: string): Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }> => {
     // Try to sign up first
     const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         // The handle_new_user trigger in the DB will use the email as name if not provided.
+        data: { name: name && name.trim().length > 0 ? name.trim() : undefined },
         emailRedirectTo: window.location.origin,
       },
     });
@@ -118,7 +97,6 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     isLoggedIn: !!currentUser && !!supabaseSession,
     isLoading,
     login,
-    signup,
     logout,
     updateUser,
     loginOrSignup

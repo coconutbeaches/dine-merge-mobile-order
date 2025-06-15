@@ -20,6 +20,7 @@ const Login = () => {
   const { loginOrSignup } = useAppContext();
   const { toast } = useToast();
   
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -41,7 +42,7 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      const result = await loginOrSignup(email, password);
+      const result = await loginOrSignup(email, password, name);
 
       if (result.success) {
         if (result.a_new_user_was_created) {
@@ -99,6 +100,15 @@ const Login = () => {
           <CardContent>
             <form onSubmit={handleLoginOrSignup}>
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name (optional)</Label>
+                  <Input 
+                    id="name"
+                    placeholder="John Doe"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input 
