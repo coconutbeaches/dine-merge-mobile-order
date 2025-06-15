@@ -42,18 +42,6 @@ export function usePlaceOrder(
         adminContext
       });
       
-      const { data: isAuthUser, error: rpcError } = await supabase.rpc('is_user_in_auth', {
-        user_id_to_check: finalUserId
-      });
-  
-      if (rpcError) {
-        console.error("Error checking user auth status:", rpcError);
-        toast.error("An error occurred while verifying customer details. Please try again.");
-        return null;
-      }
-
-      const orderUserId = isAuthUser ? finalUserId : null;
-      
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('name, email')
@@ -68,7 +56,7 @@ export function usePlaceOrder(
       console.log("Customer profile found:", profile);
       
       const insertedOrderData = await placeOrderInSupabase(
-        orderUserId,
+        finalUserId, // Always associate with the profile ID
         customerName, 
         cart as CartItem[], 
         cartTotal, 
