@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Order, Address, OrderStatus, SupabaseOrderStatus, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
 import { supabase } from '@/integrations/supabase/client';
@@ -141,9 +140,12 @@ export function useOrders(userId: string | undefined) {
   const placeOrder = async (
     address: Address | null, 
     paymentMethod: string, 
-    tableNumberInput = 'Take Away'
+    tableNumberInput = 'Take Away',
+    adminContext: { customerId: string, customerName: string } | null = null
   ): Promise<Order | null> => {
-    if (!userId) {
+    const finalUserId = adminContext?.customerId || userId;
+    
+    if (!finalUserId) {
       console.error('User must be logged in to place an order');
       toast.error('You must be logged in to place an order');
       return null;
@@ -157,29 +159,30 @@ export function useOrders(userId: string | undefined) {
 
     try {
       console.log("useOrders: Placing order with:", { 
-        userId, 
+        userId: finalUserId, 
         address, 
         paymentMethod, 
         cart: cart.length, 
-        tableNumberInput
+        tableNumberInput,
+        adminContext
       });
       
       // Get customer name from profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('name, email')
-        .eq('id', userId)
+        .eq('id', finalUserId)
         .single();
       
       if (profileError) {
         console.error("Error fetching profile for order:", profileError);
       }
       
-      const customerName = profile?.name || null;
+      const customerName = adminContext?.customerName || profile?.name || null;
       console.log("Customer profile found:", profile);
       
       const insertedOrderData = await placeOrderInSupabase(
-        userId, 
+        finalUserId, 
         customerName, 
         cart as CartItem[], 
         cartTotal, 
@@ -197,7 +200,7 @@ export function useOrders(userId: string | undefined) {
       // Create a new order that matches the Order interface from supabaseTypes
       const newOrderForLocalState: Order = {
         id: insertedOrderData.id,
-        user_id: insertedOrderData.user_id || userId,
+        user_id: insertedOrderData.user_id || finalUserId,
         total_amount: insertedOrderData.total_amount,
         order_status: 'new' as OrderStatus,
         created_at: insertedOrderData.created_at,
@@ -210,7 +213,11 @@ export function useOrders(userId: string | undefined) {
       };
       
       console.log("New order created for local state:", newOrderForLocalState);
-      setOrders(prevOrders => [newOrderForLocalState, ...prevOrders]);
+      
+      // Only add to local state if not an admin placing an order for someone else
+      if (!adminContext) {
+        setOrders(prevOrders => [newOrderForLocalState, ...prevOrders]);
+      }
       
       // Clear cart after successful order
       clearCart();

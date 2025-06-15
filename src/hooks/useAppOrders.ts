@@ -25,12 +25,7 @@ export function useAppOrders(
         tableNumber
       });
 
-      if (!effectiveUserId) {
-        console.error("AppContext: No user ID available for order placement");
-        return null;
-      }
-
-      const result = await placeOrder(address, paymentMethod, tableNumber);
+      const result = await placeOrder(address, paymentMethod, tableNumber, adminCustomerContext);
       console.log("AppContext: Order placement result:", result);
       return result;
     } catch (error) {
