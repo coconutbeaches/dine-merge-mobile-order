@@ -6,11 +6,9 @@ import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InfoIcon } from 'lucide-react';
 
 interface LocationState {
   returnTo?: string;
@@ -25,7 +23,6 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [signupSuccess, setSignupSuccess] = useState(false);
   
   const locationState = location.state as LocationState | null;
   const returnTo = locationState?.returnTo || '/';
@@ -48,10 +45,12 @@ const Login = () => {
 
       if (result.success) {
         if (result.a_new_user_was_created) {
-          setSignupSuccess(true);
-        } else {
-          navigate(returnTo);
+          toast({
+            title: "Welcome!",
+            description: "Your account has been created successfully.",
+          });
         }
+        navigate(returnTo);
       } else {
         toast({
           title: "Error",
@@ -89,42 +88,6 @@ const Login = () => {
     }
     // Supabase handles redirection, setIsLoading(false) might not be reached if redirect occurs.
   };
-  
-  if (signupSuccess) {
-    return (
-      <Layout title="Verify Your Email" showBackButton>
-        <div className="page-container">
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-restaurant-primary text-2xl">Check Your Email</CardTitle>
-              <CardDescription>
-                We've sent a verification link to your email address.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert>
-                <InfoIcon className="h-4 w-4 mr-2" />
-                <AlertDescription>
-                  Please click the verification link in your inbox to complete registration.
-                </AlertDescription>
-              </Alert>
-              <Button 
-                onClick={() => {
-                  setSignupSuccess(false);
-                  setEmail('');
-                  setPassword('');
-                }} 
-                variant="outline"
-                className="w-full"
-              >
-                Back to Login
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    )
-  }
 
   return (
     <Layout title="Login or Sign Up" showBackButton>
