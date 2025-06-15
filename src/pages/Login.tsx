@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -101,7 +100,7 @@ const Login = () => {
             <form onSubmit={handleLoginOrSignup}>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name (optional)</Label>
+                  <Label htmlFor="name">Name</Label>
                   <Input 
                     id="name"
                     placeholder="John Doe"
