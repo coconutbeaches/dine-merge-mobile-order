@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CartItem, MenuItem } from '../types';
 import { useUserContext } from './UserContext';
@@ -29,7 +30,7 @@ interface CartProviderProps {
 
 export const CartProvider = ({ children }: CartProviderProps) => {
   const [cart, setCart] = useState<CartItem[]>([]);
-  const { isLoading: userIsLoading, isLoggedIn } = useUserContext();
+  const { isLoading: userIsLoading } = useUserContext();
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -38,14 +39,6 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       setCart(JSON.parse(storedCart));
     }
   }, []);
-
-  // Listen for user login/logout to clear cart
-  useEffect(() => {
-    if (isLoggedIn) {
-      // Clear cart when user logs in
-      clearCart();
-    }
-  }, [isLoggedIn]);
   
   // Save cart to localStorage when it changes
   useEffect(() => {
