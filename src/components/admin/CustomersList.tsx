@@ -75,7 +75,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
               <TableCell>{customer.email}</TableCell>
               <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
               <TableCell className="hidden lg:table-cell capitalize">{customer.role}</TableCell>
-              <TableCell className="hidden lg:table-cell">{format(new Date(customer.created_at), 'MMM d, yyyy')}</TableCell>
+              <TableCell className="hidden lg:table-cell whitespace-nowrap">{format(new Date(customer.created_at), 'MMM d, yyyy')}</TableCell>
               <TableCell>
                 <Button variant="ghost" size="icon" onClick={() => onEditCustomer(customer)}>
                   <Edit className="h-4 w-4" />
