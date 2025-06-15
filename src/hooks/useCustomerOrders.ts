@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -125,6 +126,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
 
   return {
     orders,
+    setOrders,
     customer,
     isLoading
   };

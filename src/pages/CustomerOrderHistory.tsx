@@ -3,15 +3,17 @@ import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Check } from 'lucide-react';
 import { useCustomerOrders } from '@/hooks/useCustomerOrders';
+import { useOrderActions } from '@/hooks/useOrderActions';
 import CustomerInfo from '@/components/customer/CustomerInfo';
 import CustomerOrdersList from '@/components/customer/CustomerOrdersList';
 
 const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
-  const { orders, customer, isLoading } = useCustomerOrders(customerId);
+  const { orders, setOrders, customer, isLoading } = useCustomerOrders(customerId);
+  const { updateMultipleOrderStatuses } = useOrderActions(setOrders);
 
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
 
@@ -23,6 +25,12 @@ const CustomerOrderHistory = () => {
         adminCustomerName: customer?.name || customer?.email 
       } 
     });
+  };
+
+  const handleMarkAllPaid = () => {
+    if (!orders || orders.length === 0) return;
+    const orderIds = orders.map(o => o.id);
+    updateMultipleOrderStatuses(orderIds, 'paid');
   };
 
   if (isLoading) {
@@ -49,10 +57,22 @@ const CustomerOrderHistory = () => {
               {customer ? `${customer.name || 'Customer'}'s Orders` : 'Customer Orders'}
             </h1>
           </div>
-          <Button onClick={handleCreateNewOrder} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Create New Order
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleMarkAllPaid}
+              disabled={orders.length === 0}
+              aria-label="Mark all orders as paid"
+            >
+              <Check className="h-4 w-4" />
+              <span className="sr-only">Mark all as paid</span>
+            </Button>
+            <Button onClick={handleCreateNewOrder} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              New Order
+            </Button>
+          </div>
         </div>
 
         {customer && (
