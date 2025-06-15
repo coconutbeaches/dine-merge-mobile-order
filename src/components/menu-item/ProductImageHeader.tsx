@@ -3,23 +3,18 @@ import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { formatThaiCurrency } from '@/lib/utils';
 
 interface ProductImageHeaderProps {
   isLoading: boolean;
   error: unknown;
-  productName: string;
   productDescription: string | null;
-  productPrice: number;
   imageUrl: string | null;
 }
 
 const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
   isLoading,
   error,
-  productName,
   productDescription,
-  productPrice,
   imageUrl
 }) => {
   const navigate = useNavigate();
@@ -54,15 +49,11 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
       />
       
       {/* Item Details */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-1">{productName}</h1>
-        {productDescription && productDescription !== 'No description' && (
-          <p className="text-gray-600 mb-2">{productDescription}</p>
-        )}
-        
-        {/* Base Price */}
-        <p className="text-xl font-bold">{formatThaiCurrency(productPrice)}</p>
-      </div>
+      {(productDescription && productDescription !== 'No description') && (
+        <div className="mb-6">
+          <p className="text-gray-600">{productDescription}</p>
+        </div>
+      )}
     </>
   );
 };

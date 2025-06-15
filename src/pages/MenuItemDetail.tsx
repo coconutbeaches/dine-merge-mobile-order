@@ -71,9 +71,7 @@ const MenuItemDetail = () => {
         <ProductImageHeader 
           isLoading={isLoading}
           error={error}
-          productName={product?.name || ''}
           productDescription={product?.description}
-          productPrice={product?.price ? parseFloat(product.price.toString()) : 0}
           imageUrl={product?.image_url}
         />
         
