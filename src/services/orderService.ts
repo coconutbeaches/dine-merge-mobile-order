@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem as CartItemType } from '@/types';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
@@ -43,26 +44,6 @@ export async function placeOrder(orderData: {
     };
   }
 }
-
-export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    return data.map(order => ({
-      ...order,
-      order_status: order.order_status as OrderStatus
-    })) as Order[];
-  } catch (error) {
-    console.error('Error fetching user orders:', error);
-    return [];
-  }
-};
 
 export const placeOrderInSupabase = async (
   userId: string | null,
