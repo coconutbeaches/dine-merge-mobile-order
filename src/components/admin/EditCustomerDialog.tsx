@@ -18,16 +18,18 @@ interface EditCustomerDialogProps {
   customer: Profile | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (name: string) => Promise<void>;
+  onSave: (name: string, phone: string) => Promise<void>;
 }
 
 const EditCustomerDialog: React.FC<EditCustomerDialogProps> = ({ customer, isOpen, onClose, onSave }) => {
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (customer) {
       setName(customer.name || '');
+      setPhone(customer.phone || '');
     }
   }, [customer]);
 
@@ -37,7 +39,7 @@ const EditCustomerDialog: React.FC<EditCustomerDialogProps> = ({ customer, isOpe
 
   const handleSave = async () => {
     setIsSaving(true);
-    await onSave(name);
+    await onSave(name, phone);
     setIsSaving(false);
   };
 
@@ -59,6 +61,18 @@ const EditCustomerDialog: React.FC<EditCustomerDialogProps> = ({ customer, isOpe
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="phone" className="text-right">
+              Phone
+            </Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
               className="col-span-3"
             />
           </div>

@@ -45,15 +45,14 @@ const CustomersDashboard = () => {
     setEditingCustomer(null);
   };
 
-  const handleSaveChanges = async (name: string) => {
+  const handleSaveChanges = async (name: string, phone: string) => {
     if (!editingCustomer) return;
 
     try {
-      // Only send id, name, phone (no role, addresses, orderHistory here)
       await updateUserProfile({
         id: editingCustomer.id,
         name,
-        phone: editingCustomer.phone || ''
+        phone
       });
       toast.success('Customer updated successfully');
       fetchCustomers();
