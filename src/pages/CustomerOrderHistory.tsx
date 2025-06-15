@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,6 +7,7 @@ import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useOrderActions } from '@/hooks/useOrderActions';
 import CustomerInfo from '@/components/customer/CustomerInfo';
 import CustomerOrdersList from '@/components/customer/CustomerOrdersList';
+import { toast } from 'sonner';
 
 const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
@@ -29,8 +29,16 @@ const CustomerOrderHistory = () => {
 
   const handleMarkAllPaid = () => {
     if (!orders || orders.length === 0) return;
-    const orderIds = orders.map(o => o.id);
-    updateMultipleOrderStatuses(orderIds, 'paid');
+    const orderIdsToUpdate = orders
+      .filter(order => order.order_status !== 'cancelled')
+      .map(o => o.id);
+
+    if (orderIdsToUpdate.length === 0) {
+      toast.info("No orders to mark as paid.");
+      return;
+    }
+    
+    updateMultipleOrderStatuses(orderIdsToUpdate, 'paid');
   };
 
   if (isLoading) {
