@@ -24,7 +24,7 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
   }
 
   return (
-    <div className="mb-6 space-y-4">
+    <div className="mb-12 space-y-4">
       {options.map((option) => (
         <Card key={option.id} className="border border-gray-200">
           <CardContent className="p-4">
