@@ -10,9 +10,8 @@ const Admin = () => {
   return (
     <Layout title="Admin Dashboard">
       <div className="p-4 max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
         
-        <div className="grid gap-4 mb-8">
+        <div className="grid gap-4 mt-6 mb-8">
           <Link to="/orders-dashboard">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
