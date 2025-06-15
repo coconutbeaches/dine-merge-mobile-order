@@ -2,7 +2,7 @@
 import { useCartContext } from '@/context/CartContext';
 
 export function useAppCart() {
-  const { cart, addToCart, removeFromCart, updateCartItemQuantity, cartTotal } = useCartContext();
+  const { cart, addToCart, removeFromCart, updateCartItemQuantity, cartTotal, clearCart } = useCartContext();
 
   return {
     cart,
@@ -10,5 +10,6 @@ export function useAppCart() {
     removeFromCart,
     updateCartItemQuantity,
     cartTotal,
+    clearCart,
   };
 }
