@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode } from 'react';
 import { Address, Order } from '../types/supabaseTypes';
 import { useUserContext } from './UserContext';
@@ -24,6 +23,8 @@ interface AppContextType {
   currentUser: any;
   login: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
+  loginOrSignup: (email: string, password: string) => Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }>;
+
 
   // Cart related
   cart: any[];
@@ -49,7 +50,7 @@ interface AppProviderProps {
 
 export const AppProvider = ({ children }: AppProviderProps) => {
   // Auth-related context
-  const { currentUser, isLoggedIn, isLoading, login, signup } = useUserContext();
+  const { currentUser, isLoggedIn, isLoading, login, signup, loginOrSignup } = useUserContext();
 
   // Customer context for admin operations
   const { adminCustomerContext, setAdminCustomerContext } = useAdminCustomerContext();
@@ -73,6 +74,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     currentUser,
     login,
     signup,
+    loginOrSignup,
     // Cart related
     cart,
     addToCart,

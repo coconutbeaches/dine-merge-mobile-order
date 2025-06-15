@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -5,9 +6,11 @@ import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client'; // Added for Google Sign-In
+import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoIcon } from 'lucide-react';
 
 interface LocationState {
   returnTo?: string;
@@ -16,20 +19,19 @@ interface LocationState {
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAppContext();
+  const { loginOrSignup } = useAppContext();
   const { toast } = useToast();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
   
   const locationState = location.state as LocationState | null;
   const returnTo = locationState?.returnTo || '/';
   
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLoginOrSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    console.log('[Login.tsx] handleLogin called', { email, password });
 
     if (!email || !password) {
       toast({
@@ -42,24 +44,23 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      console.log('[Login.tsx] Calling login(email, password)...');
-      const success = await login(email, password);
-      console.log('[Login.tsx] login(email, password) resolved:', success);
+      const result = await loginOrSignup(email, password);
 
-      if (success) {
-        // toast(...); // removed as requested
-        console.log('[Login.tsx] Navigating to:', returnTo);
-        navigate(returnTo);
+      if (result.success) {
+        if (result.a_new_user_was_created) {
+          setSignupSuccess(true);
+        } else {
+          navigate(returnTo);
+        }
       } else {
-        console.log('[Login.tsx] Login failed - bad credentials');
         toast({
           title: "Error",
-          description: "Invalid email or password. Please check your credentials and try again.",
+          description: result.error || "An unknown error occurred. Please try again.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error('[Login.tsx] Login error:', error);
+      console.error('[Login.tsx] Login/Signup error:', error);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
@@ -67,7 +68,6 @@ const Login = () => {
       });
     } finally {
       setIsLoading(false);
-      console.log('[Login.tsx] handleLogin done, setIsLoading(false)');
     }
   };
 
@@ -90,15 +90,51 @@ const Login = () => {
     // Supabase handles redirection, setIsLoading(false) might not be reached if redirect occurs.
   };
   
+  if (signupSuccess) {
+    return (
+      <Layout title="Verify Your Email" showBackButton>
+        <div className="page-container">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-restaurant-primary text-2xl">Check Your Email</CardTitle>
+              <CardDescription>
+                We've sent a verification link to your email address.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert>
+                <InfoIcon className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  Please click the verification link in your inbox to complete registration.
+                </AlertDescription>
+              </Alert>
+              <Button 
+                onClick={() => {
+                  setSignupSuccess(false);
+                  setEmail('');
+                  setPassword('');
+                }} 
+                variant="outline"
+                className="w-full"
+              >
+                Back to Login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
-    <Layout title="Login" showBackButton>
+    <Layout title="Login or Sign Up" showBackButton>
       <div className="page-container">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-restaurant-primary text-2xl">Welcome Back</CardTitle>
+            <CardTitle className="text-restaurant-primary text-2xl">Login or Sign Up</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin}>
+            <form onSubmit={handleLoginOrSignup}>
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -137,7 +173,7 @@ const Login = () => {
                   className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
                   disabled={isLoading}
                 >
-                  {isLoading ? "Logging in..." : "Login"}
+                  {isLoading ? "Processing..." : "Continue with Email"}
                 </Button>
 
                 <Button 
@@ -150,14 +186,7 @@ const Login = () => {
                   Sign in with Google
                 </Button>
                 
-                <div className="text-center mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Don't have an account?{" "}
-                    <Link to="/signup" className="text-restaurant-primary hover:underline">
-                      Sign Up
-                    </Link>
-                  </p>
-                </div>
+                {/* Removed signup link */}
               </div>
             </form>
             

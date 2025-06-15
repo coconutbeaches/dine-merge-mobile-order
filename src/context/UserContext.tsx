@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { User } from '../types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -13,6 +12,7 @@ interface UserContextType {
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (updatedUser: User) => void;
+  loginOrSignup: (email: string, password: string) => Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -84,6 +84,35 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     }
   };
 
+  const loginOrSignup = async (email: string, password: string): Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }> => {
+    // Try to sign up first
+    const { error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // The handle_new_user trigger in the DB will use the email as name if not provided.
+        emailRedirectTo: window.location.origin,
+      },
+    });
+
+    if (signUpError) {
+      if (signUpError.message.toLowerCase().includes('user already registered')) {
+        // User exists, so let's try to sign them in.
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          return { success: false, error: signInError.message, a_new_user_was_created: false };
+        }
+        // Sign in was successful.
+        return { success: true, error: null, a_new_user_was_created: false };
+      }
+      // Another sign up error occurred.
+      return { success: false, error: signUpError.message, a_new_user_was_created: false };
+    }
+    
+    // Sign up was successful, a new user was created.
+    return { success: true, error: null, a_new_user_was_created: true };
+  };
+
   const value = {
     currentUser,
     isLoggedIn: !!currentUser && !!supabaseSession,
@@ -91,7 +120,8 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     login,
     signup,
     logout,
-    updateUser
+    updateUser,
+    loginOrSignup
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
