@@ -25,7 +25,7 @@ const OrderConfirmation = () => {
   const handleSendWhatsApp = () => {
     if (!order) return;
 
-    const phoneNumber = '660926025572';
+    const phoneNumber = '12137852112';
 
     const itemsDetails = order.order_items.map(item => {
       const optionsText = item.optionsString ? ` (${item.optionsString})` : '';
