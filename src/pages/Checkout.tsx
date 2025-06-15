@@ -5,9 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { formatThaiCurrency } from '@/lib/utils';
-import { useCartContext } from '@/context/CartContext';
-import { useUserContext } from '@/context/UserContext';
-import { useOrderContext } from '@/context/OrderContext';
+import { useAppContext } from '@/context/AppContext';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -21,9 +19,7 @@ import { calculateTotalPrice } from '@/utils/productUtils';
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { cart, cartTotal, clearCart } = useCartContext();
-  const { currentUser } = useUserContext();
-  const { placeOrder } = useOrderContext();
+  const { cart, cartTotal, clearCart, currentUser, placeOrder } = useAppContext();
 
   const [tableNumber, setTableNumber] = useState('Take Away');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);

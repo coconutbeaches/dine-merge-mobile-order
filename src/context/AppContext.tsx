@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, ReactNode } from 'react';
 import { Address, Order } from '../types/supabaseTypes';
 import { useUserContext } from './UserContext';
@@ -30,6 +31,7 @@ interface AppContextType {
   addToCart: (item: any, quantity: number, selectedOptions?: any) => void;
   removeFromCart: (itemId: string) => void;
   updateCartItemQuantity: (itemId: string, quantity: number) => void;
+  clearCart: () => void;
   cartTotal: number;
 }
 
@@ -55,7 +57,7 @@ export const AppProvider = ({ children }: AppProviderProps) => {
   const { adminCustomerContext, setAdminCustomerContext } = useAdminCustomerContext();
 
   // Shopping cart context
-  const { cart, addToCart, removeFromCart, updateCartItemQuantity, cartTotal } = useAppCart();
+  const { cart, addToCart, removeFromCart, updateCartItemQuantity, cartTotal, clearCart } = useAppCart();
 
   // Orders: Use correct user (regular or admin-customer)
   const effectiveUserId = adminCustomerContext?.customerId || currentUser?.id;
@@ -78,7 +80,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     addToCart,
     removeFromCart,
     updateCartItemQuantity,
-    cartTotal
+    cartTotal,
+    clearCart
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
