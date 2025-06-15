@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,9 @@ const EditCustomerDialog: React.FC<EditCustomerDialogProps> = ({ customer, isOpe
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Customer</DialogTitle>
+          <DialogDescription>
+            Make changes to the customer's profile here. Click save when you're done.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
