@@ -14,6 +14,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
 import { formatThaiCurrency } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 interface CustomersListProps {
   customers: (Profile & { total_spent: number })[];
@@ -73,7 +74,11 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   aria-label={`Select customer ${customer.name}`}
                 />
               </TableCell>
-              <TableCell>{customer.name || 'N/A'}</TableCell>
+              <TableCell>
+                <Link to={`/admin/customer-orders/${customer.id}`} className="font-medium hover:underline">
+                  {customer.name || 'N/A'}
+                </Link>
+              </TableCell>
               <TableCell className="font-medium">{formatThaiCurrency(customer.total_spent)}</TableCell>
               <TableCell>{customer.email}</TableCell>
               <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
