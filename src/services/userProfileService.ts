@@ -47,5 +47,6 @@ export async function updateUserProfile(updatedUser: User) {
     .eq('id', updatedUser.id);
   if (error) {
     console.error('[userProfileService] Error updating user:', error);
+    throw error;
   }
 }
