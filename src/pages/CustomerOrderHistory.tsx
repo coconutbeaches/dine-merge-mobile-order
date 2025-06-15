@@ -87,7 +87,7 @@ const CustomerOrderHistory = () => {
           <CustomerInfo customer={customer} totalSpent={totalSpent} />
         )}
         
-        <CustomerOrdersList orders={orders} onCreateNewOrder={handleCreateNewOrder} />
+        <CustomerOrdersList orders={orders} />
       </div>
     </Layout>
   );
