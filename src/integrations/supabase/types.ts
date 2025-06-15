@@ -247,6 +247,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: string
       }
+      is_user_in_auth: {
+        Args: { user_id_to_check: string }
+        Returns: boolean
+      }
       merge_customers: {
         Args: { source_id: string; target_id: string }
         Returns: undefined

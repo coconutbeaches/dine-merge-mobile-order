@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem as CartItemType } from '@/types';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
@@ -66,7 +65,7 @@ export const fetchUserOrders = async (userId: string): Promise<Order[]> => {
 };
 
 export const placeOrderInSupabase = async (
-  userId: string,
+  userId: string | null,
   customerName: string | null,
   cartItems: CartItem[],
   total: number,

@@ -167,6 +167,19 @@ export function useOrders(userId: string | undefined) {
         adminContext
       });
       
+      // Check if the user ID exists in auth.users
+      const { data: isAuthUser, error: rpcError } = await supabase.rpc('is_user_in_auth', {
+        user_id_to_check: finalUserId
+      });
+  
+      if (rpcError) {
+        console.error("Error checking user auth status:", rpcError);
+        toast.error("An error occurred while verifying customer details. Please try again.");
+        return null;
+      }
+
+      const orderUserId = isAuthUser ? finalUserId : null;
+      
       // Get customer name from profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -182,7 +195,7 @@ export function useOrders(userId: string | undefined) {
       console.log("Customer profile found:", profile);
       
       const insertedOrderData = await placeOrderInSupabase(
-        finalUserId, 
+        orderUserId,
         customerName, 
         cart as CartItem[], 
         cartTotal, 
@@ -200,7 +213,7 @@ export function useOrders(userId: string | undefined) {
       // Create a new order that matches the Order interface from supabaseTypes
       const newOrderForLocalState: Order = {
         id: insertedOrderData.id,
-        user_id: insertedOrderData.user_id || finalUserId,
+        user_id: insertedOrderData.user_id,
         total_amount: insertedOrderData.total_amount,
         order_status: 'new' as OrderStatus,
         created_at: insertedOrderData.created_at,
