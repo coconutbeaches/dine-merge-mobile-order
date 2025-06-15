@@ -56,7 +56,9 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
       {/* Item Details */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-1">{productName}</h1>
-        <p className="text-gray-600 mb-2">{productDescription}</p>
+        {productDescription && productDescription !== 'No description' && (
+          <p className="text-gray-600 mb-2">{productDescription}</p>
+        )}
         
         {/* Base Price */}
         <p className="text-xl font-bold">{formatThaiCurrency(productPrice)}</p>
