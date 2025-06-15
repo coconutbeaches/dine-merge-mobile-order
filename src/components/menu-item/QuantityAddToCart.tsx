@@ -47,7 +47,7 @@ const QuantityAddToCart: React.FC<QuantityAddToCartProps> = ({
           onClick={onAddToCart}
           className="bg-black hover:bg-black/90 text-white"
         >
-          Add to Cart - {formatThaiCurrency(totalPrice)}
+          Add to cart {formatThaiCurrency(totalPrice)}
         </Button>
       </div>
     </div>
