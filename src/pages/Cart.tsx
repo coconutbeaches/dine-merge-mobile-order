@@ -155,7 +155,7 @@ const Cart = () => {
               className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
               disabled={cart.length === 0}
             >
-              Proceed to Checkout - {formatThaiCurrency(grandTotal)}
+              Proceed to checkout {formatThaiCurrency(grandTotal)}
             </Button>
           </div>
         </div>
