@@ -234,6 +234,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: string
       }
+      update_profile_details: {
+        Args: { user_id: string; new_name: string; new_phone: string }
+        Returns: undefined
+      }
     }
     Enums: {
       fulfillment_status:

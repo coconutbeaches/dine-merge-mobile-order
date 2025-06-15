@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 
@@ -35,27 +34,24 @@ export async function fetchUserProfile(userId: string): Promise<User | null> {
   }
 }
 
-// Update user profile (names, phone only)
+// Update user profile by calling the secure RPC function
 export async function updateUserProfile(
   update: { id: string; name: string; phone: string }
 ) {
   if (!update.id) return;
 
-  // Debug the payload and explicit intention to call 'profiles'
-  console.log('[userProfileService] Attempting updateUserProfile on profiles:', update);
-  const { error, data } = await supabase
-    .from('profiles')
-    .update({
-      name: update.name,
-      phone: update.phone,
-    })
-    .eq('id', update.id);
+  console.log('[userProfileService] Calling RPC update_profile_details with:', update);
+  
+  const { error } = await supabase.rpc('update_profile_details', {
+    user_id: update.id,
+    new_name: update.name,
+    new_phone: update.phone
+  });
 
-  console.log('[userProfileService] Supabase update response:', { error, data });
+  console.log('[userProfileService] Supabase RPC response:', { error });
 
   if (error) {
-    // Improved error logging for debugging
-    console.error('[userProfileService] Error updating user (profiles table):', error, 'Payload:', update, 'Returned data:', data);
+    console.error('[userProfileService] Error calling update_profile_details RPC:', error, 'Payload:', update);
     throw error;
   }
 }

@@ -1,18 +1,17 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // Added Link
+import { useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { useUserContext } from '@/context/UserContext'; // Changed to useUserContext
+import { useUserContext } from '@/context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { updateUserProfile } from '@/services/userProfileService';
 
 const Profile = () => {
   const navigate = useNavigate();
-  // Switched to useUserContext
   const { currentUser, isLoggedIn, isLoading: isLoadingUserContext, logout } = useUserContext(); 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -21,22 +20,15 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(false); // This is for page-specific loading like profile updates
 
   useEffect(() => {
-    // Use isLoadingUserContext for the initial auth check
     if (!isLoadingUserContext && !isLoggedIn) {
       navigate('/login', { state: { returnTo: '/profile' } });
     }
     if (currentUser) {
       setName(currentUser.name || '');
       setEmail(currentUser.email || '');
-      // Phone is now directly on currentUser from UserContext's fetchUserProfile
       setPhone(currentUser.phone || ''); 
     }
   }, [currentUser, isLoggedIn, isLoadingUserContext, navigate]);
-
-  // Removed fetchProfileDetails as phone is now expected to be on currentUser
-  // If phone needs to be fetched/updated separately, that logic would remain,
-  // but for this task, assuming UserContext provides it.
-  // If not, fetchProfileDetails would need to be reinstated and potentially adjusted.
 
   const fetchProfileDetails = async () => {
     if (!currentUser) return;
@@ -60,42 +52,31 @@ const Profile = () => {
     }
   };
 
-
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
     setIsLoading(true);
     try {
-      // Update name in auth.users.user_metadata if needed (more complex, usually handled at signup/profile specific endpoint)
-      // For now, we update the 'profiles' table
-      const { error } = await supabase
-        .from('profiles')
-        .update({ name, phone }) // Only update name and phone here
-        .eq('id', currentUser.id);
-
-      if (error) throw error;
-
-      // Note: Email updates usually require verification and are handled separately by Supabase Auth.
-      // If you need to update email, use supabase.auth.updateUser({ email: newEmail })
-      // For this example, we are not updating email directly.
+      await updateUserProfile({
+        id: currentUser.id,
+        name: name,
+        phone: phone,
+      });
 
       toast.success('Profile updated successfully!');
       setIsEditing(false);
-      // Potentially re-fetch currentUser or update context if name change affects AppContext's currentUser display
-      // For simplicity, local state change and toast are shown.
     } catch (error: any) {
       toast.error(`Failed to update profile: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
   };
 
-  // Use isLoadingUserContext for the main loading check
   if (isLoadingUserContext) {
     return (
       <Layout title="My Profile" showBackButton>
@@ -105,8 +86,6 @@ const Profile = () => {
   }
 
   if (!isLoggedIn || !currentUser) {
-    // This condition should ideally be caught by the useEffect redirect earlier
-    // if isLoadingUserContext is false and user is not logged in.
     return (
       <Layout title="My Profile" showBackButton>
         <div className="page-container text-center py-10">Please log in to view your profile.</div>
