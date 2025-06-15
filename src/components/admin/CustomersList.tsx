@@ -50,9 +50,9 @@ const CustomersList: React.FC<CustomersListProps> = ({
           </TableHead>
           <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
-          <TableHead>Phone</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead>Joined</TableHead>
+          <TableHead className="hidden md:table-cell">Phone</TableHead>
+          <TableHead className="hidden lg:table-cell">Role</TableHead>
+          <TableHead className="hidden lg:table-cell">Joined</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -68,9 +68,9 @@ const CustomersList: React.FC<CustomersListProps> = ({
               </TableCell>
               <TableCell>{customer.name || 'N/A'}</TableCell>
               <TableCell>{customer.email}</TableCell>
-              <TableCell>{customer.phone || 'N/A'}</TableCell>
-              <TableCell className="capitalize">{customer.role}</TableCell>
-              <TableCell>{format(new Date(customer.created_at), 'MMM d, yyyy')}</TableCell>
+              <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
+              <TableCell className="hidden lg:table-cell capitalize">{customer.role}</TableCell>
+              <TableCell className="hidden lg:table-cell">{format(new Date(customer.created_at), 'MMM d, yyyy')}</TableCell>
             </TableRow>
           ))
         ) : (
