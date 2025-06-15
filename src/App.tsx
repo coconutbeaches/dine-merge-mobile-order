@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +27,7 @@ import ProductsByCategory from "./pages/ProductsByCategory";
 import CustomerOrderHistory from "./pages/CustomerOrderHistory";
 import ProtectedAdminRoute from "./components/layout/ProtectedAdminRoute"; // Import ProtectedAdminRoute
 import AdminOrderDetail from "./pages/AdminOrderDetail";
+import CustomersDashboard from "./pages/CustomersDashboard";
 
 function App() {
   return (
@@ -59,6 +61,7 @@ function App() {
               <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
               <Route path="/categories-manager" element={<CategoriesManager />} />
               <Route path="/admin/customer-orders/:customerId" element={<CustomerOrderHistory />} />
+              <Route path="/customers-dashboard" element={<CustomersDashboard />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
