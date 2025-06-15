@@ -3,7 +3,7 @@ import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Plus, Check } from 'lucide-react';
+import { ArrowLeft, Plus, DollarSign } from 'lucide-react';
 import { useCustomerOrders } from '@/hooks/useCustomerOrders';
 import { useOrderActions } from '@/hooks/useOrderActions';
 import CustomerInfo from '@/components/customer/CustomerInfo';
@@ -59,13 +59,13 @@ const CustomerOrderHistory = () => {
           </div>
           <div className="flex items-center gap-2">
             <Button
-              variant="outline"
+              variant="default"
               size="icon"
               onClick={handleMarkAllPaid}
               disabled={orders.length === 0}
               aria-label="Mark all orders as paid"
             >
-              <Check className="h-4 w-4" />
+              <DollarSign className="h-4 w-4" />
               <span className="sr-only">Mark all as paid</span>
             </Button>
             <Button onClick={handleCreateNewOrder} className="flex items-center gap-2">
