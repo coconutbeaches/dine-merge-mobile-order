@@ -1,15 +1,16 @@
-
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, MessageSquare } from 'lucide-react';
+import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
+import { useFetchOrderById } from '@/hooks/useFetchOrderById';
 
 const OrderConfirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { orderId } = location.state || {};
+  const { order, isLoading } = useFetchOrderById(orderId);
 
   useEffect(() => {
     // If someone navigates directly to this page without an order ID, redirect to home
@@ -21,8 +22,29 @@ const OrderConfirmation = () => {
   }, [orderId, navigate]);
 
   const handleSendWhatsApp = () => {
+    if (!order) return;
+
     const phoneNumber = '660926025572';
-    const message = `Hello, I have a new order. Order ID: #${orderId}`;
+
+    const itemsDetails = order.order_items.map(item => {
+      const optionsText = item.optionsString ? ` (${item.optionsString})` : '';
+      return `- ${item.quantity}x ${item.name}${optionsText}`;
+    }).join('\n');
+
+    const customerName = order.customer_name || order.customer_name_from_profile || 'Guest';
+    const tableNumber = order.table_number || 'Takeaway';
+    const formattedTotal = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(order.total_amount);
+
+    const message = `*New Order: #${order.id}*
+
+*Customer:* ${customerName}
+*Table:* ${tableNumber}
+
+*Items:*
+${itemsDetails}
+
+*Total:* ${formattedTotal}`;
+
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
@@ -55,9 +77,18 @@ const OrderConfirmation = () => {
           <CardFooter className="flex justify-center space-x-4">
             <Button variant="outline" onClick={() => navigate('/order-history')}>View Order History</Button>
             {orderId && (
-              <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700 text-white">
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Send via WhatsApp
+              <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700 text-white" disabled={isLoading || !order}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading Details...
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    Send via WhatsApp
+                  </>
+                )}
               </Button>
             )}
           </CardFooter>
