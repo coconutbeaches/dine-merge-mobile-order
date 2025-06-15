@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,9 +7,10 @@ import CustomersList from '@/components/admin/CustomersList';
 import CustomersDashboardHeader from '@/components/admin/CustomersDashboardHeader';
 import { Profile } from '@/types/supabaseTypes';
 import EditCustomerDialog from '@/components/admin/EditCustomerDialog';
-import { updateUserProfile } from '@/services/userProfileService';
+import { updateUserProfile, mergeCustomers } from '@/services/userProfileService';
 import { toast } from 'sonner';
 import { User } from '@/types';
+import MergeCustomersDialog from '@/components/admin/MergeCustomersDialog';
 
 const CustomersDashboard = () => {
   const { 
@@ -24,6 +26,7 @@ const CustomersDashboard = () => {
 
   const [search, setSearch] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Profile | null>(null);
+  const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
 
   const filteredCustomers = useMemo(() => {
     if (!search.trim()) {
@@ -36,6 +39,29 @@ const CustomersDashboard = () => {
       return name.includes(s) || email.includes(s);
     });
   }, [customers, search]);
+
+  const customersToMerge = useMemo(() => {
+    if (selectedCustomers.length !== 2) return [];
+    return customers.filter(c => selectedCustomers.includes(c.id));
+  }, [customers, selectedCustomers]);
+
+  const handleMergeClick = () => {
+    if (customersToMerge.length === 2) {
+      setIsMergeDialogOpen(true);
+    }
+  };
+
+  const handleConfirmMerge = async (targetId: string, sourceId: string) => {
+    try {
+      await mergeCustomers(sourceId, targetId);
+      toast.success('Customers merged successfully!');
+      fetchCustomers();
+      setIsMergeDialogOpen(false);
+    } catch (error: any) {
+      console.error('handleConfirmMerge error:', error);
+      toast.error(`Failed to merge customers: ${error.message}`);
+    }
+  };
 
   const handleEditCustomer = (customer: Profile) => {
     setEditingCustomer(customer);
@@ -74,6 +100,7 @@ const CustomersDashboard = () => {
           isLoading={isLoading}
           deleteSelectedCustomers={deleteSelectedCustomers}
           fetchCustomers={fetchCustomers}
+          onMergeClick={handleMergeClick}
         />
         
         <Card>
@@ -98,6 +125,13 @@ const CustomersDashboard = () => {
           isOpen={!!editingCustomer}
           onClose={handleCloseDialog}
           onSave={handleSaveChanges}
+        />
+
+        <MergeCustomersDialog
+          isOpen={isMergeDialogOpen}
+          onClose={() => setIsMergeDialogOpen(false)}
+          onMerge={handleConfirmMerge}
+          customers={customersToMerge}
         />
       </div>
     </Layout>

@@ -234,6 +234,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: string
       }
+      merge_customers: {
+        Args: { source_id: string; target_id: string }
+        Returns: undefined
+      }
       update_profile_details: {
         Args: { user_id: string; new_name: string; new_phone: string }
         Returns: undefined

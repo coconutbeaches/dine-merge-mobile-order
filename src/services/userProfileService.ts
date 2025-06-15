@@ -55,3 +55,22 @@ export async function updateUserProfile(
     throw error;
   }
 }
+
+// Merge two customer profiles
+export async function mergeCustomers(sourceId: string, targetId: string) {
+  if (!sourceId || !targetId) {
+    throw new Error("Source and target IDs are required for merging customers.");
+  }
+  
+  console.log(`[userProfileService] Calling RPC merge_customers with source: ${sourceId}, target: ${targetId}`);
+
+  const { error } = await supabase.rpc('merge_customers', {
+    source_id: sourceId,
+    target_id: targetId,
+  });
+
+  if (error) {
+    console.error('[userProfileService] Error calling merge_customers RPC:', error);
+    throw error;
+  }
+}

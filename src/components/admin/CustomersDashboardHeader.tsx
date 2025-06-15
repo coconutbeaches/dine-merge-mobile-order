@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash, RefreshCw, Search } from "lucide-react";
+import { Trash, RefreshCw, Search, Users } from "lucide-react";
 
 interface CustomersDashboardHeaderProps {
   search: string;
@@ -11,6 +11,7 @@ interface CustomersDashboardHeaderProps {
   isLoading: boolean;
   deleteSelectedCustomers: () => void;
   fetchCustomers: () => void;
+  onMergeClick: () => void;
 }
 
 const CustomersDashboardHeader = ({
@@ -19,7 +20,8 @@ const CustomersDashboardHeader = ({
   selectedCustomers,
   isLoading,
   deleteSelectedCustomers,
-  fetchCustomers
+  fetchCustomers,
+  onMergeClick,
 }: CustomersDashboardHeaderProps) => {
   return (
     <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
@@ -37,6 +39,16 @@ const CustomersDashboardHeader = ({
         </div>
       </div>
       <div className="flex gap-2 flex-wrap items-center">
+        <Button
+          variant="outline"
+          disabled={selectedCustomers.length !== 2 || isLoading}
+          onClick={onMergeClick}
+          size="icon"
+          aria-label="Merge selected customers"
+          title="Merge selected customers"
+        >
+          <Users size={18} />
+        </Button>
         <Button
           variant="destructive"
           disabled={selectedCustomers.length === 0 || isLoading}
