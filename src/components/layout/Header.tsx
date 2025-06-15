@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -34,7 +33,11 @@ const Header: React.FC<HeaderProps> = ({
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <h1 className="text-lg font-bold text-black">{title}</h1>
+          {location.pathname === '/' ? (
+            <img src="/lovable-uploads/c739d1da-89bf-4732-a560-e0d9fcaf13ac.png" alt="Coconut Beach Logo" className="h-6" />
+          ) : (
+            <h1 className="text-lg font-bold text-black">{title}</h1>
+          )}
         </div>
       </div>
     </header>
