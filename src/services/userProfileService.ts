@@ -40,7 +40,9 @@ export async function updateUserProfile(
   update: { id: string; name: string; phone: string }
 ) {
   if (!update.id) return;
-  // Only send name and phone in the payload
+
+  // Debug the payload and explicit intention to call 'profiles'
+  console.log('[userProfileService] Attempting updateUserProfile on profiles:', update);
   const { error, data } = await supabase
     .from('profiles')
     .update({
@@ -48,9 +50,12 @@ export async function updateUserProfile(
       phone: update.phone,
     })
     .eq('id', update.id);
+
+  console.log('[userProfileService] Supabase update response:', { error, data });
+
   if (error) {
     // Improved error logging for debugging
-    console.error('[userProfileService] Error updating user:', error, 'Payload:', update, 'Returned data:', data);
+    console.error('[userProfileService] Error updating user (profiles table):', error, 'Payload:', update, 'Returned data:', data);
     throw error;
   }
 }
