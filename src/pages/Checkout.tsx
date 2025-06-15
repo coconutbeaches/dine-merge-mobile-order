@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -19,7 +20,15 @@ import { calculateTotalPrice } from '@/utils/productUtils';
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { cart, cartTotal, clearCart, currentUser, placeOrder } = useAppContext();
+  const {
+    cart,
+    cartTotal,
+    clearCart,
+    currentUser,
+    placeOrder,
+    adminCustomerContext,
+    setAdminCustomerContext
+  } = useAppContext();
 
   const [tableNumber, setTableNumber] = useState('Take Away');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -64,6 +73,9 @@ const Checkout = () => {
       if (placedOrder) {
         toast.success('Order placed successfully!');
         clearCart();
+        if (setAdminCustomerContext) {
+          setAdminCustomerContext(null);
+        }
         navigate('/order-confirmation', { state: { orderId: placedOrder.id } });
       } else {
         toast.error('Failed to place order. Please try again.');
@@ -93,6 +105,11 @@ const Checkout = () => {
         <Card className="max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle className="text-2xl font-bold">Checkout</CardTitle>
+            {adminCustomerContext && (
+              <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-3 mt-2 rounded">
+                <p className="font-bold">Placing order for: {adminCustomerContext.customerName}</p>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="space-y-6">
             {cart.length === 0 ? (

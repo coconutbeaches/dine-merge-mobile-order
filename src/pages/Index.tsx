@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,7 +19,29 @@ interface Category {
 
 const Index = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, currentUser } = useAppContext();
+  const location = useLocation();
+  const {
+    isLoggedIn,
+    currentUser,
+    setAdminCustomerContext,
+    adminCustomerContext
+  } = useAppContext();
+
+  useEffect(() => {
+    const navState = location.state as {
+      adminCustomerId?: string;
+      adminCustomerName?: string;
+    };
+    if (navState?.adminCustomerId && navState?.adminCustomerName) {
+      if (!adminCustomerContext || adminCustomerContext.customerId !== navState.adminCustomerId) {
+        console.log("Setting admin customer context from navigation state:", navState);
+        setAdminCustomerContext({
+          customerId: navState.adminCustomerId,
+          customerName: navState.adminCustomerName,
+        });
+      }
+    }
+  }, [location.state, setAdminCustomerContext, adminCustomerContext]);
   
   // Fetch categories
   const { data: categories } = useQuery({
@@ -63,6 +85,12 @@ const Index = () => {
               <div className="p-4">
                 <h2 className="text-lg font-semibold">Welcome back, {currentUser.name.split(' ')[0]}!</h2>
                 <p className="text-sm text-gray-600 mb-3">Ready to order your favorites?</p>
+                {adminCustomerContext && (
+                  <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 mb-3 rounded">
+                    <p className="font-bold">Ordering for: {adminCustomerContext.customerName}</p>
+                    <p className="text-sm">Items added to cart will be for this customer.</p>
+                  </div>
+                )}
                 {currentUser.orderHistory && currentUser.orderHistory.length > 0 && (
                   <Button 
                     className="w-full border-black text-black hover:bg-gray-100" 
