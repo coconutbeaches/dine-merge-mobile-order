@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '../types';
 
 // Fetch single user profile
 export async function fetchUserProfile(userId: string): Promise<User | null> {
@@ -36,17 +35,21 @@ export async function fetchUserProfile(userId: string): Promise<User | null> {
 }
 
 // Update user profile (names, phone only)
-export async function updateUserProfile(updatedUser: User) {
-  if (!updatedUser.id) return;
-  const { error } = await supabase
+export async function updateUserProfile(
+  update: { id: string; name: string; phone: string }
+) {
+  if (!update.id) return;
+  // Only send name and phone in the payload
+  const { error, data } = await supabase
     .from('profiles')
     .update({
-      name: updatedUser.name,
-      phone: updatedUser.phone
+      name: update.name,
+      phone: update.phone,
     })
-    .eq('id', updatedUser.id);
+    .eq('id', update.id);
   if (error) {
-    console.error('[userProfileService] Error updating user:', error);
+    // Improved error logging for debugging
+    console.error('[userProfileService] Error updating user:', error, 'Payload:', update, 'Returned data:', data);
     throw error;
   }
 }

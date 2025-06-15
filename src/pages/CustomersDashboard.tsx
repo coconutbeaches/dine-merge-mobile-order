@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -50,20 +49,18 @@ const CustomersDashboard = () => {
     if (!editingCustomer) return;
 
     try {
-      const userToUpdate: User = {
+      // Only send id, name, phone (no role, addresses, orderHistory here)
+      await updateUserProfile({
         id: editingCustomer.id,
-        email: editingCustomer.email,
-        name: name,
-        phone: editingCustomer.phone || '',
-        role: editingCustomer.role === 'admin' ? 'admin' : 'customer',
-        addresses: [],
-        orderHistory: [],
-      };
-      await updateUserProfile(userToUpdate);
+        name,
+        phone: editingCustomer.phone || ''
+      });
       toast.success('Customer updated successfully');
       fetchCustomers();
       handleCloseDialog();
     } catch (error: any) {
+      // Log the complete error object for better debugging
+      console.error('handleSaveChanges error:', error);
       toast.error(`Failed to update customer: ${error.message}`);
     }
   };
