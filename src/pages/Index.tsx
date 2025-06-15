@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -130,7 +129,6 @@ const Index = () => {
                       />
                     </div>
                     <h3 className="menu-item-name">{product.name}</h3>
-                    <p className="menu-item-price">{formatPrice(product.price)}</p>
                   </div>
                 ))}
               </div>
@@ -145,4 +143,3 @@ const Index = () => {
 };
 
 export default Index;
-
