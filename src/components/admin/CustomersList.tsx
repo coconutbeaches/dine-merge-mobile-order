@@ -56,7 +56,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
           <TableHead>Email</TableHead>
           <TableHead className="hidden md:table-cell">Phone</TableHead>
           <TableHead className="hidden lg:table-cell">Role</TableHead>
-          <TableHead className="hidden lg:table-cell">Joined</TableHead>
+          <TableHead className="hidden lg:table-cell w-[150px]">Joined</TableHead>
           <TableHead><span className="sr-only">Actions</span></TableHead>
         </TableRow>
       </TableHeader>
