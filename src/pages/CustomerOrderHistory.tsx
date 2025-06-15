@@ -19,7 +19,7 @@ const CustomerOrderHistory = () => {
 
   const handleCreateNewOrder = () => {
     // Navigate to menu with customer context
-    navigate('/menu', { 
+    navigate('/', { 
       state: { 
         adminCustomerId: customerId,
         adminCustomerName: customer?.name || customer?.email 
@@ -68,6 +68,7 @@ const CustomerOrderHistory = () => {
           <div className="flex items-center gap-2">
             <Button
               variant="default"
+              className="bg-black text-white hover:bg-gray-800"
               size="icon"
               onClick={handleMarkAllPaid}
               disabled={orders.length === 0}
