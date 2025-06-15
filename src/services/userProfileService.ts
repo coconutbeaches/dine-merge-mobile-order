@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { User } from '@/types';
 
 // Fetch single user profile
 export async function fetchUserProfile(userId: string): Promise<User | null> {
