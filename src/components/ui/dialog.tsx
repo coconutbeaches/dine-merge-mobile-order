@@ -50,9 +50,9 @@ const DialogContent = React.forwardRef<
     React.Children.toArray(children).some(
       (child) =>
         React.isValidElement(child) &&
-        // @ts-ignore
-        (child.type?.displayName === DialogDescription.displayName ||
-          child.type?.name === "DialogDescription")
+        typeof child.type === "object" &&
+        // Only check .displayName; .name check removed since it's not always present
+        (child.type?.displayName === DialogDescription.displayName)
     );
 
   return (
