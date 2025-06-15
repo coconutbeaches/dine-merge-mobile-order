@@ -1,8 +1,9 @@
+
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
 
@@ -55,7 +56,6 @@ ${itemsDetails}
         <Card className="max-w-2xl mx-auto">
           <CardHeader className="text-center">
             <CheckCircle className="mx-auto h-16 w-16 text-green-500 mb-4" />
-            <CardTitle className="text-2xl font-bold">Order Confirmed!</CardTitle>
           </CardHeader>
           <CardContent className="text-center">
             {orderId ? (
@@ -64,9 +64,9 @@ ${itemsDetails}
                   Thank you for your order!
                 </p>
                 <p>
-                  Please send your order details to us via WhatsApp to complete the process.
+                  Please send your order to us via WhatsApp to complete your order.
                 </p>
-                <p className="font-bold">Order ID: #{orderId}</p>
+                <p className="font-bold">Order #{orderId}</p>
               </div>
             ) : (
               <p className="text-yellow-600">
@@ -74,8 +74,7 @@ ${itemsDetails}
               </p>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center space-x-4">
-            <Button variant="outline" onClick={() => navigate('/order-history')}>View Order History</Button>
+          <CardFooter className="flex flex-col items-center space-y-4">
             {orderId && (
               <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700 text-white" disabled={isLoading || !order}>
                 {isLoading ? (
@@ -91,6 +90,7 @@ ${itemsDetails}
                 )}
               </Button>
             )}
+            <Button variant="outline" onClick={() => navigate('/order-history')}>Order History</Button>
           </CardFooter>
         </Card>
       </div>
