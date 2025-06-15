@@ -13,9 +13,10 @@ import { Profile } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
+import { formatThaiCurrency } from '@/lib/utils';
 
 interface CustomersListProps {
-  customers: Profile[];
+  customers: (Profile & { total_spent: number })[];
   selectedCustomers: string[];
   toggleSelectCustomer: (customerId: string) => void;
   selectAllCustomers: (customerIds?: string[]) => void;
@@ -53,6 +54,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
             />
           </TableHead>
           <TableHead>Name</TableHead>
+          <TableHead>Total Spent</TableHead>
           <TableHead>Email</TableHead>
           <TableHead className="hidden md:table-cell">Phone</TableHead>
           <TableHead className="hidden lg:table-cell">Role</TableHead>
@@ -72,6 +74,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 />
               </TableCell>
               <TableCell>{customer.name || 'N/A'}</TableCell>
+              <TableCell className="font-medium">{formatThaiCurrency(customer.total_spent)}</TableCell>
               <TableCell>{customer.email}</TableCell>
               <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
               <TableCell className="hidden lg:table-cell capitalize">{customer.role}</TableCell>
@@ -86,7 +89,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={7} className="h-24 text-center">
+            <TableCell colSpan={8} className="h-24 text-center">
               No customers found.
             </TableCell>
           </TableRow>

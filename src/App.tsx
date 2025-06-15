@@ -18,7 +18,6 @@ import Profile from "./pages/Profile";
 import OrderHistory from "./pages/OrderHistory";
 import OrdersDashboard from "./pages/OrdersDashboard";
 import Admin from "./pages/Admin";
-import AdminMergeAccounts from "./pages/AdminMergeAccounts";
 import NotFound from "./pages/NotFound";
 import ProductsDashboard from "./pages/ProductsDashboard";
 import ProductForm from "./pages/ProductForm";
@@ -53,7 +52,6 @@ function App() {
             {/* Admin Protected Routes */}
             <Route element={<ProtectedAdminRoute />}>
               <Route path="/admin" element={<Admin />} />
-              <Route path="/admin/merge-accounts" element={<AdminMergeAccounts />} />
               <Route path="/products-dashboard" element={<ProductsDashboard />} />
               <Route path="/products/new" element={<ProductForm />} />
               <Route path="/products/edit/:productId" element={<ProductForm />} />

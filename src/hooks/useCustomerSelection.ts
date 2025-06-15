@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import { Profile } from '@/types/supabaseTypes';
 
-export const useCustomerSelection = (customers: Profile[]) => {
+export const useCustomerSelection = <T extends Profile>(customers: T[]) => {
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
 
   const toggleSelectCustomer = useCallback((customerId: string) => {

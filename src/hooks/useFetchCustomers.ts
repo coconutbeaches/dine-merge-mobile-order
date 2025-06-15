@@ -5,16 +5,13 @@ import { Profile } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
 
 export const useFetchCustomers = () => {
-  const [customers, setCustomers] = useState<Profile[]>([]);
+  const [customers, setCustomers] = useState<(Profile & { total_spent: number })[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchCustomers = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_customers_with_total_spent');
 
       if (error) throw error;
 

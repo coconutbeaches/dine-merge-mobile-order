@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -64,20 +65,6 @@ const Admin = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">View and manage customer accounts</p>
-              </CardContent>
-            </Card>
-          </Link>
-          
-          <Link to="/admin/merge-accounts">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Merge Customer Accounts
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Combine duplicate customer accounts</p>
               </CardContent>
             </Card>
           </Link>

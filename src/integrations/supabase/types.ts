@@ -230,6 +230,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_customers_with_total_spent: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          created_at: string
+          updated_at: string
+          name: string
+          phone: string
+          role: string
+          email: string
+          total_spent: number
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: string

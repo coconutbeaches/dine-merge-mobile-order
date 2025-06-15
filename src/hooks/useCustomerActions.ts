@@ -4,8 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
 
-export const useCustomerActions = (
-  setCustomers: React.Dispatch<React.SetStateAction<Profile[]>>
+export const useCustomerActions = <T extends Profile>(
+  setCustomers: React.Dispatch<React.SetStateAction<T[]>>
 ) => {
   const deleteSelectedCustomers = async (
     selectedCustomers: string[], 
