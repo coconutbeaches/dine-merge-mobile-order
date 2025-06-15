@@ -36,25 +36,30 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
             {option.selection_type === 'multiple' ? (
               // Multi-select options (checkboxes)
               <div className="space-y-2">
-                {option.choices.map((choice) => (
-                  <div key={choice.name} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`${option.id}-${choice.name}`}
-                      checked={(selectedOptions[option.id] as string[] || []).includes(choice.name)}
-                      onCheckedChange={(checked) => {
-                        onCheckboxChange(option.id, choice.name, checked as boolean);
-                      }}
-                      className="border-black data-[state=checked]:bg-black data-[state=checked]:text-white"
-                    />
-                    <label 
-                      htmlFor={`${option.id}-${choice.name}`}
-                      className="text-sm cursor-pointer flex justify-between w-full"
-                    >
-                      <span>{choice.name}</span>
-                      {choice.price_adjustment > 0 && <span>+${choice.price_adjustment.toFixed(2)}</span>}
-                    </label>
-                  </div>
-                ))}
+                {option.choices.map((choice) => {
+                  const currentSelection = selectedOptions[option.id];
+                  const isChecked = Array.isArray(currentSelection) && currentSelection.includes(choice.name);
+
+                  return (
+                    <div key={choice.name} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`${option.id}-${choice.name}`}
+                        checked={isChecked}
+                        onCheckedChange={(checked) => {
+                          onCheckboxChange(option.id, choice.name, checked as boolean);
+                        }}
+                        className="border-black data-[state=checked]:bg-black data-[state=checked]:text-white"
+                      />
+                      <label 
+                        htmlFor={`${option.id}-${choice.name}`}
+                        className="text-sm cursor-pointer flex justify-between w-full"
+                      >
+                        <span>{choice.name}</span>
+                        {choice.price_adjustment > 0 && <span>+${choice.price_adjustment.toFixed(2)}</span>}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               // Single-select options (radio buttons)

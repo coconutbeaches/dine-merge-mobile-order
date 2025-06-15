@@ -30,7 +30,9 @@ export const useMenuItemForm = (productOptions: ProductOption[] | undefined) => 
   };
 
   const handleCheckboxChange = (optionId: string, value: string, checked: boolean) => {
-    const currentValues = (selectedOptions[optionId] as string[]) || [];
+    const currentSelection = selectedOptions[optionId];
+    const currentValues = Array.isArray(currentSelection) ? currentSelection : [];
+    
     let newValues: string[];
     if (checked) {
       newValues = [...currentValues, value];
