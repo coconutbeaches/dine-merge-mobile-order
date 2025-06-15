@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -49,10 +50,10 @@ const DialogContent = React.forwardRef<
     React.Children.toArray(children).some(
       (child) =>
         React.isValidElement(child) &&
-        child.type !== null &&
         typeof child.type === "object" &&
-        // Only check .displayName
-        (child.type.displayName === DialogDescription.displayName)
+        child.type !== null &&
+        // Only check .displayName. Using `as any` to bypass a stubborn TS error.
+        (child.type as any).displayName === DialogDescription.displayName
     );
 
   return (
