@@ -11,6 +11,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Profile } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Edit } from 'lucide-react';
 
 interface CustomersListProps {
   customers: Profile[];
@@ -18,6 +20,7 @@ interface CustomersListProps {
   toggleSelectCustomer: (customerId: string) => void;
   selectAllCustomers: (customerIds?: string[]) => void;
   clearSelection: () => void;
+  onEditCustomer: (customer: Profile) => void;
 }
 
 const CustomersList: React.FC<CustomersListProps> = ({
@@ -26,6 +29,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
   toggleSelectCustomer,
   selectAllCustomers,
   clearSelection,
+  onEditCustomer,
 }) => {
   const allOnPageSelected = customers.length > 0 && selectedCustomers.length === customers.length;
   
@@ -53,6 +57,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
           <TableHead className="hidden md:table-cell">Phone</TableHead>
           <TableHead className="hidden lg:table-cell">Role</TableHead>
           <TableHead className="hidden lg:table-cell">Joined</TableHead>
+          <TableHead><span className="sr-only">Actions</span></TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -71,11 +76,17 @@ const CustomersList: React.FC<CustomersListProps> = ({
               <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
               <TableCell className="hidden lg:table-cell capitalize">{customer.role}</TableCell>
               <TableCell className="hidden lg:table-cell">{format(new Date(customer.created_at), 'MMM d, yyyy')}</TableCell>
+              <TableCell>
+                <Button variant="ghost" size="icon" onClick={() => onEditCustomer(customer)}>
+                  <Edit className="h-4 w-4" />
+                  <span className="sr-only">Edit Customer</span>
+                </Button>
+              </TableCell>
             </TableRow>
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={6} className="h-24 text-center">
+            <TableCell colSpan={7} className="h-24 text-center">
               No customers found.
             </TableCell>
           </TableRow>

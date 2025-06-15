@@ -6,6 +6,10 @@ import { useCustomersDashboard } from '@/hooks/useCustomersDashboard';
 import CustomersList from '@/components/admin/CustomersList';
 import CustomersDashboardHeader from '@/components/admin/CustomersDashboardHeader';
 import { Profile } from '@/types/supabaseTypes';
+import EditCustomerDialog from '@/components/admin/EditCustomerDialog';
+import { updateUserProfile } from '@/services/userProfileService';
+import { toast } from 'sonner';
+import { User } from '@/types';
 
 const CustomersDashboard = () => {
   const { 
@@ -20,6 +24,7 @@ const CustomersDashboard = () => {
   } = useCustomersDashboard();
 
   const [search, setSearch] = useState('');
+  const [editingCustomer, setEditingCustomer] = useState<Profile | null>(null);
 
   const filteredCustomers = useMemo(() => {
     if (!search.trim()) {
@@ -32,6 +37,36 @@ const CustomersDashboard = () => {
       return name.includes(s) || email.includes(s);
     });
   }, [customers, search]);
+
+  const handleEditCustomer = (customer: Profile) => {
+    setEditingCustomer(customer);
+  };
+
+  const handleCloseDialog = () => {
+    setEditingCustomer(null);
+  };
+
+  const handleSaveChanges = async (name: string) => {
+    if (!editingCustomer) return;
+
+    try {
+      const userToUpdate: User = {
+        id: editingCustomer.id,
+        email: editingCustomer.email,
+        name: name,
+        phone: editingCustomer.phone || '',
+        role: editingCustomer.role === 'admin' ? 'admin' : 'customer',
+        addresses: [],
+        orderHistory: [],
+      };
+      await updateUserProfile(userToUpdate);
+      toast.success('Customer updated successfully');
+      fetchCustomers();
+      handleCloseDialog();
+    } catch (error: any) {
+      toast.error(`Failed to update customer: ${error.message}`);
+    }
+  };
 
   return (
     <Layout title="Customer Management" showBackButton={false}>
@@ -56,10 +91,18 @@ const CustomersDashboard = () => {
                 toggleSelectCustomer={toggleSelectCustomer}
                 selectAllCustomers={() => selectAllCustomers(filteredCustomers.map(c => c.id))}
                 clearSelection={clearSelection}
+                onEditCustomer={handleEditCustomer}
               />
             )}
           </CardContent>
         </Card>
+
+        <EditCustomerDialog
+          customer={editingCustomer}
+          isOpen={!!editingCustomer}
+          onClose={handleCloseDialog}
+          onSave={handleSaveChanges}
+        />
       </div>
     </Layout>
   );
