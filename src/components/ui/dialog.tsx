@@ -13,6 +13,15 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
+const DEFAULT_DIALOG_DESCRIPTION = "Dialog opened. Please complete all actions or close to return.";
+
+// Provide a default visually hidden description if none is present
+const AccessibleDialogDescription: React.FC<{ id: string }> = ({ id }) => (
+  <span id={id} className="sr-only">
+    {DEFAULT_DIALOG_DESCRIPTION}
+  </span>
+);
+
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -31,25 +40,49 @@ DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
-        className
-      )}
-      {...props}
-    >
-      {children}
-      <DialogPrimitive.Close className="absolute left-4 top-4 rounded-full bg-black text-white h-7 w-7 flex items-center justify-center opacity-90 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </DialogPrimitive.Close>
-    </DialogPrimitive.Content>
-  </DialogPortal>
-))
+>(({ className, children, ...props }, ref) => {
+  // Generate a unique id for accessibility description if not provided
+  const descId = React.useId();
+
+  // Check if DialogDescription or any aria-describedby is already provided
+  const hasDescriptionOrDescribedBy =
+    (props['aria-describedby'] && props['aria-describedby'] !== '') ||
+    React.Children.toArray(children).some(
+      (child) =>
+        React.isValidElement(child) &&
+        // @ts-ignore
+        (child.type?.displayName === DialogDescription.displayName ||
+          child.type?.name === "DialogDescription")
+    );
+
+  return (
+    <DialogPortal>
+      <DialogOverlay />
+      <DialogPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+          className
+        )}
+        aria-describedby={
+          hasDescriptionOrDescribedBy
+            ? props['aria-describedby']
+            : descId
+        }
+        {...props}
+      >
+        {!hasDescriptionOrDescribedBy && (
+          <AccessibleDialogDescription id={descId} />
+        )}
+        {children}
+        <DialogPrimitive.Close className="absolute left-4 top-4 rounded-full bg-black text-white h-7 w-7 flex items-center justify-center opacity-90 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+    </DialogPortal>
+  );
+});
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({
