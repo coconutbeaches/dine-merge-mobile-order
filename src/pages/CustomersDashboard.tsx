@@ -74,11 +74,36 @@ const CustomersDashboard = () => {
   const handleSaveChanges = async (name: string, phone: string) => {
     if (!editingCustomer) return;
 
+    // --- Start Security Fix: Input Validation ---
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      toast.error("Name cannot be empty.");
+      return;
+    }
+    if (trimmedName.length > 100) {
+      toast.error("Name cannot be longer than 100 characters.");
+      return;
+    }
+
+    const trimmedPhone = phone.trim();
+    // Simple regex for Thai phone numbers (e.g., 0812345678).
+    // Allows for optional hyphens and checks for a plausible length.
+    const phoneRegex = /^0\d{1,2}-?\d{3,4}-?\d{4}$/;
+    if (trimmedPhone && !phoneRegex.test(trimmedPhone)) {
+      toast.error("Please enter a valid phone number (e.g., 0812345678).");
+      return;
+    }
+     if (trimmedPhone.replace(/-/g, '').length > 10) {
+        toast.error("Phone number seems too long.");
+        return;
+    }
+    // --- End Security Fix ---
+
     try {
       await updateUserProfile({
         id: editingCustomer.id,
-        name,
-        phone
+        name: trimmedName,
+        phone: trimmedPhone,
       });
       toast.success('Customer updated successfully');
       fetchCustomers();
