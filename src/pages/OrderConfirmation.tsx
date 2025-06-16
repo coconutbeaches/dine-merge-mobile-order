@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { CheckCircle, MessageSquare, Loader2 } from 'lucide-react';
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
+import { formatThaiCurrency } from '@/lib/utils';
 
 const OrderConfirmation = () => {
   const location = useLocation();
@@ -34,9 +34,9 @@ const OrderConfirmation = () => {
 
     const customerName = order.customer_name || order.customer_name_from_profile || 'Guest';
     const tableNumber = order.table_number || 'Takeaway';
-    const formattedTotal = new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(order.total_amount);
+    const formattedTotal = formatThaiCurrency(order.total_amount);
 
-    const message = `*New Order: #${order.id}*
+    const message = `*Order: #${order.id}*
 
 *Customer:* ${customerName}
 *Table:* ${tableNumber}
