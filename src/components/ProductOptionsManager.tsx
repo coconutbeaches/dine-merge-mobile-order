@@ -146,7 +146,7 @@ const ProductOptionsManager: React.FC<ProductOptionsManagerProps> = ({
                         const value = e.target.value.replace(/[^0-9.]/g, '');
                         const decimalCount = (value.match(/\./g) || []).length;
                         if (decimalCount <= 1) {
-                          handleChoiceChange(index, { price_adjustment: parseFloat(value) || 0 });
+                          handleChoiceChange(index, { price_adjustment: Math.round(parseFloat(value) || 0) });
                         }
                       }}
                       placeholder="0"
