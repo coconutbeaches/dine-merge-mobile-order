@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { formatThaiCurrency } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -55,7 +56,7 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
                         className="text-sm cursor-pointer flex justify-between w-full"
                       >
                         <span>{choice.name}</span>
-                        {choice.price_adjustment > 0 && <span>+${choice.price_adjustment.toFixed(2)}</span>}
+                        {choice.price_adjustment > 0 && <span>+{formatThaiCurrency(choice.price_adjustment)}</span>}
                       </label>
                     </div>
                   );
@@ -80,7 +81,7 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
                       className="text-sm cursor-pointer flex justify-between w-full"
                     >
                       <span>{choice.name}</span>
-                      {choice.price_adjustment > 0 && <span>+${choice.price_adjustment.toFixed(2)}</span>}
+                        {choice.price_adjustment > 0 && <span>+{formatThaiCurrency(choice.price_adjustment)}</span>}
                     </label>
                   </div>
                 ))}
