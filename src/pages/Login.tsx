@@ -90,7 +90,7 @@ const Login = () => {
   };
 
   return (
-    <Layout title="Login or Sign Up" showBackButton>
+    <Layout title="" showBackButton>
       <div className="page-container">
         <Card>
           <CardHeader className="text-center">
