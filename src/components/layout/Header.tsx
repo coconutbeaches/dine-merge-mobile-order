@@ -50,15 +50,15 @@ const Header: React.FC<HeaderProps> = ({
         {/* Right side: Cart and Profile/Login buttons */}
         <div className="flex items-center space-x-1">
           <Button variant="ghost" size="sm" onClick={() => navigate('/cart')} className="relative flex items-center">
-            <ShoppingCart className="h-5 w-5" />
+            <ShoppingCart className="h-6 w-6" />
             {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 bg-restaurant-primary text-white rounded-full w-4 h-4 flex items-center justify-center text-xs">
+              <span className="absolute -top-1 -right-1 bg-restaurant-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                 {totalItems}
               </span>
             )}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate(isLoggedIn ? '/profile' : '/login')} className="flex items-center">
-            <User className="h-5 w-5" />
+            <User className="h-6 w-6" />
           </Button>
         </div>
       </div>
