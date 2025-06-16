@@ -42,7 +42,7 @@ const Cart = () => {
   
   if (cart.length === 0) {
     return (
-      <Layout title="Your Cart" showBackButton>
+      <Layout title="" showBackButton>
         <div className="page-container text-center py-10">
           <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-bold mb-2">Your cart is empty</h2>
@@ -54,7 +54,7 @@ const Cart = () => {
   }
   
   return (
-    <Layout title="Your Cart" showBackButton>
+    <Layout title="" showBackButton>
       <div className="page-container pb-20"> {/* Added pb-20 for bottom button spacing */}
         <div className="mb-6">
           <h2 className="section-heading">Cart Items</h2>

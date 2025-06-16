@@ -52,7 +52,7 @@ const OrderHistory = () => {
 
   if (isLoading) {
     return (
-      <Layout title="Order History" showBackButton>
+      <Layout title="" showBackButton>
         <div className="page-container text-center py-10">
           <p>Loading order history...</p>
         </div>
@@ -61,7 +61,7 @@ const OrderHistory = () => {
   }
   
   return (
-    <Layout title="Order History" showBackButton>
+    <Layout title="" showBackButton>
       <div className="page-container">
         {orders.length > 0 && (
           <div className="bg-muted/20 p-4 rounded-lg mb-6 text-center">

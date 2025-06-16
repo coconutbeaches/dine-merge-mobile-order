@@ -79,7 +79,7 @@ const Profile = () => {
 
   if (isLoadingUserContext) {
     return (
-      <Layout title="My Profile" showBackButton>
+      <Layout title="" showBackButton>
         <div className="page-container text-center py-10">Loading profile...</div>
       </Layout>
     );
@@ -87,14 +87,14 @@ const Profile = () => {
 
   if (!isLoggedIn || !currentUser) {
     return (
-      <Layout title="My Profile" showBackButton>
+      <Layout title="" showBackButton>
         <div className="page-container text-center py-10">Please log in to view your profile.</div>
       </Layout>
     );
   }
 
   return (
-    <Layout title="My Profile" showBackButton>
+    <Layout title="" showBackButton>
       <div className="page-container max-w-2xl mx-auto">
         <Card>
           <CardHeader>
