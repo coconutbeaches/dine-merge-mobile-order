@@ -4,28 +4,28 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Product } from '@/types/supabaseTypes';
-import { formatThaiCurrency } from '@/lib/utils';
-import ProductGrid from '@/components/admin/ProductGrid';
+import DraggableProductGrid from '@/components/admin/DraggableProductGrid';
 import ProductCategoryFilter from '@/components/admin/ProductCategoryFilter';
+import { useUserContext } from '@/context/UserContext';
 
 interface Category {
   id: string;
   name: string;
 }
 
-// Define the ProductWithCategory interface for this file only
 interface ProductWithCategory extends Product {
   categories?: Category;
 }
 
 const ProductsDashboard = () => {
   const navigate = useNavigate();
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null); // null for all, 'uncategorized', or category_id
+  const { currentUser } = useUserContext();
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [localProducts, setLocalProducts] = useState<ProductWithCategory[]>([]);
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -53,14 +53,22 @@ const ProductsDashboard = () => {
         query = query.eq('category_id', categoryFilter);
       }
         
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await query.order('sort_order', { ascending: true });
 
       if (error) {
         throw error;
       }
-      return data as ProductWithCategory[];
+      const result = data as ProductWithCategory[];
+      setLocalProducts(result);
+      return result;
     },
   });
+
+  React.useEffect(() => {
+    if (products) {
+      setLocalProducts(products);
+    }
+  }, [products]);
 
   if (productsError) {
     toast.error(`Failed to load products: ${productsError.message}`);
@@ -71,11 +79,25 @@ const ProductsDashboard = () => {
     navigate('/products/new');
   };
 
+  const handleProductsReorder = (reorderedProducts: ProductWithCategory[]) => {
+    setLocalProducts(reorderedProducts);
+  };
+
+  // Check if user is admin
+  const isAdmin = currentUser?.role === 'admin';
+
   return (
     <Layout title="Products Dashboard" showBackButton={false}>
       <div className="container mx-auto py-6 px-4 md:px-0">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <h1 className="text-2xl font-bold">Products</h1>
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-bold">Products</h1>
+            {isAdmin && (
+              <p className="text-sm text-gray-600 mt-1">
+                Drag the grip icon to reorder items within categories
+              </p>
+            )}
+          </div>
           <Button onClick={handleAddProduct}>
             <Plus className="mr-2 h-4 w-4" /> Add Product
           </Button>
@@ -87,14 +109,22 @@ const ProductsDashboard = () => {
           setCategoryFilter={setCategoryFilter}
         />
         
-        <ProductGrid
-          products={products || []}
-          isLoading={isLoading}
-          categoryFilter={categoryFilter}
-          categories={categories || []}
-          handleAddProduct={handleAddProduct}
-          navigate={navigate}
-        />
+        {isAdmin ? (
+          <DraggableProductGrid
+            products={localProducts}
+            isLoading={isLoading}
+            categoryFilter={categoryFilter}
+            categories={categories || []}
+            handleAddProduct={handleAddProduct}
+            navigate={navigate}
+            onProductsReorder={handleProductsReorder}
+          />
+        ) : (
+          // Fallback to regular grid for non-admin users (though this page should be admin-only)
+          <div className="text-center py-12">
+            <p className="text-gray-500">Admin access required</p>
+          </div>
+        )}
       </div>
     </Layout>
   );

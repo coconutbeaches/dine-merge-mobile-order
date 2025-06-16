@@ -56,13 +56,14 @@ const Index = () => {
     },
   });
   
-  // Fetch products
+  // Fetch products with sort_order
   const { data: products } = useQuery({
     queryKey: ['index-products'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*');
+        .select('*')
+        .order('sort_order', { ascending: true });
         
       if (error) throw error;
       return data as Product[];

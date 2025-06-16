@@ -192,6 +192,7 @@ export type Product = {
   price: number;
   image_url?: string | null;
   category_id?: string | null;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 };
