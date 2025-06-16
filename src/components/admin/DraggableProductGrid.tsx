@@ -2,6 +2,18 @@
 import React from 'react';
 import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
@@ -25,9 +37,11 @@ interface ProductWithCategory extends Product {
 interface DraggableProductItemProps {
   product: ProductWithCategory;
   navigate: NavigateFunction;
+  onDelete: (productId: string) => void;
+  isAdmin: boolean;
 }
 
-const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, navigate }) => {
+const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, navigate, onDelete, isAdmin }) => {
   const {
     attributes,
     listeners,
@@ -103,6 +117,38 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
           >
             Edit
           </Button>
+          {isAdmin && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // AlertDialog will open via its trigger
+                  }}
+                  className="ml-2"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the product.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onDelete(product.id)}>
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </CardFooter>
       </div>
     </Card>
@@ -117,6 +163,8 @@ interface DraggableProductGridProps {
   handleAddProduct: () => void;
   navigate: NavigateFunction;
   onProductsReorder: (reorderedProducts: ProductWithCategory[]) => void;
+  onProductDelete: (productId: string) => void;
+  isAdmin: boolean;
 }
 
 const DraggableProductGrid: React.FC<DraggableProductGridProps> = ({
@@ -126,7 +174,9 @@ const DraggableProductGrid: React.FC<DraggableProductGridProps> = ({
   categories,
   handleAddProduct,
   navigate,
-  onProductsReorder
+  onProductsReorder,
+  onProductDelete,
+  isAdmin,
 }) => {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -218,6 +268,8 @@ const DraggableProductGrid: React.FC<DraggableProductGridProps> = ({
               key={product.id}
               product={product}
               navigate={navigate}
+              onDelete={onProductDelete}
+              isAdmin={isAdmin}
             />
           ))}
         </div>

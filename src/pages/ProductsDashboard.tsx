@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ interface ProductWithCategory extends Product {
 const ProductsDashboard = () => {
   const navigate = useNavigate();
   const { currentUser } = useUserContext();
+  const queryClient = useQueryClient();
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [localProducts, setLocalProducts] = useState<ProductWithCategory[]>([]);
 
@@ -83,6 +84,21 @@ const ProductsDashboard = () => {
     setLocalProducts(reorderedProducts);
   };
 
+  const handleDeleteProduct = async (productId: string) => {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+
+    if (error) {
+      console.error('Error deleting product:', error);
+      toast.error(`Failed to delete product: ${error.message}`);
+    } else {
+      toast.success('Product deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+    }
+  };
+
   // Check if user is admin
   const isAdmin = currentUser?.role === 'admin';
 
@@ -118,6 +134,8 @@ const ProductsDashboard = () => {
             handleAddProduct={handleAddProduct}
             navigate={navigate}
             onProductsReorder={handleProductsReorder}
+            onProductDelete={handleDeleteProduct}
+            isAdmin={isAdmin}
           />
         ) : (
           // Fallback to regular grid for non-admin users (though this page should be admin-only)
