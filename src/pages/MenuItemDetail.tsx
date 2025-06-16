@@ -66,17 +66,19 @@ const MenuItemDetail = () => {
   const totalPrice = menuItemForCart ? calculateTotalPrice(menuItemForCart, selectedOptions) * quantity : 0;
 
   return (
-    <Layout title={product?.name || 'Product Details'} showBackButton>
+    <Layout title="" showBackButton>
       <div className="page-container">
         <ProductImageHeader 
           isLoading={isLoading}
           error={error}
+          productName={product?.name} // Added this prop
           productDescription={product?.description}
           imageUrl={product?.image_url}
         />
         
         {product && (
           <>
+
             <ProductOptions 
               options={product.options || []}
               selectedOptions={selectedOptions}

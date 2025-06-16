@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 interface ProductImageHeaderProps {
   isLoading: boolean;
   error: unknown;
+  productName: string | null; // Added this
   productDescription: string | null;
   imageUrl: string | null;
 }
@@ -14,6 +15,7 @@ interface ProductImageHeaderProps {
 const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
   isLoading,
   error,
+  productName,
   productDescription,
   imageUrl
 }) => {
@@ -48,10 +50,14 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
         style={{ backgroundImage: `url(${imageUrl || '/placeholder.svg'})` }}
       />
       
+      {productName && (
+        <h2 className="text-xl font-bold mb-1 text-left">{productName}</h2>
+      )}
+
       {/* Item Details */}
       {(productDescription && productDescription !== 'No description') && (
-        <div className="mb-6">
-          <p className="text-gray-600">{productDescription}</p>
+        <div className="mb-4">
+          <p className="text-sm text-gray-600 text-left">{productDescription}</p>
         </div>
       )}
     </>
