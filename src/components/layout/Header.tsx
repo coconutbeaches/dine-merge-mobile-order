@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({
         {/* Right side: Cart and Profile/Login buttons */}
         <div className="flex items-center space-x-1">
           <Button variant="ghost" size="sm" onClick={() => navigate('/cart')} className="relative flex items-center">
-            <ShoppingCart className="h-6 w-6" />
+            <ShoppingCart className="h-[1.984rem] w-[1.984rem]" />
             {totalItems > 0 && (
               <span className="absolute -top-1 -right-1 bg-restaurant-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                 {totalItems}
@@ -55,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate(isLoggedIn ? '/profile' : '/login')} className="flex items-center">
-            <User className="h-6 w-6" />
+            <User className="h-[1.984rem] w-[1.984rem]" />
           </Button>
         </div>
       </div>
