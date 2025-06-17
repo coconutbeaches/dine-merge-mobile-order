@@ -79,7 +79,7 @@
 
 /* Custom styles for restaurant app */
 .food-card {
-  @apply rounded-md transition-all duration-300 hover:shadow-md;
+  @apply rounded-md transition-all duration-300;
 }
 
 .section-heading {
