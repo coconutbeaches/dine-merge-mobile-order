@@ -70,7 +70,6 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
               product_id: newProduct.id,
               name: option.name,
               required: option.required,
-              enable_quantity: option.enable_quantity,
               selection_type: option.selection_type,
               sort_order: option.sort_order
             }])
@@ -144,7 +143,6 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
               product_id: id,
               name: option.name,
               required: option.required,
-              enable_quantity: option.enable_quantity,
               selection_type: option.selection_type,
               sort_order: option.sort_order
             }])
