@@ -100,14 +100,6 @@ const ProductOptionsManager: React.FC<ProductOptionsManagerProps> = ({
               <label htmlFor={`required-${option.id}`} className="text-sm">Required</label>
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id={`enable-quantity-${option.id}`}
-                checked={option.enable_quantity}
-                onCheckedChange={(checked) => updateOption({ enable_quantity: !!checked })}
-              />
-              <label htmlFor={`enable-quantity-${option.id}`} className="text-sm">Enable quantity</label>
-            </div>
           </div>
           
           <div className="mb-4">
