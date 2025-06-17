@@ -121,7 +121,6 @@ export type Database = {
       product_options: {
         Row: {
           created_at: string
-          enable_quantity: boolean
           id: string
           name: string
           product_id: string
@@ -132,7 +131,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          enable_quantity?: boolean
           id?: string
           name: string
           product_id: string
@@ -143,7 +141,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          enable_quantity?: boolean
           id?: string
           name?: string
           product_id?: string
