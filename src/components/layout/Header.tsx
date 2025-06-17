@@ -42,9 +42,6 @@ const Header: React.FC<HeaderProps> = ({
           <div onClick={() => navigate('/')} className="cursor-pointer">
             <img src="/lovable-uploads/c739d1da-89bf-4732-a560-e0d9fcaf13ac.png" alt="Coconut Beach Logo" className="h-6" />
           </div>
-          {location.pathname !== '/' && (
-            <h1 className="text-lg font-bold text-black ml-3">{title}</h1>
-          )}
         </div>
 
         {/* Right side: Cart and Profile/Login buttons */}
