@@ -22,7 +22,6 @@ export function useProductOptionsState(isEditMode: boolean, productOptions: Prod
       product_id: productId || "",
       name: `Option ${options.length + 1}`,
       required: false,
-      enable_quantity: false,
       selection_type: "single",
       choices: [{
         id: `temp-${nanoid()}`,

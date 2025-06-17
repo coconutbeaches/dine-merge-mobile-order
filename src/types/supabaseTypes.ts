@@ -225,7 +225,6 @@ export interface ProductOption {
   name: string;
   required: boolean;
   selection_type: "single" | "multiple";
-  enable_quantity: boolean;
   sort_order: number;
   choices: ProductOptionChoice[];
   created_at?: string;
