@@ -9,6 +9,9 @@ import { formatThaiCurrency } from '@/lib/utils';
 import { useAppContext } from '@/context/AppContext';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Select, 
   SelectContent, 
@@ -27,12 +30,18 @@ const Checkout = () => {
     currentUser,
     placeOrder,
     adminCustomerContext,
-    setAdminCustomerContext
+    setAdminCustomerContext,
+    loginOrSignup
   } = useAppContext();
 
   const [tableNumber, setTableNumber] = useState('Take Away');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const { toast: toastFn } = useToast();
 
   const validateOrder = () => {
     const errors: {[key: string]: string} = {};
@@ -88,6 +97,51 @@ const Checkout = () => {
     }
   };
 
+  const handleLoginSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toastFn({
+        title: 'Error',
+        description: 'Please enter both email and password',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsLoggingIn(true);
+    try {
+      const result = await loginOrSignup(email, password, name);
+      if (result.success) {
+        if (result.a_new_user_was_created) {
+          toastFn({
+            title: 'Welcome!',
+            description: 'Your account has been created successfully.'
+          });
+        } else {
+          toastFn({
+            title: 'Logged in',
+            description: 'Login successful.'
+          });
+        }
+      } else {
+        toastFn({
+          title: 'Error',
+          description: result.error || 'An unknown error occurred. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('[Checkout] Login/Signup error:', error);
+      toastFn({
+        title: 'Error',
+        description: 'Something went wrong. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
   // Generate table numbers 1-40
   const generateTableNumbers = () => {
     const numbers = ['Take Away'];
@@ -112,6 +166,41 @@ const Checkout = () => {
             )}
           </CardHeader>
           <CardContent className="space-y-6">
+            {!currentUser && (
+              <form onSubmit={handleLoginSignup} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={isLoggingIn} className="w-full">
+                  {isLoggingIn ? 'Processing...' : 'Login / Signup'}
+                </Button>
+              </form>
+            )}
             {cart.length === 0 ? (
               <div className="text-center py-8">
                 <AlertTriangle className="inline-block h-10 w-10 text-yellow-500 mb-2" />
