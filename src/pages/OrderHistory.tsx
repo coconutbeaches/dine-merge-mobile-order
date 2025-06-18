@@ -103,7 +103,7 @@ const OrderHistory = () => {
                        </Badge>
                     )}
                   </div>
-                  <div className="mt-3 mb-3 max-h-24 overflow-y-auto">
+                  <div className="mt-3 mb-3">
                     {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
                       const hasMenuItem = item.menuItem && typeof item.menuItem === 'object';
                       const name = hasMenuItem ? item.menuItem.name : (item.name || "Item");
