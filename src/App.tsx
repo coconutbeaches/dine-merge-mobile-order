@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppContextProvider from "./context/AppContextProvider";
+import ScrollToTop from "./components/layout/ScrollToTop";
 
 // Pages
 import Index from "./pages/Index";
@@ -31,6 +32,7 @@ import CustomersDashboard from "./pages/CustomersDashboard";
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <TooltipProvider>
         <AppContextProvider>
           <Toaster />
