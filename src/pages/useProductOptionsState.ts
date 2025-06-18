@@ -23,6 +23,7 @@ export function useProductOptionsState(isEditMode: boolean, productOptions: Prod
       name: `Option ${options.length + 1}`,
       required: false,
       selection_type: "single",
+      max_selections: null,
       choices: [{
         id: `temp-${nanoid()}`,
         option_id: '',

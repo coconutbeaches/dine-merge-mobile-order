@@ -103,11 +103,11 @@ const ProductOptionsManager: React.FC<ProductOptionsManagerProps> = ({
           </div>
           
           <div className="mb-4">
-            <label className="text-sm font-medium block mb-1">Selection</label>
-            <Select 
-              value={option.selection_type} 
-              onValueChange={(value: "single" | "multiple") => updateOption({ selection_type: value })}
-            >
+          <label className="text-sm font-medium block mb-1">Selection</label>
+          <Select
+            value={option.selection_type}
+            onValueChange={(value: "single" | "multiple") => updateOption({ selection_type: value })}
+          >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -116,6 +116,16 @@ const ProductOptionsManager: React.FC<ProductOptionsManagerProps> = ({
                 <SelectItem value="multiple">Multiple selection</SelectItem>
               </SelectContent>
             </Select>
+            {option.selection_type === 'multiple' && (
+              <Input
+                type="number"
+                min="1"
+                placeholder="Max selections"
+                value={option.max_selections ?? ''}
+                onChange={(e) => updateOption({ max_selections: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+                className="ml-4 w-32"
+              />
+            )}
           </div>
           
           <div className="space-y-4">

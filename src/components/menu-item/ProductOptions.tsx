@@ -32,6 +32,9 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
             <Label className="text-base font-medium mb-2 block">
               {option.name}
               {option.required && <span className="text-red-500 ml-1">*</span>}
+              {option.selection_type === 'multiple' && option.max_selections && (
+                <span className="text-xs text-gray-500 ml-2">Up to {option.max_selections}</span>
+              )}
             </Label>
             
             {option.selection_type === 'multiple' ? (
@@ -40,16 +43,18 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
                 {option.choices.map((choice) => {
                   const currentSelection = selectedOptions[option.id];
                   const isChecked = Array.isArray(currentSelection) && currentSelection.includes(choice.name);
+                  const limitReached = option.max_selections && Array.isArray(currentSelection) && currentSelection.length >= option.max_selections;
 
                   return (
                     <div key={choice.name} className="flex items-center space-x-2">
-                      <Checkbox 
+                      <Checkbox
                         id={`${option.id}-${choice.name}`}
                         checked={isChecked}
                         onCheckedChange={(checked) => {
                           onCheckboxChange(option.id, choice.name, checked as boolean);
                         }}
                         className="border-black data-[state=checked]:bg-black data-[state=checked]:text-white"
+                        disabled={!isChecked && !!limitReached}
                       />
                       <label 
                         htmlFor={`${option.id}-${choice.name}`}
