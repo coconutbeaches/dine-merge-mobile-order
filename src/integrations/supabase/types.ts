@@ -126,6 +126,7 @@ export type Database = {
           product_id: string
           required: boolean
           selection_type: string
+          max_selections: number | null
           sort_order: number
           updated_at: string
         }
@@ -136,6 +137,7 @@ export type Database = {
           product_id: string
           required?: boolean
           selection_type?: string
+          max_selections?: number | null
           sort_order?: number
           updated_at?: string
         }
@@ -146,6 +148,7 @@ export type Database = {
           product_id?: string
           required?: boolean
           selection_type?: string
+          max_selections?: number | null
           sort_order?: number
           updated_at?: string
         }

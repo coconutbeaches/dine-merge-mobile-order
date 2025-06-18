@@ -71,6 +71,7 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
               name: option.name,
               required: option.required,
               selection_type: option.selection_type,
+              max_selections: option.max_selections,
               sort_order: option.sort_order
             }])
             .select()
@@ -144,6 +145,7 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
               name: option.name,
               required: option.required,
               selection_type: option.selection_type,
+              max_selections: option.max_selections,
               sort_order: option.sort_order
             }])
             .select()

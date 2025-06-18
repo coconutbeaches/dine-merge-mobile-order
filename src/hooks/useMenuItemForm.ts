@@ -32,10 +32,14 @@ export const useMenuItemForm = (productOptions: ProductOption[] | undefined) => 
   const handleCheckboxChange = (optionId: string, value: string, checked: boolean) => {
     const currentSelection = selectedOptions[optionId];
     const currentValues = Array.isArray(currentSelection) ? currentSelection : [];
-    
+
     let newValues: string[];
     if (checked) {
       newValues = [...currentValues, value];
+      const option = productOptions?.find(o => o.id === optionId);
+      if (option?.max_selections && option.max_selections > 0 && newValues.length > option.max_selections) {
+        return;
+      }
     } else {
       newValues = currentValues.filter(v => v !== value);
     }
