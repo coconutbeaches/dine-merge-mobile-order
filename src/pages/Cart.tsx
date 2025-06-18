@@ -57,7 +57,6 @@ const Cart = () => {
     <Layout title="" showBackButton>
       <div className="page-container pb-24"> {/* Extra bottom padding for fixed button */}
         <div className="mb-6">
-          <h2 className="section-heading">Cart Items</h2>
           <div className="space-y-3">
             {cart.map((item) => {
               // Calculate the item's total price including options
@@ -135,7 +134,6 @@ const Cart = () => {
         </div>
         
         <div className="mb-16"> {/* Spacing for fixed button */}
-          <h2 className="section-heading">Order Summary</h2>
           <Card>
             <CardContent className="p-4">
               <div className="space-y-2">
