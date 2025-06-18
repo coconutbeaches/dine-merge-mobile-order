@@ -2,7 +2,7 @@
 import React from 'react';
 import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { Trash2 } from 'lucide-react';
+import { Trash2, GripVertical, Plus, Pencil } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +18,6 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { GripVertical, Plus } from 'lucide-react';
 import { formatThaiCurrency } from '@/lib/utils';
 import { NavigateFunction } from 'react-router-dom';
 import { Product } from '@/types/supabaseTypes';
@@ -107,32 +106,31 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
           <span className="font-semibold text-primary text-md">
             {formatThaiCurrency(product.price)}
           </span>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/products/edit/${product.id}`);
-            }}
-          >
-            Edit
-          </Button>
-          {isAdmin && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // AlertDialog will open via its trigger
-                  }}
-                  className="ml-2"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/products/edit/${product.id}`);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            {isAdmin && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // AlertDialog will open via its trigger
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
               <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -149,6 +147,7 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
               </AlertDialogContent>
             </AlertDialog>
           )}
+          </div>
         </CardFooter>
       </div>
     </Card>
