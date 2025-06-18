@@ -40,14 +40,14 @@ const Header: React.FC<HeaderProps> = ({
             </Button>
           )}
           <div onClick={() => navigate('/')} className="cursor-pointer">
-            <img src="/lovable-uploads/c739d1da-89bf-4732-a560-e0d9fcaf13ac.png" alt="Coconut Beach Logo" className="h-6" />
+            <img src="/lovable-uploads/c739d1da-89bf-4732-a560-e0d9fcaf13ac.png" alt="Coconut Beach Logo" className="h-[1.8rem]" />
           </div>
         </div>
 
         {/* Right side: Cart and Profile/Login buttons */}
         <div className="flex items-center space-x-1">
           <Button variant="ghost" size="sm" onClick={() => navigate('/cart')} className="relative flex items-center">
-            <ShoppingCart className="h-[1.984rem] w-[1.984rem]" />
+            <ShoppingCart className="h-[2.18rem] w-[2.18rem]" />
             {totalItems > 0 && (
               <span className="absolute -top-1 -right-1 bg-restaurant-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                 {totalItems}
@@ -55,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => navigate(isLoggedIn ? '/profile' : '/login')} className="flex items-center">
-            <User className="h-[1.984rem] w-[1.984rem]" />
+            <User className="h-[2.38rem] w-[2.38rem]" />
           </Button>
         </div>
       </div>
