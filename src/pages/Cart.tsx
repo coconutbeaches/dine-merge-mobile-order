@@ -55,7 +55,7 @@ const Cart = () => {
   
   return (
     <Layout title="" showBackButton>
-      <div className="page-container pb-20"> {/* Added pb-20 for bottom button spacing */}
+      <div className="page-container pb-24"> {/* Extra bottom padding for fixed button */}
         <div className="mb-6">
           <h2 className="section-heading">Cart Items</h2>
           <div className="space-y-3">
@@ -148,7 +148,7 @@ const Cart = () => {
           </Card>
         </div>
         
-        <div className="fixed bottom-16 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-md z-10">
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-md z-10">
           <div className="max-w-lg mx-auto">
             <Button 
               onClick={handleCheckout}
