@@ -116,7 +116,9 @@ const CustomersDashboard = () => {
     }
   };
 
-  async function updateType(id: string, newType: string) {
+  async function toggleGuestStatus(id: string, isGuestNow: boolean) {
+    const newType = isGuestNow ? null : 'hotel_guest';
+
     const { error } = await supabase
       .from('profiles')
       .update({ customer_type: newType })
@@ -125,7 +127,9 @@ const CustomersDashboard = () => {
     if (!error) {
       setCustomers(prev =>
         prev.map(c =>
-          c.id === id ? { ...c, customer_type: newType } : c
+          c.id === id
+            ? { ...c, customer_type: newType }
+            : c
         )
       );
     }
@@ -156,7 +160,7 @@ const CustomersDashboard = () => {
                 selectAllCustomers={() => selectAllCustomers(filteredCustomers.map(c => c.id))}
                 clearSelection={clearSelection}
                 onEditCustomer={handleEditCustomer}
-                updateType={updateType}
+                toggleGuestStatus={toggleGuestStatus}
               />
             )}
           </CardContent>
