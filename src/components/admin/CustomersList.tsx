@@ -85,7 +85,6 @@ const CustomersList: React.FC<CustomersListProps> = ({
               <TableCell>{customer.email}</TableCell>
               <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
               <TableCell
-                className="hidden lg:table-cell capitalize cursor-pointer text-gray-700 hover:text-black transition"
                 onClick={() =>
                   toggleCustomerType &&
                   toggleCustomerType(
@@ -93,7 +92,12 @@ const CustomersList: React.FC<CustomersListProps> = ({
                     customer.customer_type === 'hotel_guest'
                   )
                 }
-                title="Click to toggle role"
+                className={`hidden lg:table-cell capitalize cursor-pointer px-4 py-2 text-sm font-medium rounded transition-colors duration-200 ease-in-out ${
+                  customer.customer_type === 'hotel_guest'
+                    ? 'text-green-700 bg-green-100'
+                    : 'text-gray-700 hover:text-black'
+                }`}
+                title="Click to toggle"
               >
                 {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Customer'}
               </TableCell>
