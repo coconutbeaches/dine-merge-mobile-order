@@ -1,11 +1,7 @@
-import React, { useState } from 'react'
-import Layout from '@/components/layout/Layout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartLegendContent,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
+import React, { useState } from "react";
+import Layout from "@/components/layout/Layout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import {
   BarChart,
   Bar,
@@ -13,38 +9,54 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-} from 'recharts'
-import { useOrdersByDate } from '@/hooks/useOrdersByDate'
-import { format, subDays } from 'date-fns'
-import { DateRange } from 'react-day-picker'
-import { CalendarIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { formatThaiCurrency } from '@/lib/utils'
+} from "recharts";
+import { useOrdersByDate } from "@/hooks/useOrdersByDate";
+import { format, subDays } from "date-fns";
+import { DateRange } from "react-day-picker";
+import { CalendarIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { formatThaiCurrency } from "@/lib/utils";
 
 const OrdersOverTimeChart = () => {
-  const [metric, setMetric] = useState<'revenue' | 'count'>('revenue')
+  const [metric, setMetric] = useState<"revenue" | "count">("revenue");
   const [range, setRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
-  })
+  });
 
-  const endDate = range.to ? format(range.to, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
-  const startDate = range.from ? format(range.from, 'yyyy-MM-dd') : endDate
+  const endDate = range.to
+    ? format(range.to, "yyyy-MM-dd")
+    : format(new Date(), "yyyy-MM-dd");
+  const startDate = range.from ? format(range.from, "yyyy-MM-dd") : endDate;
 
-  const { data, isLoading, error } = useOrdersByDate(startDate, endDate, metric)
+  const { data, isLoading, error } = useOrdersByDate(
+    startDate,
+    endDate,
+    metric,
+  );
 
   const chartData = data.map((row) => ({
     date: row.order_date,
-    hotel_guest: metric === 'revenue' ? row.hotel_guest_revenue : row.hotel_guest_orders,
-    non_guest: metric === 'revenue' ? row.outside_guest_revenue : row.outside_guest_orders,
-  }))
+    hotel_guest:
+      metric === "revenue" ? row.hotel_guest_revenue : row.hotel_guest_orders,
+    non_guest:
+      metric === "revenue"
+        ? row.outside_guest_revenue
+        : row.outside_guest_orders,
+  }));
 
-  const total = chartData.reduce((sum, row) => sum + row.hotel_guest + row.non_guest, 0)
+  const total = chartData.reduce(
+    (sum, row) => sum + row.hotel_guest + row.non_guest,
+    0,
+  );
 
   return (
     <Layout title="Orders Over Time" showBackButton>
@@ -56,13 +68,19 @@ const OrdersOverTimeChart = () => {
               <div className="flex items-center gap-2">
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="text-sm font-normal w-[260px] justify-start">
+                    <Button
+                      variant="outline"
+                      className="text-sm font-normal w-[260px] justify-start"
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {range.from ? (
                         range.to ? (
-                          <>{format(range.from, 'LLL dd, y')} - {format(range.to, 'LLL dd, y')}</>
+                          <>
+                            {format(range.from, "LLL dd, y")} -{" "}
+                            {format(range.to, "LLL dd, y")}
+                          </>
                         ) : (
-                          format(range.from, 'LLL dd, y')
+                          format(range.from, "LLL dd, y")
                         )
                       ) : (
                         <span>Pick a date</span>
@@ -83,7 +101,9 @@ const OrdersOverTimeChart = () => {
                 <ToggleGroup
                   type="single"
                   value={metric}
-                  onValueChange={(val) => val && setMetric(val as 'revenue' | 'count')}
+                  onValueChange={(val) =>
+                    val && setMetric(val as "revenue" | "count")
+                  }
                   className="ml-2"
                 >
                   <ToggleGroupItem value="revenue">THB</ToggleGroupItem>
@@ -91,31 +111,58 @@ const OrdersOverTimeChart = () => {
                 </ToggleGroup>
               </div>
               <div className="text-lg font-bold md:ml-auto">
-                {metric === 'revenue' ? formatThaiCurrency(total) : total.toLocaleString()}
+                {metric === "revenue"
+                  ? formatThaiCurrency(total)
+                  : total.toLocaleString()}
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-4">
             {isLoading ? (
-              <div className="p-6 text-center text-gray-500">Loading analytics...</div>
+              <div className="p-6 text-center text-gray-500">
+                Loading analytics...
+              </div>
             ) : error ? (
-              <div className="p-6 text-center text-red-500">Failed to load data</div>
+              <div className="p-6 text-center text-red-500">
+                Failed to load data
+              </div>
             ) : (
               <ChartContainer
                 config={{
-                  hotel_guest: { label: 'Hotel Guest', color: '#ffffff' },
-                  non_guest: { label: 'Non Guest', color: '#000000' },
+                  hotel_guest: { label: "Hotel Guest", color: "#ffffff" },
+                  non_guest: { label: "Non Guest", color: "#000000" },
                 }}
               >
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={chartData} barGap={2}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" vertical={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="#e5e5e5"
+                      vertical={false}
+                    />
                     <XAxis dataKey="date" hide />
-                    <YAxis stroke="#000" />
-                    <Tooltip content={<ChartTooltipContent />} />
-                    <Legend content={<ChartLegendContent />} />
-                    <Bar dataKey="non_guest" stackId="orders" fill="var(--color-non_guest)" />
-                    <Bar dataKey="hotel_guest" stackId="orders" fill="var(--color-hotel_guest)" />
+                    <YAxis stroke="#000" axisLine={false} />
+                    <Tooltip
+                      content={
+                        <ChartTooltipContent
+                          labelFormatter={(value) =>
+                            format(new Date(value as string), "MMM d")
+                          }
+                        />
+                      }
+                    />
+                    <Bar
+                      dataKey="non_guest"
+                      stackId="orders"
+                      fill="var(--color-non_guest)"
+                    />
+                    <Bar
+                      dataKey="hotel_guest"
+                      stackId="orders"
+                      fill="var(--color-hotel_guest)"
+                      stroke="#000"
+                      strokeWidth={1}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -127,7 +174,7 @@ const OrdersOverTimeChart = () => {
         </Card>
       </div>
     </Layout>
-  )
-}
+  );
+};
 
-export default OrdersOverTimeChart
+export default OrdersOverTimeChart;
