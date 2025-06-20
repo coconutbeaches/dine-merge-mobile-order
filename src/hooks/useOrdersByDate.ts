@@ -5,6 +5,8 @@ type OrdersByDate = {
   order_date: string
   guest_amount: number
   non_guest_amount: number
+  guest_count: number
+  non_guest_count: number
 }
 
 export const useOrdersByDate = (startDate: string, endDate: string) => {
