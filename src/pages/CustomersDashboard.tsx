@@ -172,6 +172,7 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
                 clearSelection={clearSelection}
                 onEditCustomer={handleEditCustomer}
                 toggleCustomerType={toggleCustomerType}
+                recentlyUpdatedId={recentlyUpdatedId}
               />
             )}
           </CardContent>
