@@ -17,14 +17,17 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { useOrdersByDate } from '@/hooks/useOrdersByDate';
+import { format, subDays } from 'date-fns';
 
 const OrdersOverTime = () => {
-  const { data, isLoading, error } = useOrdersByDate();
+  const endDate = format(new Date(), 'yyyy-MM-dd');
+  const startDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
+  const { data, isLoading, error } = useOrdersByDate(startDate, endDate);
 
-  const chartData = Object.entries(data).map(([date, values]) => ({
-    date,
-    hotel_guest: values.hotel_guest,
-    outside_guest: values.outside_guest,
+  const chartData = data.map((row) => ({
+    date: row.order_date,
+    hotel_guest: row.guest_amount,
+    outside_guest: row.non_guest_amount,
   }));
 
   return (
