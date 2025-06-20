@@ -117,6 +117,7 @@ const CustomersDashboard = () => {
   };
 
   async function toggleCustomerType(id: string, isGuestNow: boolean) {
+    console.log('Toggling guest status for:', id)
     const newType = isGuestNow ? null : 'hotel_guest';
 
     const { error } = await supabase
@@ -132,6 +133,8 @@ const CustomersDashboard = () => {
             : c
         )
       );
+    } else {
+      console.error('Update error:', error)
     }
   }
 
