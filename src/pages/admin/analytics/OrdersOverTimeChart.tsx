@@ -121,6 +121,9 @@ const OrdersOverTimeChart = () => {
               </ChartContainer>
             )}
           </CardContent>
+          <div className="mt-2 font-mono text-sm">
+            {/* Example: {JSON.stringify(chartData)} */}
+          </div>
         </Card>
       </div>
     </Layout>
