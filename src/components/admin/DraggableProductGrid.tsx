@@ -2,7 +2,7 @@
 import React from 'react';
 import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { Trash2, GripVertical, Plus, Pencil } from 'lucide-react';
+import { Trash, GripVertical, Plus, Edit } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -115,7 +115,7 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
                 navigate(`/products/edit/${product.id}`);
               }}
             >
-              <Pencil className="h-4 w-4" />
+              <Edit className="h-4 w-4" />
             </Button>
             {isAdmin && (
               <AlertDialog>
@@ -128,7 +128,7 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
                       // AlertDialog will open via its trigger
                     }}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
               <AlertDialogContent onClick={(e) => e.stopPropagation()}>
