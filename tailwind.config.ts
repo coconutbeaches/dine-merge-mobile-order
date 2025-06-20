@@ -78,8 +78,9 @@ const config: Config = {
       },
       keyframes: {
         flicker: {
-          "0%, 100%": { opacity: "1", transform: "scale(1)" },
-          "50%": { opacity: "0.5", transform: "scale(1.04)" },
+          '0%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
+          '100%': { opacity: '1' },
         },
         "accordion-down": {
           from: { height: "0" },
@@ -92,6 +93,7 @@ const config: Config = {
       },
       animation: {
         flicker: "flicker 0.4s ease-in-out",
+        flickerOnce: "flicker 0.8s ease-in-out 1 forwards",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },

@@ -24,6 +24,7 @@ interface CustomersListProps {
   clearSelection: () => void;
   onEditCustomer: (customer: Profile) => void;
   toggleCustomerType?: (id: string, isGuestNow: boolean) => void;
+  recentlyUpdatedId?: string | null;
 }
 
 const CustomersList: React.FC<CustomersListProps> = ({
@@ -34,6 +35,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
   clearSelection,
   onEditCustomer,
   toggleCustomerType,
+  recentlyUpdatedId,
 }) => {
   const allOnPageSelected = customers.length > 0 && selectedCustomers.length === customers.length;
   
@@ -93,14 +95,20 @@ const CustomersList: React.FC<CustomersListProps> = ({
                       customer.customer_type === 'hotel_guest'
                     )
                 }}
-                className={`hidden lg:table-cell capitalize cursor-pointer px-4 py-2 text-sm font-medium rounded transition-all duration-300 ease-in-out transform hover:scale-[1.01] ${
-  customer.customer_type === 'hotel_guest'
-    ? 'text-green-700 bg-green-100 animate-pulse'
-    : 'text-gray-700 hover:text-black'
-                }`}
+                className="hidden lg:table-cell cursor-pointer"
                 title="Click to toggle"
               >
-                {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Customer'}
+                <span
+                  className={`px-2 py-1 text-xs font-medium rounded-md ${
+                    customer.customer_type === 'hotel_guest'
+                      ? 'bg-gray-200 text-gray-800'
+                      : 'bg-primary text-white'
+                  } ${
+                    recentlyUpdatedId === customer.id ? 'animate-flickerOnce' : ''
+                  }`}
+                >
+                  {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Customer'}
+                </span>
               </TableCell>
               <TableCell className="hidden lg:table-cell whitespace-nowrap">{format(new Date(customer.created_at), 'MMM d, yyyy')}</TableCell>
               <TableCell>
