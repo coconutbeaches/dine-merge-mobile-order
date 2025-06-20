@@ -28,7 +28,7 @@ const CustomersDashboard = () => {
   const [search, setSearch] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Profile | null>(null);
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
-
+  const [recentlyUpdatedId, setRecentlyUpdatedId] = useState<string | null>(null);
   const filteredCustomers = useMemo(() => {
     if (!search.trim()) {
       return customers;
