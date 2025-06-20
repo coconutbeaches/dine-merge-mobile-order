@@ -68,7 +68,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
       <TableBody>
         {customers.length > 0 ? (
           customers.map((customer) => (
-            <TableRow key={customer.id} data-state={selectedCustomers.includes(customer.id) ? "selected" : ""}>
+            <TableRow key={`${customer.id}-${customer.customer_type || 'none'}`} data-state={selectedCustomers.includes(customer.id) ? "selected" : ""}>
               <TableCell>
                 <Checkbox
                   checked={selectedCustomers.includes(customer.id)}
