@@ -33,6 +33,15 @@ const OrdersOverTimeChart = () => {
     to: new Date(),
   })
 
+  const handleRangeSelect = (selected: DateRange | undefined) => {
+    if (!selected) return
+    if (selected.to && selected.from && selected.to < selected.from) {
+      setRange({ from: selected.to, to: selected.from })
+    } else {
+      setRange(selected)
+    }
+  }
+
   const endDate = range.to ? format(range.to, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
   const startDate = range.from ? format(range.from, 'yyyy-MM-dd') : endDate
 
@@ -75,7 +84,7 @@ const OrdersOverTimeChart = () => {
                       mode="range"
                       defaultMonth={range.from}
                       selected={range}
-                      onSelect={setRange}
+                      onSelect={handleRangeSelect}
                       numberOfMonths={2}
                     />
                   </PopoverContent>
