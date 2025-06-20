@@ -32,16 +32,21 @@ const OrdersOverTimeChart = () => {
     to: new Date(),
   });
 
+  const handleRangeSelect = (selected: DateRange | undefined) => {
+    if (!selected) return;
+    if (selected.to && selected.from && selected.to < selected.from) {
+      setRange({ from: selected.to, to: selected.from });
+    } else {
+      setRange(selected);
+    }
+  };
+
   const endDate = range.to
     ? format(range.to, "yyyy-MM-dd")
     : format(new Date(), "yyyy-MM-dd");
   const startDate = range.from ? format(range.from, "yyyy-MM-dd") : endDate;
 
-  const { data, isLoading, error } = useOrdersByDate(
-    startDate,
-    endDate,
-    metric,
-  );
+  const { data, isLoading, error } = useOrdersByDate(startDate, endDate, metric);
 
   const chartData = data.map((row) => ({
     date: row.order_date,
@@ -93,7 +98,7 @@ const OrdersOverTimeChart = () => {
                       mode="range"
                       defaultMonth={range.from}
                       selected={range}
-                      onSelect={setRange}
+                      onSelect={handleRangeSelect}
                       numberOfMonths={2}
                     />
                   </PopoverContent>
@@ -119,13 +124,9 @@ const OrdersOverTimeChart = () => {
           </CardHeader>
           <CardContent className="p-4">
             {isLoading ? (
-              <div className="p-6 text-center text-gray-500">
-                Loading analytics...
-              </div>
+              <div className="p-6 text-center text-gray-500">Loading analytics...</div>
             ) : error ? (
-              <div className="p-6 text-center text-red-500">
-                Failed to load data
-              </div>
+              <div className="p-6 text-center text-red-500">Failed to load data</div>
             ) : (
               <ChartContainer
                 config={{
@@ -168,9 +169,6 @@ const OrdersOverTimeChart = () => {
               </ChartContainer>
             )}
           </CardContent>
-          <div className="mt-2 font-mono text-sm">
-            {/* Example: {JSON.stringify(chartData)} */}
-          </div>
         </Card>
       </div>
     </Layout>
