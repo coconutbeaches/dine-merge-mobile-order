@@ -23,7 +23,7 @@ interface CustomersListProps {
   selectAllCustomers: (customerIds?: string[]) => void;
   clearSelection: () => void;
   onEditCustomer: (customer: Profile) => void;
-  toggleGuestStatus?: (id: string, isGuestNow: boolean) => void;
+  toggleCustomerType?: (id: string, isGuestNow: boolean) => void;
 }
 
 const CustomersList: React.FC<CustomersListProps> = ({
@@ -33,7 +33,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
   selectAllCustomers,
   clearSelection,
   onEditCustomer,
-  toggleGuestStatus,
+  toggleCustomerType,
 }) => {
   const allOnPageSelected = customers.length > 0 && selectedCustomers.length === customers.length;
   
@@ -61,7 +61,6 @@ const CustomersList: React.FC<CustomersListProps> = ({
           <TableHead>Email</TableHead>
           <TableHead className="hidden md:table-cell">Phone</TableHead>
           <TableHead className="hidden lg:table-cell">Role</TableHead>
-          <TableHead className="text-left px-4 py-2">Guest</TableHead>
           <TableHead className="hidden lg:table-cell w-[150px]">Joined</TableHead>
           <TableHead><span className="sr-only">Actions</span></TableHead>
         </TableRow>
@@ -85,25 +84,18 @@ const CustomersList: React.FC<CustomersListProps> = ({
               <TableCell className="font-medium">{formatThaiCurrency(customer.total_spent)}</TableCell>
               <TableCell>{customer.email}</TableCell>
               <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
-              <TableCell className="hidden lg:table-cell capitalize">
+              <TableCell
+                className="hidden lg:table-cell capitalize cursor-pointer text-gray-700 hover:text-black transition"
+                onClick={() =>
+                  toggleCustomerType &&
+                  toggleCustomerType(
+                    customer.id,
+                    customer.customer_type === 'hotel_guest'
+                  )
+                }
+                title="Click to toggle role"
+              >
                 {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Customer'}
-              </TableCell>
-              <TableCell className="px-4 py-2">
-                <div className="flex items-center justify-center">
-                  <input
-                    type="radio"
-                    name={`guest-toggle-${customer.id}`}
-                    checked={customer.customer_type === 'hotel_guest'}
-                    onChange={() =>
-                      toggleGuestStatus &&
-                      toggleGuestStatus(
-                        customer.id,
-                        customer.customer_type === 'hotel_guest'
-                      )
-                    }
-                    className="accent-gray-900"
-                  />
-                </div>
               </TableCell>
               <TableCell className="hidden lg:table-cell whitespace-nowrap">{format(new Date(customer.created_at), 'MMM d, yyyy')}</TableCell>
               <TableCell>
@@ -116,7 +108,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
           ))
         ) : (
           <TableRow>
-            <TableCell colSpan={9} className="h-24 text-center">
+            <TableCell colSpan={8} className="h-24 text-center">
               No customers found.
             </TableCell>
           </TableRow>
