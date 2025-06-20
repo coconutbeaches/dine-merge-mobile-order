@@ -24,7 +24,6 @@ export const useOrdersByDate = (
       const { data, error } = await supabase.rpc('orders_by_day_and_guest_type', {
         start_date: startDate,
         end_date: endDate,
-        metric,
       })
       if (error) setError(error.message)
       else setData(data as OrdersByDate[])
