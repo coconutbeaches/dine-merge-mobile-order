@@ -3,11 +3,17 @@ import { supabase } from '@/integrations/supabase/client'
 
 type OrdersByDate = {
   order_date: string
-  guest_amount: number
-  non_guest_amount: number
+  hotel_guest_orders: number
+  hotel_guest_revenue: number
+  outside_guest_orders: number
+  outside_guest_revenue: number
 }
 
-export const useOrdersByDate = (startDate: string, endDate: string) => {
+export const useOrdersByDate = (
+  startDate: string,
+  endDate: string,
+  metric: 'revenue' | 'count'
+) => {
   const [data, setData] = useState<OrdersByDate[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -17,7 +23,8 @@ export const useOrdersByDate = (startDate: string, endDate: string) => {
       setIsLoading(true)
       const { data, error } = await supabase.rpc('orders_by_day_and_guest_type', {
         start_date: startDate,
-        end_date: endDate
+        end_date: endDate,
+        metric,
       })
       if (error) setError(error.message)
       else setData(data as OrdersByDate[])
@@ -25,7 +32,7 @@ export const useOrdersByDate = (startDate: string, endDate: string) => {
     }
 
     fetchData()
-  }, [startDate, endDate])
+  }, [startDate, endDate, metric])
 
   return { data, isLoading, error }
 }

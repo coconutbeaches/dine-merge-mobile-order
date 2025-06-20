@@ -22,12 +22,12 @@ import { format, subDays } from 'date-fns';
 const OrdersOverTime = () => {
   const endDate = format(new Date(), 'yyyy-MM-dd');
   const startDate = format(subDays(new Date(), 30), 'yyyy-MM-dd');
-  const { data, isLoading, error } = useOrdersByDate(startDate, endDate);
+  const { data, isLoading, error } = useOrdersByDate(startDate, endDate, 'count');
 
   const chartData = data.map((row) => ({
     date: row.order_date,
-    hotel_guest: row.guest_amount,
-    outside_guest: row.non_guest_amount,
+    hotel_guest: row.hotel_guest_orders,
+    outside_guest: row.outside_guest_orders,
   }));
 
   return (
