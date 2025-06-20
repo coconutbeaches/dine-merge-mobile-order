@@ -116,27 +116,22 @@ const CustomersDashboard = () => {
     }
   };
 
-  async function toggleCustomerType(id: string, isGuestNow: boolean) {
-    console.log('Toggling guest status for:', id)
-    const newType = isGuestNow ? null : 'hotel_guest';
+ async function toggleCustomerType(id: string, isGuestNow: boolean) {
+  const newType = isGuestNow ? null : 'hotel_guest';
+  console.log('🔄 Trying to update customer_type for', id, '→', newType);
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ customer_type: newType })
-      .eq('id', id);
+  const { error } = await supabase
+    .from('profiles')
+    .update({ customer_type: newType })
+    .eq('id', id)
+    .select(); // prevent implicit fetch logic
 
-    if (!error) {
-      setCustomers(prev =>
-        prev.map(c =>
-          c.id === id
-            ? { ...c, customer_type: newType }
-            : c
-        )
-      );
-    } else {
-      console.error('Update error:', error)
-    }
+  if (error) {
+    console.error('❌ Supabase update error:', error);
+  } else {
+    console.log('✅ Supabase update success');
   }
+}
 
   return (
     <Layout title="Customer Management" showBackButton={false}>
