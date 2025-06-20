@@ -18,6 +18,7 @@ import ResetPassword from "./pages/ResetPassword";   // Added
 import Profile from "./pages/Profile";
 import OrderHistory from "./pages/OrderHistory";
 import OrdersDashboard from "./pages/OrdersDashboard";
+import OrdersOverTime from "./pages/OrdersOverTime";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ProductsDashboard from "./pages/ProductsDashboard";
@@ -58,6 +59,7 @@ function App() {
               <Route path="/products/new" element={<ProductForm />} />
               <Route path="/products/edit/:productId" element={<ProductForm />} />
               <Route path="/orders-dashboard" element={<OrdersDashboard />} />
+              <Route path="/orders-over-time" element={<OrdersOverTime />} />
               <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
               <Route path="/categories-manager" element={<CategoriesManager />} />
               <Route path="/admin/customer-orders/:customerId" element={<CustomerOrderHistory />} />
