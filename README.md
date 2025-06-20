@@ -1,4 +1,4 @@
-# Welcome to your Lovable project BRANCH!
+# Welcome to your Lovable project!
 
 ## Project info
 
