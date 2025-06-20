@@ -204,6 +204,7 @@ export type Profile = {
   name?: string | null;
   phone?: string | null;
   role?: string | null;
+  customer_type?: string | null;
   created_at: string;
   updated_at: string;
 };

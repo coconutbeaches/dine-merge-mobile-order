@@ -23,6 +23,7 @@ export const useCustomersDashboard = () => {
   
   return {
     customers,
+    setCustomers,
     isLoading,
     fetchCustomers,
     selectedCustomers,

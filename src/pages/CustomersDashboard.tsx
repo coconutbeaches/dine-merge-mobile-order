@@ -9,14 +9,15 @@ import { Profile } from '@/types/supabaseTypes';
 import EditCustomerDialog from '@/components/admin/EditCustomerDialog';
 import { updateUserProfile, mergeCustomers } from '@/services/userProfileService';
 import { toast } from 'sonner';
-import { User } from '@/types';
 import MergeCustomersDialog from '@/components/admin/MergeCustomersDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 const CustomersDashboard = () => {
-  const { 
-    customers, 
-    selectedCustomers, 
-    isLoading, 
+  const {
+    customers,
+    setCustomers,
+    selectedCustomers,
+    isLoading,
     fetchCustomers,
     deleteSelectedCustomers,
     toggleSelectCustomer,
@@ -115,6 +116,21 @@ const CustomersDashboard = () => {
     }
   };
 
+  async function updateType(id: string, newType: string) {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ customer_type: newType })
+      .eq('id', id);
+
+    if (!error) {
+      setCustomers(prev =>
+        prev.map(c =>
+          c.id === id ? { ...c, customer_type: newType } : c
+        )
+      );
+    }
+  }
+
   return (
     <Layout title="Customer Management" showBackButton={false}>
       <div className="page-container p-4 md:p-6">
@@ -133,13 +149,14 @@ const CustomersDashboard = () => {
             {isLoading ? (
               <div className="p-6 text-center text-muted-foreground">Loading customers...</div>
             ) : (
-              <CustomersList 
-                customers={filteredCustomers} 
+              <CustomersList
+                customers={filteredCustomers}
                 selectedCustomers={selectedCustomers}
                 toggleSelectCustomer={toggleSelectCustomer}
                 selectAllCustomers={() => selectAllCustomers(filteredCustomers.map(c => c.id))}
                 clearSelection={clearSelection}
                 onEditCustomer={handleEditCustomer}
+                updateType={updateType}
               />
             )}
           </CardContent>
