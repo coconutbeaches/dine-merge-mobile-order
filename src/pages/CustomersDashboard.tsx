@@ -131,7 +131,7 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
   } else {
     console.log('✅ Supabase update success');
 
-    // 🔄 Update local state to reflect change
+    // 🔄 Update local state
     setCustomers(prev =>
       prev.map(c =>
         c.id === id
@@ -139,6 +139,10 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
           : c
       )
     );
+
+    // ✅ Trigger animation
+    setRecentlyUpdatedId(id);
+    setTimeout(() => setRecentlyUpdatedId(null), 1000);
   }
 }
 
