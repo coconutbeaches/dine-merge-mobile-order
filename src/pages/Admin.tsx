@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, LayoutGrid, ShoppingCart, BarChart3 } from 'lucide-react';
+import { Users, Package, LayoutGrid, ShoppingCart, BarChart } from 'lucide-react';
 
 const Admin = () => {
   return (
@@ -68,12 +68,12 @@ const Admin = () => {
             </Card>
           </Link>
 
-          <Link to="/orders-over-time">
+          <Link to="/admin/analytics/orders-over-time">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Analytics
+                  <BarChart className="h-5 w-5" />
+                  Orders Over Time
                 </CardTitle>
               </CardHeader>
               <CardContent>
