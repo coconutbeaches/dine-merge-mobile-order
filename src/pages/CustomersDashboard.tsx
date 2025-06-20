@@ -116,7 +116,7 @@ const CustomersDashboard = () => {
     }
   };
 
- async function toggleCustomerType(id: string, isGuestNow: boolean) {
+async function toggleCustomerType(id: string, isGuestNow: boolean) {
   const newType = isGuestNow ? null : 'hotel_guest';
   console.log('🔄 Trying to update customer_type for', id, '→', newType);
 
@@ -124,12 +124,21 @@ const CustomersDashboard = () => {
     .from('profiles')
     .update({ customer_type: newType })
     .eq('id', id)
-    .select(); // prevent implicit fetch logic
+    .select();
 
   if (error) {
     console.error('❌ Supabase update error:', error);
   } else {
     console.log('✅ Supabase update success');
+
+    // 🔄 Update local state to reflect change
+    setCustomers(prev =>
+      prev.map(c =>
+        c.id === id
+          ? { ...c, customer_type: newType }
+          : c
+      )
+    );
   }
 }
 
