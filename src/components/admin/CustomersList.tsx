@@ -93,10 +93,10 @@ const CustomersList: React.FC<CustomersListProps> = ({
                       customer.customer_type === 'hotel_guest'
                     )
                 }}
-                className={`hidden lg:table-cell capitalize cursor-pointer px-4 py-2 text-sm font-medium rounded transition-colors duration-200 ease-in-out ${
-                  customer.customer_type === 'hotel_guest'
-                    ? 'text-green-700 bg-green-100'
-                    : 'text-gray-700 hover:text-black'
+                className={`hidden lg:table-cell capitalize cursor-pointer px-4 py-2 text-sm font-medium rounded transition-all duration-300 ease-in-out transform hover:scale-[1.01] ${
+  customer.customer_type === 'hotel_guest'
+    ? 'text-green-700 bg-green-100 animate-pulse'
+    : 'text-gray-700 hover:text-black'
                 }`}
                 title="Click to toggle"
               >
