@@ -25,6 +25,16 @@ import { Calendar } from "@/components/ui/calendar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { formatThaiCurrency } from "@/lib/utils";
 
+import type { TooltipProps } from "recharts";
+
+const OrdersTooltip = (props: TooltipProps<number, string>) => {
+  const sorted = props.payload?.slice().sort((a, b) => {
+    const order = ["hotel_guest", "non_guest"];
+    return order.indexOf(a.dataKey as string) - order.indexOf(b.dataKey as string);
+  });
+  return <ChartTooltipContent {...props} payload={sorted} />;
+};
+
 const OrdersOverTimeChart = () => {
   const [metric, setMetric] = useState<"revenue" | "count">("revenue");
   const [range, setRange] = useState<DateRange>({
@@ -71,6 +81,8 @@ const OrdersOverTimeChart = () => {
     (sum, row) => sum + row.hotel_guest + row.non_guest,
     0,
   );
+  const guestTotal = chartData.reduce((sum, row) => sum + row.hotel_guest, 0);
+  const outTotal = chartData.reduce((sum, row) => sum + row.non_guest, 0);
 
   return (
     <Layout title="Orders Over Time" showBackButton>
@@ -128,6 +140,16 @@ const OrdersOverTimeChart = () => {
                 {metric === "revenue"
                   ? formatThaiCurrency(total)
                   : total.toLocaleString()}
+                <span className="ml-2 text-sm font-normal">
+                  Guest:
+                  {metric === "revenue"
+                    ? formatThaiCurrency(guestTotal)
+                    : guestTotal.toLocaleString()}
+                  {" | "}Out:
+                  {metric === "revenue"
+                    ? formatThaiCurrency(outTotal)
+                    : outTotal.toLocaleString()}
+                </span>
               </div>
             </div>
           </CardHeader>
@@ -139,8 +161,8 @@ const OrdersOverTimeChart = () => {
             ) : (
               <ChartContainer
                 config={{
-                  hotel_guest: { label: "Hotel Guest", color: "#ffffff" },
-                  non_guest: { label: "Non Guest", color: "#000000" },
+                  hotel_guest: { label: "Guest", color: "#ffffff" },
+                  non_guest: { label: "Out", color: "#000000" },
                 }}
               >
                 <ResponsiveContainer width="100%" height={300}>
@@ -159,7 +181,7 @@ const OrdersOverTimeChart = () => {
                     />
                     <Tooltip
                       content={
-                        <ChartTooltipContent
+                        <OrdersTooltip
                           labelFormatter={(value) =>
                             format(new Date(value as string), "MMM d")
                           }
@@ -170,6 +192,8 @@ const OrdersOverTimeChart = () => {
                       dataKey="non_guest"
                       stackId="orders"
                       fill="var(--color-non_guest)"
+                      stroke="#000"
+                      strokeWidth={1}
                     />
                     <Bar
                       dataKey="hotel_guest"
