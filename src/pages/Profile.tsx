@@ -98,8 +98,18 @@ const Profile = () => {
     <Layout title="" showBackButton>
       <div className="page-container max-w-2xl mx-auto">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Account Information</CardTitle>
+            {!isEditing && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit className="h-4 w-4" />
+                <span className="sr-only">Edit Profile</span>
+              </Button>
+            )}
           </CardHeader>
           <form onSubmit={handleUpdateProfile}>
             <CardContent className="space-y-6">
@@ -133,27 +143,22 @@ const Profile = () => {
                 />
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between items-center pt-6">
-              {isEditing ? (
-                <>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                  <Button variant="outline" onClick={() => {setIsEditing(false); fetchProfileDetails(); /* Reset changes */}}>
-                    Cancel
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">Edit Profile</span>
+            {isEditing && (
+              <CardFooter className="flex justify-end gap-2">
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Save Changes'}
                 </Button>
-              )}
-            </CardFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditing(false);
+                    fetchProfileDetails();
+                  }}
+                >
+                  Cancel
+                </Button>
+              </CardFooter>
+            )}
           </form>
         </Card>
 
