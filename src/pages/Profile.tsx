@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useUserContext } from '@/context/UserContext';
 import { Button } from '@/components/ui/button';
+import { Edit } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -143,7 +144,14 @@ const Profile = () => {
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="h-4 w-4" />
+                  <span className="sr-only">Edit Profile</span>
+                </Button>
               )}
             </CardFooter>
           </form>
