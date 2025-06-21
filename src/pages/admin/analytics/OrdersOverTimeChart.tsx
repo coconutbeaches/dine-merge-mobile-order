@@ -14,7 +14,7 @@ import {
 import { useOrdersByDate } from "@/hooks/useOrdersByDate";
 import { format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -98,9 +98,23 @@ const OrdersOverTimeChart = () => {
       <div className="p-4 md:p-6">
         <Card className="bg-white text-black dark:bg-black dark:text-white border border-black">
           <CardHeader>
-            <CardTitle>Orders Over Time</CardTitle>
-            <div className="flex flex-col gap-2 pt-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-2">
+                <CardTitle>Orders Over Time</CardTitle>
+                <ToggleGroup
+                  type="single"
+                  value={metric}
+                  onValueChange={(val) =>
+                    val && setMetric(val as "revenue" | "count")
+                  }
+                >
+                  <ToggleGroupItem value="revenue">฿</ToggleGroupItem>
+                  <ToggleGroupItem value="count">
+                    <ShoppingCart className="h-4 w-4" />
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+              <div className="flex items-center gap-2 pt-2 md:pt-0">
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -133,17 +147,6 @@ const OrdersOverTimeChart = () => {
                     />
                   </PopoverContent>
                 </Popover>
-                <ToggleGroup
-                  type="single"
-                  value={metric}
-                  onValueChange={(val) =>
-                    val && setMetric(val as "revenue" | "count")
-                  }
-                  className="ml-2"
-                >
-                  <ToggleGroupItem value="revenue">THB</ToggleGroupItem>
-                  <ToggleGroupItem value="count">Orders</ToggleGroupItem>
-                </ToggleGroup>
               </div>
               <div className="text-lg font-bold md:ml-auto">
                 {metric === "revenue"
@@ -154,7 +157,7 @@ const OrdersOverTimeChart = () => {
                   {metric === "revenue"
                     ? formatThaiCurrency(guestTotal)
                     : guestTotal.toLocaleString()}
-                  {" | "}Out:
+                  {" "}Out:
                   {metric === "revenue"
                     ? formatThaiCurrency(outTotal)
                     : outTotal.toLocaleString()}
@@ -187,6 +190,7 @@ const OrdersOverTimeChart = () => {
                       tickFormatter={(v) => v.toLocaleString()}
                       stroke="#000"
                       axisLine={false}
+                      tickLine={false}
                     />
                     <Tooltip
                       content={
