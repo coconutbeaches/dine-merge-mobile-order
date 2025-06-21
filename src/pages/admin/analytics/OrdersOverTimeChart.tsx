@@ -48,15 +48,17 @@ const OrdersOverTimeChart = () => {
 
   const { data, isLoading, error } = useOrdersByDate(startDate, endDate, metric);
 
-  const chartData = data.map((row) => ({
-    date: row.order_date,
-    hotel_guest:
-      metric === "revenue" ? row.hotel_guest_revenue : row.hotel_guest_orders,
-    non_guest:
-      metric === "revenue"
-        ? row.outside_guest_revenue
-        : row.outside_guest_orders,
-  }));
+  const chartData = [...data]
+    .reverse()
+    .map((row) => ({
+      date: row.order_date,
+      hotel_guest:
+        metric === "revenue" ? row.hotel_guest_revenue : row.hotel_guest_orders,
+      non_guest:
+        metric === "revenue"
+          ? row.outside_guest_revenue
+          : row.outside_guest_orders,
+    }));
 
   // Determine the max stacked value for a single day so the Y axis ticks
   // are rounded to the nearest thousand. This ensures the chart displays
