@@ -58,6 +58,15 @@ const OrdersOverTimeChart = () => {
         : row.outside_guest_orders,
   }));
 
+  // Determine the max stacked value for a single day so the Y axis ticks
+  // are rounded to the nearest thousand. This ensures the chart displays
+  // values like 5,000 or 10,000 rather than uneven numbers.
+  const maxValue = Math.max(
+    ...chartData.map((d) => d.hotel_guest + d.non_guest),
+  );
+  const maxTick = Math.ceil(maxValue / 1000) * 1000;
+  const ticks = Array.from({ length: maxTick / 1000 + 1 }, (_, i) => i * 1000);
+
   const total = chartData.reduce(
     (sum, row) => sum + row.hotel_guest + row.non_guest,
     0,
@@ -142,7 +151,12 @@ const OrdersOverTimeChart = () => {
                       vertical={false}
                     />
                     <XAxis dataKey="date" hide />
-                    <YAxis stroke="#000" axisLine={false} />
+                    <YAxis
+                      ticks={ticks}
+                      tickFormatter={(v) => v.toLocaleString()}
+                      stroke="#000"
+                      axisLine={false}
+                    />
                     <Tooltip
                       content={
                         <ChartTooltipContent
