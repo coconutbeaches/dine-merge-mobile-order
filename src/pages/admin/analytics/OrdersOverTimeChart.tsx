@@ -70,14 +70,21 @@ const OrdersOverTimeChart = () => {
           : row.outside_guest_orders,
     }));
 
-  // Determine the max stacked value for a single day so the Y axis ticks
-  // are rounded to the nearest thousand. This ensures the chart displays
-  // values like 5,000 or 10,000 rather than uneven numbers.
+  // Determine the max stacked value for a single day so the Y axis ticks can
+  // be generated. For revenue we keep the existing thousands rounding while
+  // the Orders view shows four ticks with values that are multiples of ten.
   const maxValue = Math.max(
     ...chartData.map((d) => d.hotel_guest + d.non_guest),
   );
-  const maxTick = Math.ceil(maxValue / 1000) * 1000;
-  const ticks = Array.from({ length: maxTick / 1000 + 1 }, (_, i) => i * 1000);
+
+  const ticks = React.useMemo(() => {
+    if (metric === "count") {
+      const step = Math.ceil(maxValue / 3 / 10) * 10;
+      return Array.from({ length: 4 }, (_, i) => i * step);
+    }
+    const maxTick = Math.ceil(maxValue / 1000) * 1000;
+    return Array.from({ length: maxTick / 1000 + 1 }, (_, i) => i * 1000);
+  }, [metric, maxValue]);
 
   const total = chartData.reduce(
     (sum, row) => sum + row.hotel_guest + row.non_guest,
