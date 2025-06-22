@@ -19,6 +19,7 @@ export const useTopProductsByQuantity = (
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true)
+      setError(null)
       const { data, error } = await supabase.rpc('top_products_by_quantity', {
         start_date: startDate,
         end_date: endDate,
