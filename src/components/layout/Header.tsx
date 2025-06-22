@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ShoppingCart, User } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, User, Settings } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';
 import { restaurantInfo } from '@/data/mockData';
 
@@ -16,7 +16,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { cart, isLoggedIn } = useAppContext(); // Removed currentUser as it's not used in the provided examples
+  const { cart, isLoggedIn, currentUser } = useAppContext(); // Include currentUser to check admin role
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
   
@@ -44,8 +44,18 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Right side: Cart and Profile/Login buttons */}
+        {/* Right side: Admin Settings, Cart and Profile/Login buttons */}
         <div className="flex items-center space-x-1">
+          {currentUser?.role === 'admin' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/admin')}
+              className="flex items-center"
+            >
+              <Settings className="h-[2.18rem] w-[2.18rem]" />
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={() => navigate('/cart')} className="relative flex items-center">
             <ShoppingCart className="h-[2.18rem] w-[2.18rem]" />
             {totalItems > 0 && (
