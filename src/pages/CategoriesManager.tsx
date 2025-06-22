@@ -244,7 +244,6 @@ const CategoriesManager = () => {
                   setCategoryForm({ name: '', description: '' });
                 }}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Add Category
                 </Button>
               </DialogTrigger>
               <DialogContent>
