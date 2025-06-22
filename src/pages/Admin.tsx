@@ -23,7 +23,7 @@ const Admin = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2">
                   <ShoppingCart className="h-5 w-5" />
-                  Orders Management
+                  Orders
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -37,7 +37,7 @@ const Admin = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2">
                   <Package className="h-5 w-5" />
-                  Products Management
+                  Menu
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -51,7 +51,7 @@ const Admin = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2">
                   <LayoutGrid className="h-5 w-5" />
-                  Categories Management
+                  Categories
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -65,7 +65,7 @@ const Admin = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Customer Management
+                  Customer
                 </CardTitle>
               </CardHeader>
               <CardContent>
