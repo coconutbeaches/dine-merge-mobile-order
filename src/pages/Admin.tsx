@@ -1,22 +1,20 @@
-
-import React from 'react';
-import { Link } from 'react-router-dom';
-import Layout from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React from "react";
+import { Link } from "react-router-dom";
+import Layout from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
   Package,
   LayoutGrid,
   ShoppingCart,
   BarChart,
-} from 'lucide-react';
+} from "lucide-react";
 
 const Admin = () => {
   return (
     <Layout title="Admin Dashboard">
       <div className="p-4 max-w-lg mx-auto">
-        
         <div className="grid gap-4 mt-6 mb-8">
           {/* Orders Management */}
           <Link to="/orders-dashboard">
@@ -28,7 +26,9 @@ const Admin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Manage and track customer orders</p>
+                <p className="text-sm text-muted-foreground">
+                  Manage and track customer orders
+                </p>
               </CardContent>
             </Card>
           </Link>
@@ -43,7 +43,9 @@ const Admin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">View and manage customer accounts</p>
+                <p className="text-sm text-muted-foreground">
+                  View and manage customer accounts
+                </p>
               </CardContent>
             </Card>
           </Link>
@@ -58,7 +60,9 @@ const Admin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">View sales analytics</p>
+                <p className="text-sm text-muted-foreground">
+                  View sales analytics
+                </p>
               </CardContent>
             </Card>
           </Link>
@@ -73,7 +77,9 @@ const Admin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Add, edit, and manage menu items</p>
+                <p className="text-sm text-muted-foreground">
+                  Add, edit, and manage menu items
+                </p>
               </CardContent>
             </Card>
           </Link>
@@ -88,7 +94,9 @@ const Admin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Organize menu with categories</p>
+                <p className="text-sm text-muted-foreground">
+                  Organize menu with categories
+                </p>
               </CardContent>
             </Card>
           </Link>
@@ -103,7 +111,9 @@ const Admin = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">View sales over time</p>
+                <p className="text-sm text-muted-foreground">
+                  View sales over time
+                </p>
               </CardContent>
             </Card>
           </Link>
