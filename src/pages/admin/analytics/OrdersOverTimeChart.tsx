@@ -23,6 +23,15 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useTopProductsByQuantity } from "@/hooks/useTopProductsByQuantity";
 import { formatThaiCurrency, formatThaiCurrencyWithComma } from "@/lib/utils";
 
 import type { TooltipProps } from "recharts";
@@ -57,6 +66,11 @@ const OrdersOverTimeChart = () => {
   const startDate = range.from ? format(range.from, "yyyy-MM-dd") : endDate;
 
   const { data, isLoading, error } = useOrdersByDate(startDate, endDate, metric);
+  const {
+    data: topProducts,
+    isLoading: isLoadingProducts,
+    error: errorProducts,
+  } = useTopProductsByQuantity(startDate, endDate);
 
   const chartData = [...data]
     .reverse()
@@ -218,6 +232,90 @@ const OrdersOverTimeChart = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="mt-6 bg-white text-black dark:bg-black dark:text-white border border-black">
+          <CardHeader>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+              <div>
+                <CardTitle>Products by Orders</CardTitle>
+                <p className="text-sm text-muted-foreground">Top products by quantity sold by date</p>
+              </div>
+              <div className="flex items-center gap-2 pt-2 md:pt-0">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="text-sm font-normal w-[260px] justify-start">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {range.from ? (
+                        range.to ? (
+                          <>
+                            {format(range.from, "LLL dd, y")} - {format(range.to, "LLL dd, y")}
+                          </>
+                        ) : (
+                          format(range.from, "LLL dd, y")
+                        )
+                      ) : (
+                        <span>Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      initialFocus
+                      mode="range"
+                      defaultMonth={range.from}
+                      selected={range}
+                      onSelect={handleRangeSelect}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button>Export</Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-4">
+            {isLoadingProducts ? (
+              <div className="p-6 text-center text-gray-500">Loading top products...</div>
+            ) : errorProducts ? (
+              <div className="p-6 text-center text-red-500">Failed to load products.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-left">Product</TableHead>
+                    <TableHead className="text-right">Guests</TableHead>
+                    <TableHead className="text-right">Non-Guests</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[...topProducts]
+                    .sort((a, b) => b.total_quantity - a.total_quantity)
+                    .map((product) => (
+                      <TableRow key={product.product_name}>
+                        <TableCell className="text-left">
+                          <a
+                            href="#"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {product.product_name}
+                          </a>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {product.hotel_guest_quantity.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {product.non_guest_quantity.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {product.total_quantity.toLocaleString()}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
             )}
           </CardContent>
         </Card>
