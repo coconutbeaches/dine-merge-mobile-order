@@ -46,31 +46,57 @@ const OrdersTooltip = (props: TooltipProps<number, string>) => {
 
 const OrdersOverTimeChart = () => {
   const [metric, setMetric] = useState<"revenue" | "count">("revenue");
-  const [range, setRange] = useState<DateRange>({
+  const [chartRange, setChartRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
+  const [productsRange, setProductsRange] = useState<DateRange>({
+    from: new Date(),
+    to: new Date(),
+  });
 
-  const handleRangeSelect = (selected: DateRange | undefined) => {
+  const handleChartRangeSelect = (selected: DateRange | undefined) => {
     if (!selected) return;
     if (selected.to && selected.from && selected.to < selected.from) {
-      setRange({ from: selected.to, to: selected.from });
+      setChartRange({ from: selected.to, to: selected.from });
     } else {
-      setRange(selected);
+      setChartRange(selected);
     }
   };
 
-  const endDate = range.to
-    ? format(range.to, "yyyy-MM-dd")
-    : format(new Date(), "yyyy-MM-dd");
-  const startDate = range.from ? format(range.from, "yyyy-MM-dd") : endDate;
+  const handleProductsRangeSelect = (selected: DateRange | undefined) => {
+    if (!selected) return;
+    if (selected.to && selected.from && selected.to < selected.from) {
+      setProductsRange({ from: selected.to, to: selected.from });
+    } else {
+      setProductsRange(selected);
+    }
+  };
 
-  const { data, isLoading, error } = useOrdersByDate(startDate, endDate, metric);
+  const chartEndDate = chartRange.to
+    ? format(chartRange.to, "yyyy-MM-dd")
+    : format(new Date(), "yyyy-MM-dd");
+  const chartStartDate = chartRange.from
+    ? format(chartRange.from, "yyyy-MM-dd")
+    : chartEndDate;
+
+  const productsEndDate = productsRange.to
+    ? format(productsRange.to, "yyyy-MM-dd")
+    : format(new Date(), "yyyy-MM-dd");
+  const productsStartDate = productsRange.from
+    ? format(productsRange.from, "yyyy-MM-dd")
+    : productsEndDate;
+
+  const { data, isLoading, error } = useOrdersByDate(
+    chartStartDate,
+    chartEndDate,
+    metric,
+  );
   const {
     data: topProducts,
     isLoading: isLoadingProducts,
     error: errorProducts,
-  } = useTopProductsByQuantity(startDate, endDate);
+  } = useTopProductsByQuantity(productsStartDate, productsEndDate);
 
   const chartData = [...data]
     .reverse()
@@ -137,14 +163,14 @@ const OrdersOverTimeChart = () => {
                       className="text-sm font-normal w-[260px] justify-start"
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {range.from ? (
-                        range.to ? (
+                      {chartRange.from ? (
+                        chartRange.to ? (
                           <>
-                            {format(range.from, "LLL dd, y")} -{" "}
-                            {format(range.to, "LLL dd, y")}
+                            {format(chartRange.from, "LLL dd, y")} -{" "}
+                            {format(chartRange.to, "LLL dd, y")}
                           </>
                         ) : (
-                          format(range.from, "LLL dd, y")
+                          format(chartRange.from, "LLL dd, y")
                         )
                       ) : (
                         <span>Pick a date</span>
@@ -155,9 +181,9 @@ const OrdersOverTimeChart = () => {
                     <Calendar
                       initialFocus
                       mode="range"
-                      defaultMonth={range.from}
-                      selected={range}
-                      onSelect={handleRangeSelect}
+                      defaultMonth={chartRange.from}
+                      selected={chartRange}
+                      onSelect={handleChartRangeSelect}
                       numberOfMonths={2}
                     />
                   </PopoverContent>
@@ -246,13 +272,13 @@ const OrdersOverTimeChart = () => {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="text-sm font-normal w-[260px] justify-start">
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {range.from ? (
-                        range.to ? (
+                      {productsRange.from ? (
+                        productsRange.to ? (
                           <>
-                            {format(range.from, "LLL dd, y")} - {format(range.to, "LLL dd, y")}
+                            {format(productsRange.from, "LLL dd, y")} - {format(productsRange.to, "LLL dd, y")}
                           </>
                         ) : (
-                          format(range.from, "LLL dd, y")
+                          format(productsRange.from, "LLL dd, y")
                         )
                       ) : (
                         <span>Pick a date</span>
@@ -263,9 +289,9 @@ const OrdersOverTimeChart = () => {
                     <Calendar
                       initialFocus
                       mode="range"
-                      defaultMonth={range.from}
-                      selected={range}
-                      onSelect={handleRangeSelect}
+                      defaultMonth={productsRange.from}
+                      selected={productsRange}
+                      onSelect={handleProductsRangeSelect}
                       numberOfMonths={2}
                     />
                   </PopoverContent>
