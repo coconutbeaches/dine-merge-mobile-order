@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { formatThaiCurrency } from "@/lib/utils";
+import { formatThaiCurrency, formatThaiCurrencyWithComma } from "@/lib/utils";
 
 import type { TooltipProps } from "recharts";
 
@@ -100,7 +100,7 @@ const OrdersOverTimeChart = () => {
           <CardHeader>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-2">
-                <CardTitle>Orders Over Time</CardTitle>
+                <CardTitle>Orders Over Time{' '}</CardTitle>
                 <ToggleGroup
                   type="single"
                   value={metric}
@@ -150,14 +150,13 @@ const OrdersOverTimeChart = () => {
               </div>
               <div className="text-lg font-bold md:ml-auto">
                 {metric === "revenue"
-                  ? formatThaiCurrency(total)
+                  ? formatThaiCurrencyWithComma(total)
                   : total.toLocaleString()}
                 <span className="ml-2 text-sm font-normal">
-                  Guest:
+                  Guest:{" "}
                   {metric === "revenue"
                     ? formatThaiCurrency(guestTotal)
-                    : guestTotal.toLocaleString()}
-                  {" "}Out:
+                    : guestTotal.toLocaleString()}{" "}Out:{" "}
                   {metric === "revenue"
                     ? formatThaiCurrency(outTotal)
                     : outTotal.toLocaleString()}
