@@ -99,9 +99,10 @@ const OrdersOverTimeChart = () => {
         <Card className="bg-white text-black dark:bg-black dark:text-white border border-black">
           <CardHeader>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-2">
-                <CardTitle>Orders Over Time{' '}</CardTitle>
+              <div className="flex items-center">
+                <CardTitle>Orders Over Time </CardTitle>
                 <ToggleGroup
+                  className="gap-0"
                   type="single"
                   value={metric}
                   onValueChange={(val) =>
