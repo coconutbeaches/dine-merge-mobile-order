@@ -240,7 +240,6 @@ const OrdersOverTimeChart = () => {
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div>
                 <CardTitle>Products by Orders</CardTitle>
-                <p className="text-sm text-muted-foreground">Top products by quantity sold by date</p>
               </div>
               <div className="flex items-center gap-2 pt-2 md:pt-0">
                 <Popover>
@@ -271,7 +270,6 @@ const OrdersOverTimeChart = () => {
                     />
                   </PopoverContent>
                 </Popover>
-                <Button>Export</Button>
               </div>
             </div>
           </CardHeader>
@@ -287,7 +285,7 @@ const OrdersOverTimeChart = () => {
                   <TableRow>
                     <TableHead className="text-left">Product</TableHead>
                     <TableHead className="text-right">Guests</TableHead>
-                    <TableHead className="text-right">Non-Guests</TableHead>
+                    <TableHead className="text-right">Out</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -296,13 +294,8 @@ const OrdersOverTimeChart = () => {
                     .sort((a, b) => b.total_quantity - a.total_quantity)
                     .map((product) => (
                       <TableRow key={product.product_name}>
-                        <TableCell className="text-left">
-                          <a
-                            href="#"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {product.product_name}
-                          </a>
+                        <TableCell className="text-left text-black">
+                          {product.product_name}
                         </TableCell>
                         <TableCell className="text-right">
                           {product.hotel_guest_quantity.toLocaleString()}
