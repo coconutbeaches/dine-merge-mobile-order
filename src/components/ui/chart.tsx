@@ -208,7 +208,7 @@ const ChartTooltipContent = React.forwardRef<
                           className={cn(
                             "shrink-0 rounded-[2px] border-black bg-[--color-bg]",
                             {
-                              "h-2.5 w-2.5 border-[0.5px]": indicator === "dot",
+                              "h-2.5 w-2.5 border": indicator === "dot",
                               "w-1 border-[0.5px]": indicator === "line",
                               "w-0 border-[1.5px] border-dashed bg-transparent":
                                 indicator === "dashed",
