@@ -50,6 +50,14 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+### 🛠 Dev Setup
+
+This repo ships with a `.devcontainer` folder for a consistent Node.js 20 environment. The container automatically runs `npm install` on creation and forwards port **5173** for the Vite dev server.
+
+If Codespaces or Codex fails to start, open the Command Palette and choose **"Codespaces: Rebuild Container"**. Logs from the build will appear in the terminal if something goes wrong.
+
+The setup also recommends installing the `dbaeumer.vscode-eslint` extension so linting works out of the box.
+
 ## What technologies are used for this project?
 
 This project is built with:
