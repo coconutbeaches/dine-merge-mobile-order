@@ -18,6 +18,7 @@ const Admin = () => {
       <div className="p-4 max-w-lg mx-auto">
         
         <div className="grid gap-4 mt-6 mb-8">
+          {/* Orders Management */}
           <Link to="/orders-dashboard">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
@@ -31,35 +32,8 @@ const Admin = () => {
               </CardContent>
             </Card>
           </Link>
-          
-          <Link to="/products-dashboard">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5" />
-                  Products Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Add, edit, and manage menu items</p>
-              </CardContent>
-            </Card>
-          </Link>
-          
-          <Link to="/categories-manager">
-            <Card className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <LayoutGrid className="h-5 w-5" />
-                  Categories Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">Organize menu with categories</p>
-              </CardContent>
-            </Card>
-          </Link>
-          
+
+          {/* Customer Management */}
           <Link to="/customers-dashboard">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
@@ -74,6 +48,7 @@ const Admin = () => {
             </Card>
           </Link>
 
+          {/* Analytics */}
           <Link to="/admin/analytics/orders-over-time">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
@@ -88,6 +63,37 @@ const Admin = () => {
             </Card>
           </Link>
 
+          {/* Menu Management */}
+          <Link to="/products-dashboard">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Menu Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Add, edit, and manage menu items</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Categories Management */}
+          <Link to="/categories-manager">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2">
+                  <LayoutGrid className="h-5 w-5" />
+                  Categories Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Organize menu with categories</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          {/* Orders Over Time */}
           <Link to="/admin/analytics/orders-over-time">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-2">
