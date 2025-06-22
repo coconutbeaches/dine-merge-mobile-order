@@ -281,7 +281,8 @@ const OrdersOverTimeChart = () => {
             ) : errorProducts ? (
               <div className="p-6 text-center text-red-500">Failed to load products.</div>
             ) : (
-              <Table>
+              <div className="overflow-x-auto">
+                <Table className="w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-left">Product</TableHead>
@@ -315,7 +316,8 @@ const OrdersOverTimeChart = () => {
                       </TableRow>
                     ))}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
