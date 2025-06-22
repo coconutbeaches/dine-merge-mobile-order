@@ -7,6 +7,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Formats all prices without decimals
+
 export function formatThaiCurrency(amount: number): string {
   return `฿${Math.round(amount)}`;
+}
+
+export function formatThaiCurrencyWithComma(amount: number): string {
+  return `฿${Math.round(amount).toLocaleString()}`;
 }
