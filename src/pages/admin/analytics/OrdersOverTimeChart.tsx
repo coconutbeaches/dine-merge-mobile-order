@@ -115,7 +115,6 @@ const OrdersOverTimeChart = () => {
   const { data, isLoading, error } = useOrdersByDate(
     chartStartDate,
     chartEndDate,
-    metric,
   );
   const {
     data: topProducts,
@@ -138,9 +137,9 @@ const OrdersOverTimeChart = () => {
   // Determine the max stacked value for a single day so the Y axis ticks can
   // be generated. For revenue we keep the existing thousands rounding while
   // the Orders view shows four ticks with values that are multiples of ten.
-  const maxValue = Math.max(
-    ...chartData.map((d) => d.hotel_guest + d.non_guest),
-  );
+  const maxValue = chartData.length > 0
+    ? Math.max(...chartData.map((d) => d.hotel_guest + d.non_guest))
+    : 0;
 
   const ticks = React.useMemo(() => {
     if (metric === "count") {
