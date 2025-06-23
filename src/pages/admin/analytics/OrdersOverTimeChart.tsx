@@ -38,13 +38,18 @@ import { formatThaiCurrency, formatThaiCurrencyWithComma } from "@/lib/utils";
 import type { TooltipProps } from "recharts";
 
 const OrdersTooltip = ({ labelFormatter, label, ...props }: TooltipProps<number, string>) => {
-  const sorted = props.payload?.slice().sort((a, b) => {
+  const sorted = React.useMemo(() => {
     const order = ["hotel_guest", "non_guest"];
-    return order.indexOf(a.dataKey as string) - order.indexOf(b.dataKey as string);
-  });
+    return props.payload?.slice().sort((a, b) =>
+      order.indexOf(a.dataKey as string) - order.indexOf(b.dataKey as string)
+    );
+  }, [props.payload]);
 
   // Calculate total for the hovered day (excluding cancelled, as per backend)
-  const total = sorted?.reduce((sum, item) => sum + (item.value ?? 0), 0);
+  const total = React.useMemo(
+    () => sorted?.reduce((sum, item) => sum + (item.value ?? 0), 0) ?? 0,
+    [sorted],
+  );
 
   const formattedLabel = labelFormatter
     ? labelFormatter(label as string, sorted)
@@ -55,11 +60,11 @@ const OrdersTooltip = ({ labelFormatter, label, ...props }: TooltipProps<number,
       {...props}
       payload={sorted}
       labelFormatter={() => (
-        <div className="flex items-center justify-between">
-          <div>{formattedLabel}</div>
-          <div className="font-mono font-medium tabular-nums text-foreground">
-            {total?.toLocaleString()}
-          </div>
+        <div className="flex items-center justify-between gap-2">
+          <span>{formattedLabel}</span>
+          <span className="font-mono font-medium tabular-nums text-foreground">
+            {total.toLocaleString()}
+          </span>
         </div>
       )}
     />
