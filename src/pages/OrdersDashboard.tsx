@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { useOrdersDashboard } from '@/hooks/useOrdersDashboard';
@@ -11,10 +12,10 @@ import StatusTabs from '@/components/admin/StatusTabs';
 const ALL_TAB = "all";
 
 const OrdersDashboard = () => {
-  const { 
-    orders, 
-    selectedOrders, 
-    isLoading, 
+  const {
+    orders,
+    selectedOrders,
+    isLoading,
     fetchOrders,
     updateOrderStatus,
     deleteSelectedOrders,
@@ -23,6 +24,9 @@ const OrdersDashboard = () => {
     selectAllOrders,
     clearSelection
   } = useOrdersDashboard();
+
+  const [searchParams] = useSearchParams();
+  const filterDate = searchParams.get('date');
 
   const [bulkStatus, setBulkStatus] = useState<OrderStatus | "">("");
   const [search, setSearch] = useState('');
@@ -44,6 +48,12 @@ const OrdersDashboard = () => {
 
   const filteredOrders = useMemo(() => {
     let filtered = orders;
+
+    if (filterDate) {
+      filtered = filtered.filter(order =>
+        order.created_at.split('T')[0] === filterDate
+      );
+    }
 
     if (search.trim()) {
       const s = search.trim().toLowerCase();
@@ -76,7 +86,7 @@ const OrdersDashboard = () => {
     }
 
     return filtered;
-  }, [orders, search, activeStatus]);
+  }, [orders, search, activeStatus, filterDate]);
 
   const tabOptions = [
     { label: "All", value: ALL_TAB },
