@@ -37,7 +37,7 @@ import { formatThaiCurrency, formatThaiCurrencyWithComma } from "@/lib/utils";
 
 import type { TooltipProps } from "recharts";
 
-const OrdersTooltip = (props: TooltipProps<number, string>) => {
+const OrdersTooltip = ({ labelFormatter, label, ...props }: TooltipProps<number, string>) => {
   const sorted = props.payload?.slice().sort((a, b) => {
     const order = ["hotel_guest", "non_guest"];
     return order.indexOf(a.dataKey as string) - order.indexOf(b.dataKey as string);
@@ -46,13 +46,23 @@ const OrdersTooltip = (props: TooltipProps<number, string>) => {
   // Calculate total for the hovered day (excluding cancelled, as per backend)
   const total = sorted?.reduce((sum, item) => sum + (item.value ?? 0), 0);
 
+  const formattedLabel = labelFormatter
+    ? labelFormatter(label as string, sorted)
+    : label;
+
   return (
-    <div>
-      <ChartTooltipContent {...props} payload={sorted} />
-      <div style={{ marginTop: 8, fontWeight: "bold" }}>
-        Total: {total?.toLocaleString()}
-      </div>
-    </div>
+    <ChartTooltipContent
+      {...props}
+      payload={sorted}
+      labelFormatter={() => (
+        <div className="flex justify-between">
+          <span>{formattedLabel}</span>
+          <span className="font-mono font-medium tabular-nums">
+            {total?.toLocaleString()}
+          </span>
+        </div>
+      )}
+    />
   );
 };
 
