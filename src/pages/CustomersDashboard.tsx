@@ -148,7 +148,7 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
 
   return (
     <Layout title="Customer" showBackButton={false}>
-      <div className="page-container p-4 md:p-6">
+      <div className="page-container p-4 md:p-6 lg:max-w-6xl">
         <CustomersDashboardHeader
           search={search}
           setSearch={setSearch}
