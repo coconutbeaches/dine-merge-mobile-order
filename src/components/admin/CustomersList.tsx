@@ -60,8 +60,8 @@ const CustomersList: React.FC<CustomersListProps> = ({
           </TableHead>
           <TableHead>Name</TableHead>
           <TableHead className="hidden lg:table-cell">Role</TableHead>
+          <TableHead>Total</TableHead>
           <TableHead>Email</TableHead>
-          <TableHead>Total Spent</TableHead>
           <TableHead className="hidden md:table-cell">Phone</TableHead>
           <TableHead className="hidden lg:table-cell w-[150px]">Joined</TableHead>
           <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -107,8 +107,8 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Customer'}
                 </span>
               </TableCell>
-              <TableCell>{customer.email}</TableCell>
               <TableCell className="font-medium">{formatThaiCurrency(customer.total_spent)}</TableCell>
+              <TableCell>{customer.email}</TableCell>
               <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
               <TableCell className="hidden lg:table-cell whitespace-nowrap">{format(new Date(customer.created_at), 'MMM d, yyyy')}</TableCell>
               <TableCell>
