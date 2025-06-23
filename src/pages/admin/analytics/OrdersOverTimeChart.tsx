@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { useOrdersByDate } from "@/hooks/useOrdersByDate";
-import { format, subDays } from "date-fns";
+import { format, subDays, addDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { DateRange } from "react-day-picker";
 import { CalendarIcon, ShoppingCart } from "lucide-react";
@@ -78,7 +78,7 @@ const OrdersOverTimeChart = () => {
   };
 
   const chartEndDate = chartRange.to
-    ? format(chartRange.to, "yyyy-MM-dd")
+    ? format(addDays(chartRange.to, 1), "yyyy-MM-dd")
     : format(new Date(), "yyyy-MM-dd");
   const chartStartDate = chartRange.from
     ? format(chartRange.from, "yyyy-MM-dd")
