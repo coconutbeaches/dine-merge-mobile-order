@@ -59,7 +59,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
               />
             </TableHead>
             <TableHead className="min-w-[200px] whitespace-nowrap">Name</TableHead>
-            <TableHead className="hidden lg:table-cell">Role</TableHead>
+            <TableHead className="min-w-[120px] whitespace-nowrap">Role</TableHead>
             <TableHead className="min-w-[150px] whitespace-nowrap">Total</TableHead>
             <TableHead className="min-w-[200px] whitespace-nowrap">Email</TableHead>
             <TableHead className="hidden md:table-cell">Phone</TableHead>
@@ -97,7 +97,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                         customer.customer_type === 'hotel_guest'
                       )
                   }}
-                  className="hidden lg:table-cell cursor-pointer"
+                  className="cursor-pointer min-w-[120px] whitespace-nowrap"
                   title="Click to toggle"
                 >
                   <span
