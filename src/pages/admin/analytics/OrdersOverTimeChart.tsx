@@ -42,7 +42,18 @@ const OrdersTooltip = (props: TooltipProps<number, string>) => {
     const order = ["hotel_guest", "non_guest"];
     return order.indexOf(a.dataKey as string) - order.indexOf(b.dataKey as string);
   });
-  return <ChartTooltipContent {...props} payload={sorted} />;
+
+  // Calculate total for the hovered day (excluding cancelled, as per backend)
+  const total = sorted?.reduce((sum, item) => sum + (item.value ?? 0), 0);
+
+  return (
+    <div>
+      <ChartTooltipContent {...props} payload={sorted} />
+      <div style={{ marginTop: 8, fontWeight: "bold" }}>
+        Total: {total?.toLocaleString()}
+      </div>
+    </div>
+  );
 };
 
 const OrdersOverTimeChart = () => {
