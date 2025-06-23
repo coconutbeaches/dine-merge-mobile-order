@@ -55,11 +55,11 @@ const OrdersTooltip = ({ labelFormatter, label, ...props }: TooltipProps<number,
       {...props}
       payload={sorted}
       labelFormatter={() => (
-        <div className="flex justify-between">
-          <span>{formattedLabel}</span>
-          <span className="font-mono font-medium tabular-nums">
+        <div className="flex items-center justify-between">
+          <div>{formattedLabel}</div>
+          <div className="font-mono font-medium tabular-nums text-foreground">
             {total?.toLocaleString()}
-          </span>
+          </div>
         </div>
       )}
     />
