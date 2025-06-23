@@ -12,7 +12,6 @@ type OrdersByDate = {
 export const useOrdersByDate = (
   startDate: string,
   endDate: string,
-  metric: 'revenue' | 'count'
 ) => {
   const [data, setData] = useState<OrdersByDate[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -31,7 +30,7 @@ export const useOrdersByDate = (
     }
 
     fetchData()
-  }, [startDate, endDate, metric])
+  }, [startDate, endDate])
 
   return { data, isLoading, error }
 }
