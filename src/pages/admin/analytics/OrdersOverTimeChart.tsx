@@ -60,6 +60,7 @@ const OrdersOverTimeChart = () => {
 
   const handleChartRangeSelect = (selected: DateRange | undefined) => {
     if (!selected) return;
+    console.log('Selected chartRange:', selected);
     if (selected.to && selected.from && selected.to < selected.from) {
       setChartRange({ from: selected.to, to: selected.from });
     } else {
