@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { useOrdersByDate } from "@/hooks/useOrdersByDate";
 import { format, subDays } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import { DateRange } from "react-day-picker";
 import { CalendarIcon, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,8 @@ const OrdersOverTimeChart = () => {
     from: new Date(),
     to: new Date(),
   });
+
+  const navigate = useNavigate();
 
   const handleChartRangeSelect = (selected: DateRange | undefined) => {
     if (!selected) return;
@@ -132,6 +135,13 @@ const OrdersOverTimeChart = () => {
   );
   const guestTotal = chartData.reduce((sum, row) => sum + row.hotel_guest, 0);
   const outTotal = chartData.reduce((sum, row) => sum + row.non_guest, 0);
+
+  const handleBarClick = (data: any) => {
+    const date = data.payload?.date;
+    if (date) {
+      navigate(`/orders-dashboard?date=${date}`);
+    }
+  };
 
   return (
     <Layout title="Orders Over Time" showBackButton>
@@ -247,6 +257,8 @@ const OrdersOverTimeChart = () => {
                       fill="var(--color-non_guest)"
                       stroke="#000"
                       strokeWidth={1}
+                      onClick={handleBarClick}
+                      className="cursor-pointer"
                     />
                     <Bar
                       dataKey="hotel_guest"
@@ -254,6 +266,8 @@ const OrdersOverTimeChart = () => {
                       fill="var(--color-hotel_guest)"
                       stroke="#000"
                       strokeWidth={1}
+                      onClick={handleBarClick}
+                      className="cursor-pointer"
                     />
                   </BarChart>
                 </ResponsiveContainer>
