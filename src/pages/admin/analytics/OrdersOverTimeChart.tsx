@@ -78,7 +78,7 @@ const OrdersOverTimeChart = () => {
   };
 
   const chartEndDate = chartRange.to
-    ? format(subDays(chartRange.to, 1), "yyyy-MM-dd")
+    ? format(chartRange.to, "yyyy-MM-dd")
     : format(new Date(), "yyyy-MM-dd");
   const chartStartDate = chartRange.from
     ? format(chartRange.from, "yyyy-MM-dd")
