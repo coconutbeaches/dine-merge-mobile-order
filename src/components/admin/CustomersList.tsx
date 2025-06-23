@@ -59,10 +59,10 @@ const CustomersList: React.FC<CustomersListProps> = ({
               />
             </TableHead>
             <TableHead className="min-w-[200px] whitespace-nowrap">Name</TableHead>
-            <TableHead className="min-w-[150px] whitespace-nowrap">Total Spent</TableHead>
+            <TableHead className="hidden lg:table-cell">Role</TableHead>
+            <TableHead className="min-w-[150px] whitespace-nowrap">Total</TableHead>
             <TableHead className="min-w-[200px] whitespace-nowrap">Email</TableHead>
             <TableHead className="hidden md:table-cell">Phone</TableHead>
-            <TableHead className="hidden lg:table-cell">Role</TableHead>
             <TableHead className="hidden lg:table-cell w-[150px]">Joined</TableHead>
             <TableHead><span className="sr-only">Actions</span></TableHead>
           </TableRow>
@@ -89,11 +89,6 @@ const CustomersList: React.FC<CustomersListProps> = ({
                     {customer.name || 'N/A'}
                   </Link>
                 </TableCell>
-                <TableCell className="font-medium min-w-[150px] whitespace-nowrap">
-                  {formatThaiCurrency(customer.total_spent)}
-                </TableCell>
-                <TableCell className="min-w-[200px] whitespace-nowrap">{customer.email}</TableCell>
-                <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
                 <TableCell
                   onClick={() => {
                     toggleCustomerType &&
@@ -117,6 +112,11 @@ const CustomersList: React.FC<CustomersListProps> = ({
                     {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Customer'}
                   </span>
                 </TableCell>
+                <TableCell className="font-medium min-w-[150px] whitespace-nowrap">
+                  {formatThaiCurrency(customer.total_spent)}
+                </TableCell>
+                <TableCell className="min-w-[200px] whitespace-nowrap">{customer.email}</TableCell>
+                <TableCell className="hidden md:table-cell">{customer.phone || 'N/A'}</TableCell>
                 <TableCell className="hidden lg:table-cell whitespace-nowrap">
                   {format(new Date(customer.created_at), 'MMM d, yyyy')}
                 </TableCell>
