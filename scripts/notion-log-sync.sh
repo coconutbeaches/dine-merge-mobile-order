@@ -1,24 +1,26 @@
 #!/bin/bash
-
-# Exit on error
 set -e
 
-# Ensure .env is loaded
+# Load .env variables
 export $(grep -v '^#' .env | xargs)
 
+# Check for required env vars
 if [ -z "$NOTION_API_KEY" ] || [ -z "$NOTION_DATABASE_ID" ]; then
-  echo "❌ NOTION_API_KEY or NOTION_DATABASE_ID not set."
+  echo "❌ Missing NOTION_API_KEY or NOTION_DATABASE_ID"
   exit 1
 fi
 
+# Accept CLI arguments
+FILES="$1"                # e.g., README.md
+PREVIEW_URL="$2"          # e.g., https://dine-merge-mobile-order-debug.vercel.app
+
 # Variables
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-FILES=$2
 TIMESTAMP_UTC=$(date -u +"%Y-%m-%dT%H:%M:%S.%NZ")
 TIMESTAMP_LOCAL=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
 # Save deploy info
-DEPLOY_URL=$3
+DEPLOY_URL="$PREVIEW_URL"
 PROD_URL="https://dine-merge-mobile-order.vercel.app"
 echo "$TIMESTAMP_UTC|$DEPLOY_URL|$PROD_URL" > vercel-last.log
 
