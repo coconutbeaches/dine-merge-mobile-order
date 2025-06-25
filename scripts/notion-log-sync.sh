@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Load .env vars
+# Load .env variables
 export $(grep -v '^#' .env | xargs)
 
 # Required env vars
@@ -10,10 +10,10 @@ if [ -z "$NOTION_API_KEY" ] || [ -z "$NOTION_DATABASE_ID" ]; then
   exit 1
 fi
 
-# Inputs
-FILES="$1"
-PREVIEW_URL="$2"
-GITHUB_TOKEN="$GITHUB_TOKEN"
+# Arguments
+FILES="$1"                          # e.g., "README.md"
+PREVIEW_URL="$2"                    # Optional
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"    # Optional
 
 # Git info
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -22,21 +22,21 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 TIMESTAMP_UTC=$(date -u +"%Y-%m-%dT%H:%M:%S.%NZ")
 TIMESTAMP_LOCAL=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
-# Read deploy fallback
+# Preview URL fallback
 if [ -z "$PREVIEW_URL" ] && [ -f vercel-last.log ]; then
-  IFS='|' read -r _ DEPLOY_URL PROD_URL < vercel-last.log
+  IFS='|' read -r LAST_TIMESTAMP DEPLOY_URL PROD_URL < vercel-last.log
 else
   DEPLOY_URL="$PREVIEW_URL"
   PROD_URL="https://dine-merge-mobile-order.vercel.app"
   echo "$TIMESTAMP_UTC|$DEPLOY_URL|$PROD_URL" > vercel-last.log
 fi
 
-# Issue reference
+# Extract issue reference
 ISSUE=$(echo "$FILES" | grep -oE '#[0-9]+' | head -n1 | tr -d '#')
 GITHUB_NOTE=""
 STATUS_NAME="Pending"
 
-# GitHub PR title + merge status
+# If PR reference and token are available
 if [[ -n "$ISSUE" && -n "$GITHUB_TOKEN" ]]; then
   REPO_URL=$(git config --get remote.origin.url | sed -E 's/.*github\.com[:\/]([^/]+\/[^.]+)(\.git)?/\1/')
   PR_DATA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -54,7 +54,7 @@ if [[ -n "$ISSUE" && -n "$GITHUB_TOKEN" ]]; then
   fi
 fi
 
-# JSON payload
+# Build JSON payload
 read -r -d '' PAYLOAD <<EOF
 {
   "parent": { "database_id": "$NOTION_DATABASE_ID" },
@@ -86,9 +86,6 @@ read -r -d '' PAYLOAD <<EOF
     "Link": {
       "url": "$DEPLOY_URL"
     },
-    "Production URL": {
-      "url": "$PROD_URL"
-    },
     "Notes": {
       "rich_text": [
         { "text": { "content": "Local time: $TIMESTAMP_LOCAL$GITHUB_NOTE" } }
@@ -99,7 +96,7 @@ read -r -d '' PAYLOAD <<EOF
 EOF
 
 # Send to Notion
-curl -s -X POST https://api.notion.com/v1/pages \
+curl -v -X POST https://api.notion.com/v1/pages \
   -H "Authorization: Bearer $NOTION_API_KEY" \
   -H "Content-Type: application/json" \
   -H "Notion-Version: 2022-06-28" \
