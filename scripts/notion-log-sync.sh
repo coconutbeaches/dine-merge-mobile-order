@@ -10,10 +10,10 @@ if [ -z "$NOTION_API_KEY" ] || [ -z "$NOTION_DATABASE_ID" ]; then
   exit 1
 fi
 
-# Arguments
-FILES="$1"                          # e.g., README.md
-PREVIEW_URL="$2"                    # optional
-GITHUB_TOKEN="$GITHUB_TOKEN"        # optional, if available
+# Inputs
+FILES="$1"
+PREVIEW_URL="$2"
+GITHUB_TOKEN="$GITHUB_TOKEN"
 
 # Git info
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -22,21 +22,21 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 TIMESTAMP_UTC=$(date -u +"%Y-%m-%dT%H:%M:%S.%NZ")
 TIMESTAMP_LOCAL=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
-# Read last deploy info (for fallback)
+# Read deploy fallback
 if [ -z "$PREVIEW_URL" ] && [ -f vercel-last.log ]; then
-  IFS='|' read -r LAST_TIMESTAMP DEPLOY_URL PROD_URL < vercel-last.log
+  IFS='|' read -r _ DEPLOY_URL PROD_URL < vercel-last.log
 else
   DEPLOY_URL="$PREVIEW_URL"
   PROD_URL="https://dine-merge-mobile-order.vercel.app"
   echo "$TIMESTAMP_UTC|$DEPLOY_URL|$PROD_URL" > vercel-last.log
 fi
 
-# Extract issue number if any
+# Issue reference
 ISSUE=$(echo "$FILES" | grep -oE '#[0-9]+' | head -n1 | tr -d '#')
 GITHUB_NOTE=""
 STATUS_NAME="Pending"
 
-# Try to fetch GitHub PR title and status (if token + issue found)
+# GitHub PR title + merge status
 if [[ -n "$ISSUE" && -n "$GITHUB_TOKEN" ]]; then
   REPO_URL=$(git config --get remote.origin.url | sed -E 's/.*github\.com[:\/]([^/]+\/[^.]+)(\.git)?/\1/')
   PR_DATA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -54,7 +54,7 @@ if [[ -n "$ISSUE" && -n "$GITHUB_TOKEN" ]]; then
   fi
 fi
 
-# Build payload
+# JSON payload
 read -r -d '' PAYLOAD <<EOF
 {
   "parent": { "database_id": "$NOTION_DATABASE_ID" },
@@ -105,4 +105,4 @@ curl -s -X POST https://api.notion.com/v1/pages \
   -H "Notion-Version: 2022-06-28" \
   -d "$PAYLOAD"
 
-echo "✅ Notion log created at $TIMESTAMP_LOCAL"
+echo "✅ Notion log created with timestamp: $TIMESTAMP_LOCAL"
