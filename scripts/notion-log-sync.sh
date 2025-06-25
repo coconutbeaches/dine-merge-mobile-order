@@ -1,31 +1,39 @@
 #!/bin/bash
 
-# Load environment variables from .env
-export $(grep -v '^#' .env | xargs)
+# Load environment variables from .env file
+set -a
+[ -f .env ] && source .env
+set +a
 
-# Get latest commit info
-COMMIT_MSG=$(git log -1 --pretty=%B)
-COMMIT_URL="https://github.com/coconutbeaches/dine-merge-mobile-order/commit/$(git rev-parse HEAD)"
+# Required inputs
+TIMESTAMP="$1"
+FILES="$2"
+LINK="$3"
 
-# Format for Notion
-curl -X POST "https://api.notion.com/v1/pages" \
-  -H "Authorization: Bearer $NOTION_API_KEY" \
-  -H "Notion-Version: 2022-06-28" \
+# Use loaded variables
+NOTION_TOKEN="${NOTION_API_KEY:?Missing NOTION_API_KEY}"
+NOTION_DATABASE_ID="${NOTION_DATABASE_ID:?Missing NOTION_DATABASE_ID}"
+
+# Send to Notion
+curl -s -X POST "https://api.notion.com/v1/pages" \
+  -H "Authorization: Bearer $NOTION_TOKEN" \
   -H "Content-Type: application/json" \
+  -H "Notion-Version: 2022-06-28" \
   -d '{
     "parent": { "database_id": "'"$NOTION_DATABASE_ID"'" },
     "properties": {
-      "Name": {
-        "title": [{ "text": { "content": "'"$COMMIT_MSG"'" } }]
+      "Timestamp": {
+        "date": {
+          "start": "'"$TIMESTAMP"'"
+        }
       },
-      "Type": {
-        "select": { "name": "Codex Sync" }
+      "Files Changed": {
+        "rich_text": [{
+          "text": { "content": "'"${FILES//$'\n'/\\n}"'" }
+        }]
       },
       "Link": {
-        "url": "'"$COMMIT_URL"'"
-      },
-      "Timestamp": {
-        "date": { "start": "'"$(date -Iseconds)"'" }
+        "url": "'"$LINK"'"
       }
     }
   }'
