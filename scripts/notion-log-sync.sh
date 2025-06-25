@@ -16,11 +16,12 @@ PREVIEW_URL="$2"          # e.g., https://dine-merge-mobile-order-debug.vercel.a
 
 # Variables
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
+FILES=$2
 TIMESTAMP_UTC=$(date -u +"%Y-%m-%dT%H:%M:%S.%NZ")
 TIMESTAMP_LOCAL=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
 # Save deploy info
-DEPLOY_URL="$PREVIEW_URL"
+DEPLOY_URL=$3
 PROD_URL="https://dine-merge-mobile-order.vercel.app"
 echo "$TIMESTAMP_UTC|$DEPLOY_URL|$PROD_URL" > vercel-last.log
 
