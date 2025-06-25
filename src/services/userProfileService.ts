@@ -74,3 +74,142 @@ export async function mergeCustomers(sourceId: string, targetId: string) {
     throw error;
   }
 }
+
+export const updateProfilePicture = async (
+  userId: string,
+  file: File
+): Promise<{
+  success: boolean;
+  url?: string | null;
+  path?: string | null;
+  error?: string;
+}> => {
+  try {
+    // 1. Generate a unique file path with userId as the folder
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${userId}/${Date.now()}.${fileExt}`;
+    
+    // 2. First, try to delete any existing files for this user
+    try {
+      const { data: existingFiles, error: listError } = await supabase.storage
+        .from('profile-pictures')
+        .list(userId);
+      
+      if (!listError && existingFiles && existingFiles.length > 0) {
+        const filesToRemove = existingFiles.map(f => `${userId}/${f.name}`);
+        await supabase.storage
+          .from('profile-pictures')
+          .remove(filesToRemove);
+      }
+    } catch (cleanupError) {
+      console.warn('Could not clean up old profile pictures:', cleanupError);
+      // Continue with upload even if cleanup fails
+    }
+
+    // 3. Upload the new file
+    const { error: uploadError } = await supabase.storage
+      .from('profile-pictures')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      return { 
+        success: false, 
+        error: uploadError.message,
+        details: uploadError // Include full error details
+      };
+    }
+
+    // 4. Get the public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('profile-pictures')
+      .getPublicUrl(filePath);
+
+    // 5. Update the user's profile with the new avatar URL and path
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ 
+        avatar_url: publicUrl,
+        avatar_path: filePath,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error updating profile:', updateError);
+      // Try to clean up the uploaded file if profile update fails
+      try {
+        await supabase.storage
+          .from('profile-pictures')
+          .remove([filePath]);
+      } catch (cleanupError) {
+        console.error('Error cleaning up after failed update:', cleanupError);
+      }
+      
+      return { 
+        success: false, 
+        error: updateError.message,
+        details: updateError // Include full error details
+      };
+    }
+
+    return { 
+      success: true, 
+      url: publicUrl,
+      path: filePath
+    };
+  } catch (error) {
+    console.error('Error in updateProfilePicture:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      details: error // Include full error details
+    };
+  }
+};
+
+/**
+ * Deletes a user's profile picture
+ */
+export const deleteProfilePicture = async (
+  userId: string,
+  filePath: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // 1. Delete the file from storage
+    const { error: deleteError } = await supabase.storage
+      .from('profile-pictures')
+      .remove([filePath]);
+
+    if (deleteError) {
+      console.error('Error deleting file:', deleteError);
+      return { success: false, error: deleteError.message };
+    }
+
+    // 2. Update the user's profile to remove the avatar URL and path
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ 
+        avatar_url: null,
+        avatar_path: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error updating profile:', updateError);
+      return { success: false, error: updateError.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in deleteProfilePicture:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};

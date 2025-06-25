@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => ({
     setupFiles: [], // Can add setup files here if needed later
   },
   server: {
-    host: "::",
+    // bind to all IPv4 addresses so headless scripts can connect via localhost
+    host: '0.0.0.0',
     port: 8080,
   },
   plugins: [

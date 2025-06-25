@@ -1,10 +1,11 @@
-
-import { useState, useEffect } from 'react';
-import { Order, OrderStatus, SupabaseOrderStatus, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
+import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Order, OrderStatus, SupabaseOrderStatus } from '@/types/app';
+import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
 import { toast } from 'sonner';
 
-export function useUserOrders(userId: string | undefined) {
+export const useUserOrders = (userId: string | undefined) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 

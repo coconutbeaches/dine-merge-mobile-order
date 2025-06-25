@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { OrderStatus } from '@/types/supabaseTypes';
+import { OrderStatus, SupabaseOrderStatus } from '@/types/app';
 import { formatThaiCurrency } from '@/lib/utils';
 
 // Format date to a shorter, more readable format
@@ -144,6 +144,25 @@ export const getStatusBadgeHoverClasses = (status: OrderStatus | null) => {
   }
 };
 
+export const getStatusClass = (status: OrderStatus) => {
+  switch (status) {
+    case 'new':
+      return 'bg-yellow-500 hover:bg-yellow-600';
+    case 'confirmed':
+      return 'bg-blue-500 hover:bg-blue-600';
+    case 'preparing':
+      return 'bg-indigo-500 hover:bg-indigo-600';
+    case 'ready for pickup':
+      return 'bg-green-500 hover:bg-green-600';
+    case 'completed':
+      return 'bg-teal-500 hover:bg-teal-600';
+    case 'cancelled':
+      return 'bg-red-500 hover:bg-red-600';
+    default:
+      return 'bg-gray-500 hover:bg-gray-600';
+  }
+};
+
 // Updated orderStatuses to use 'delivery' for frontend consistency.
 export const orderStatusOptions: OrderStatus[] = [
   'new',
@@ -154,3 +173,13 @@ export const orderStatusOptions: OrderStatus[] = [
   'paid',
   'cancelled'
 ];
+
+export const mapSupabaseToOrderStatus = (
+  status: SupabaseOrderStatus | null,
+): OrderStatus => {
+  return status as OrderStatus;
+};
+
+export const mapOrderStatusToSupabase = (status: OrderStatus): any => {
+  return status;
+};
