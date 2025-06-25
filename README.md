@@ -1,96 +1,105 @@
-# Welcome to your Lovable project!!
+#!/bin/bash
+set -e
 
-## Project info
+# Load .env variables
+export $(grep -v '^#' .env | xargs)
 
-**URL**: https://lovable.dev/projects/c49a8c44-9196-466a-8929-d139ab77ca8e
+# Required env vars
+if [ -z "$NOTION_API_KEY" ] || [ -z "$NOTION_DATABASE_ID" ]; then
+  echo "❌ Missing NOTION_API_KEY or NOTION_DATABASE_ID"
+  exit 1
+fi
 
-## How can I edit this code?
+# Arguments
+FILES="$1"                          # e.g., "README.md"
+PREVIEW_URL="$2"                    # Optional
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"    # Optional
 
-There are several ways of editing your application.
+# Git info
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
-**Use Lovable**
+# Timestamps
+TIMESTAMP_UTC=$(date -u +"%Y-%m-%dT%H:%M:%S.%NZ")
+TIMESTAMP_LOCAL=$(date +"%Y-%m-%d %H:%M:%S %Z")
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c49a8c44-9196-466a-8929-d139ab77ca8e) and start prompting.
+# Preview URL fallback
+if [ -z "$PREVIEW_URL" ] && [ -f vercel-last.log ]; then
+  IFS='|' read -r LAST_TIMESTAMP DEPLOY_URL PROD_URL < vercel-last.log
+else
+  DEPLOY_URL="$PREVIEW_URL"
+  PROD_URL="https://dine-merge-mobile-order.vercel.app"
+  echo "$TIMESTAMP_UTC|$DEPLOY_URL|$PROD_URL" > vercel-last.log
+fi
 
-Changes made via Lovable will be committed automatically to this repo.
+# Extract issue reference
+ISSUE=$(echo "$FILES" | grep -oE '#[0-9]+' | head -n1 | tr -d '#')
+GITHUB_NOTE=""
+STATUS_NAME="Pending"
 
-**Use your preferred IDE**
+# If PR reference and token are available
+if [[ -n "$ISSUE" && -n "$GITHUB_TOKEN" ]]; then
+  REPO_URL=$(git config --get remote.origin.url | sed -E 's/.*github\.com[:\/]([^/]+\/[^.]+)(\.git)?/\1/')
+  PR_DATA=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+    "https://api.github.com/repos/$REPO_URL/pulls/$ISSUE")
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+  PR_TITLE=$(echo "$PR_DATA" | jq -r .title)
+  PR_MERGED=$(echo "$PR_DATA" | jq -r .merged)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+  if [ "$PR_TITLE" != "null" ]; then
+    GITHUB_NOTE=" | PR #$ISSUE: $PR_TITLE"
+  fi
 
-Follow these steps:
+  if [ "$PR_MERGED" == "true" ]; then
+    STATUS_NAME="Merged"
+  fi
+fi
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Build JSON payload
+read -r -d '' PAYLOAD <<EOF
+{
+  "parent": { "database_id": "$NOTION_DATABASE_ID" },
+  "properties": {
+    "Name": {
+      "title": [
+        { "text": { "content": "🧠 Codex sync [$TIMESTAMP_LOCAL]" } }
+      ]
+    },
+    "Timestamp": {
+      "date": { "start": "$TIMESTAMP_UTC" }
+    },
+    "Files Changed": {
+      "rich_text": [
+        { "text": { "content": "$FILES" } }
+      ]
+    },
+    "Branch": {
+      "rich_text": [
+        { "text": { "content": "$BRANCH" } }
+      ]
+    },
+    "Type": {
+      "select": { "name": "Codex Sync" }
+    },
+    "Status": {
+      "select": { "name": "$STATUS_NAME" }
+    },
+    "Link": {
+      "url": "$DEPLOY_URL"
+    },
+    "Notes": {
+      "rich_text": [
+        { "text": { "content": "Local time: $TIMESTAMP_LOCAL$GITHUB_NOTE" } }
+      ]
+    }
+  }
+}
+EOF
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Send to Notion
+curl -v -X POST https://api.notion.com/v1/pages \
+  -H "Authorization: Bearer $NOTION_API_KEY" \
+  -H "Content-Type: application/json" \
+  -H "Notion-Version: 2022-06-28" \
+  -d "$PAYLOAD"
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-### 🛠 Dev Setup
-
-This repo ships with a `.devcontainer` folder for a consistent Node.js 20 environment. The container automatically runs `npm install` on creation and forwards port **5173** for the Vite dev server.
-
-If Codespaces or Codex fails to start, open the Command Palette and choose **"Codespaces: Rebuild Container"**. Logs from the build will appear in the terminal if something goes wrong.
-
-The setup also recommends installing the `dbaeumer.vscode-eslint` extension so linting works out of the box.
-
-### Automated console‑error capture
-
-Scrape browser console messages (errors, warnings, logs) via a headless Chromium.  Note the app now runs on port **8080**, bound to all interfaces for scriptable access:
-
-```bash
-# install Puppeteer (if you haven’t already)
-npm install --save-dev puppeteer
-
-# 1) start Vite in one pane (defaults to port 8080, but may fall back if occupied)
-npm run dev        # e.g. http://localhost:8080 or http://localhost:8081
-
-# 2) in a second pane, set VITE_PORT to your actual port and capture console logs:
-VITE_PORT=8081 npm run collect-logs
-```
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/c49a8c44-9196-466a-8929-d139ab77ca8e) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+echo "✅ Notion log created with timestamp: $TIMESTAMP_LOCAL"
