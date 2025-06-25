@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { useOrdersDashboard } from '@/hooks/useOrdersDashboard';
@@ -26,6 +27,9 @@ const OrdersDashboard = () => {
 
   const [bulkStatus, setBulkStatus] = useState<OrderStatus | "">("");
   const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const startDateParam = searchParams.get('startDate');
+  const endDateParam = searchParams.get('endDate');
   const [activeStatus, setActiveStatus] = useState<string>(ALL_TAB);
 
   const handleBulkStatusChange = (value: OrderStatus) => {
@@ -75,8 +79,25 @@ const OrdersDashboard = () => {
       filtered = filtered.filter(order => order.order_status === activeStatus);
     }
 
+    // Apply date-range filter from query params (inclusive)
+    if (startDateParam) {
+      const start = new Date(startDateParam);
+      filtered = filtered.filter(order => {
+        const d = new Date(order.created_at);
+        return d >= start;
+      });
+    }
+    if (endDateParam) {
+      const end = new Date(endDateParam);
+      end.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(order => {
+        const d = new Date(order.created_at);
+        return d <= end;
+      });
+    }
+
     return filtered;
-  }, [orders, search, activeStatus]);
+  }, [orders, search, activeStatus, startDateParam, endDateParam]);
 
   const tabOptions = [
     { label: "All", value: ALL_TAB },

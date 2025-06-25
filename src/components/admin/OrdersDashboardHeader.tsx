@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from '@/components/ui/select';
@@ -32,6 +31,7 @@ const OrdersDashboardHeader = ({
   return (
     <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
       <div className="flex-1 flex gap-2 items-center">
+        <AdminOrderCreator />
         <div className="relative w-full max-w-xs">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground h-5 w-5 pointer-events-none" />
           <Input
@@ -46,13 +46,12 @@ const OrdersDashboardHeader = ({
       </div>
       <div className="flex gap-2 flex-wrap items-center">
         <div className="flex gap-2 items-center">
-          <AdminOrderCreator />
           <Select
             value={bulkStatus}
             onValueChange={handleBulkStatusChange}
             disabled={selectedOrders.length === 0 || isLoading}
           >
-            <SelectTrigger className="w-28 h-9 text-sm font-medium border-gray-300 [&>span]:font-bold">
+            <SelectTrigger className="w-28 h-10 text-sm font-medium border-gray-300 [&>span]:font-bold">
               <SelectValue placeholder="Bulk Status" />
             </SelectTrigger>
             <SelectContent>

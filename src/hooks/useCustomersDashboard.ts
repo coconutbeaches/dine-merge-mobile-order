@@ -1,10 +1,16 @@
-
 import { useFetchCustomers } from './useFetchCustomers';
 import { useCustomerActions } from './useCustomerActions';
 import { useCustomerSelection } from './useCustomerSelection';
 
 export const useCustomersDashboard = () => {
-  const { customers, setCustomers, isLoading, fetchCustomers } = useFetchCustomers();
+  const { 
+    customers, 
+    setCustomers, 
+    isLoading, 
+    error,
+    fetchCustomers 
+  } = useFetchCustomers();
+  
   const { 
     selectedCustomers, 
     setSelectedCustomers, 
@@ -25,6 +31,7 @@ export const useCustomersDashboard = () => {
     customers,
     setCustomers,
     isLoading,
+    error,
     fetchCustomers,
     selectedCustomers,
     deleteSelectedCustomers,

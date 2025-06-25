@@ -1,13 +1,13 @@
-
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Order, 
   OrderStatus, 
   Profile, 
-  SupabaseOrderStatus,
-  mapSupabaseToOrderStatus 
-} from '@/types/supabaseTypes';
+  SupabaseOrderStatus
+} from '@/types/app';
+import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
 
 export const useCustomerOrders = (customerId: string | undefined) => {
   const [orders, setOrders] = useState<Order[]>([]);

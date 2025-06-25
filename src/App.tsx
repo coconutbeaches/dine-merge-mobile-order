@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,8 +12,8 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword"; // Added
-import ResetPassword from "./pages/ResetPassword";   // Added
+import ForgotPassword from "./pages/ForgotPassword"; 
+import ResetPassword from "./pages/ResetPassword";   
 import Profile from "./pages/Profile";
 import OrderHistory from "./pages/OrderHistory";
 import OrdersDashboard from "./pages/OrdersDashboard";
@@ -27,9 +26,10 @@ import ProductForm from "./pages/ProductForm";
 import CategoriesManager from "./pages/CategoriesManager";
 import ProductsByCategory from "./pages/ProductsByCategory";
 import CustomerOrderHistory from "./pages/CustomerOrderHistory";
-import ProtectedAdminRoute from "./components/layout/ProtectedAdminRoute"; // Import ProtectedAdminRoute
+import ProtectedAdminRoute from "./components/layout/ProtectedAdminRoute"; 
 import AdminOrderDetail from "./pages/AdminOrderDetail";
 import CustomersDashboard from "./pages/CustomersDashboard";
+import ProductOrders from './pages/admin/ProductOrders';
 
 function App() {
   return (
@@ -41,31 +41,28 @@ function App() {
           <Sonner />
           <Routes>
             <Route path="/" element={<Index />} />
-            {/* <Route path="/menu" element={<Menu />} /> */}
             <Route path="/menu/category/:categoryId" element={<ProductsByCategory />} />
             <Route path="/menu/item/:id" element={<MenuItemDetail />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Added */}
-            <Route path="/reset-password" element={<ResetPassword />} />   {/* Added */}
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/order-history" element={<OrderHistory />} />
 
             {/* Admin Protected Routes */}
             <Route element={<ProtectedAdminRoute />}>
               <Route path="/admin" element={<Admin />} />
-              <Route path="/products-dashboard" element={<ProductsDashboard />} />
-              <Route path="/products/new" element={<ProductForm />} />
-              <Route path="/products/edit/:productId" element={<ProductForm />} />
               <Route path="/orders-dashboard" element={<OrdersDashboard />} />
-              <Route path="/orders-over-time" element={<OrdersOverTime />} />
+              <Route path="/products-dashboard" element={<ProductsDashboard />} />
               <Route path="/admin/analytics/orders-over-time" element={<OrdersOverTimeChart />} />
               <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
               <Route path="/categories-manager" element={<CategoriesManager />} />
               <Route path="/admin/customer-orders/:customerId" element={<CustomerOrderHistory />} />
               <Route path="/customers-dashboard" element={<CustomersDashboard />} />
+              <Route path="/admin/product-orders/:productId" element={<ProductOrders />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

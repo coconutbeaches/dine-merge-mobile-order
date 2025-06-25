@@ -1,8 +1,7 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Order, mapSupabaseToOrderStatus } from '@/types/supabaseTypes';
-import { CartItem } from '@/types';
+import { Order, CartItem } from '@/types/app';
+import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
 import { calculateTotalPrice } from '@/utils/productUtils';
 
 interface EnrichedOrderItem {

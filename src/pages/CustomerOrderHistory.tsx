@@ -77,10 +77,13 @@ const CustomerOrderHistory = () => {
               <DollarSign className="h-4 w-4" />
               <span className="sr-only">Mark all as paid</span>
             </Button>
-            <Button onClick={handleCreateNewOrder} className="flex items-center gap-2">
+            <button 
+              onClick={handleCreateNewOrder} 
+              aria-label="New Order"
+              className="inline-flex items-center justify-center rounded-md border border-input bg-background h-10 w-10 hover:bg-accent hover:text-accent-foreground"
+            >
               <Plus className="h-4 w-4" />
-              New Order
-            </Button>
+            </button>
           </div>
         </div>
 

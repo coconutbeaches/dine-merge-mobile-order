@@ -58,6 +58,21 @@ If Codespaces or Codex fails to start, open the Command Palette and choose **"Co
 
 The setup also recommends installing the `dbaeumer.vscode-eslint` extension so linting works out of the box.
 
+### Automated console‑error capture
+
+Scrape browser console messages (errors, warnings, logs) via a headless Chromium.  Note the app now runs on port **8080**, bound to all interfaces for scriptable access:
+
+```bash
+# install Puppeteer (if you haven’t already)
+npm install --save-dev puppeteer
+
+# 1) start Vite in one pane (defaults to port 8080, but may fall back if occupied)
+npm run dev        # e.g. http://localhost:8080 or http://localhost:8081
+
+# 2) in a second pane, set VITE_PORT to your actual port and capture console logs:
+VITE_PORT=8081 npm run collect-logs
+```
+
 ## What technologies are used for this project?
 
 This project is built with:

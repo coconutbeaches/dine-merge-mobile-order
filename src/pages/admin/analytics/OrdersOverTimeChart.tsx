@@ -11,8 +11,9 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useNavigate } from 'react-router-dom';
 import { useOrdersByDate } from "@/hooks/useOrdersByDate";
-import { format, subDays } from "date-fns";
+import { addDays, format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { CalendarIcon, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/table";
 import { useTopProductsByQuantity } from "@/hooks/useTopProductsByQuantity";
 import { formatThaiCurrency, formatThaiCurrencyWithComma } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 import type { TooltipProps } from "recharts";
 
@@ -41,9 +43,41 @@ const OrdersTooltip = (props: TooltipProps<number, string>) => {
     const order = ["hotel_guest", "non_guest"];
     return order.indexOf(a.dataKey as string) - order.indexOf(b.dataKey as string);
   });
-  return <ChartTooltipContent {...props} payload={sorted} />;
-};
 
+  // Calculate grand total
+  const grandTotal = props.payload?.reduce((sum, item) => sum + (item.value || 0), 0) || 0;
+  const dateLabel = props.label ? new Date(props.label).toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric' 
+  }) : '';
+
+  // Format amount with fixed width and thousand separators
+  const formatAmount = (value: number, isBold = false) => {
+    // Format with commas and pad to maintain alignment
+    const formattedValue = value.toLocaleString('en-US');
+    const amount = formattedValue.padStart(12, ' ');
+    return isBold ? <span className="font-semibold">{amount}</span> : amount;
+  };
+
+  return (
+    <div className="rounded-lg border bg-background p-2 shadow-sm font-mono text-sm">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="font-semibold text-left">{dateLabel}</div>
+        <div className="text-right">{formatAmount(grandTotal, true)}</div>
+      </div>
+      {sorted?.map((item) => (
+        <div key={item.dataKey} className="grid grid-cols-2 gap-4">
+          <div className="text-left">
+            {item.name === 'hotel_guest' ? 'Guest' : 'Out'}
+          </div>
+          <div className="text-right">
+            {formatAmount(item.value || 0)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 const OrdersOverTimeChart = () => {
   const [metric, setMetric] = useState<"revenue" | "count">("revenue");
   const [chartRange, setChartRange] = useState<DateRange>({
@@ -61,6 +95,15 @@ const OrdersOverTimeChart = () => {
       setChartRange({ from: selected.to, to: selected.from });
     } else {
       setChartRange(selected);
+    }
+  };
+
+  // allow clicking bars to navigate to orders dashboard filtered by date
+  const navigate = useNavigate();
+  const handleBarClick = (entry: any) => {
+    if (entry?.date) {
+      const dateStr = entry.date;
+      navigate(`/orders-dashboard?startDate=${dateStr}&endDate=${dateStr}`);
     }
   };
 
@@ -140,9 +183,9 @@ const OrdersOverTimeChart = () => {
           <CardHeader>
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center">
-                <CardTitle>Orders Over Time </CardTitle>
+                <CardTitle>Orders Over Time</CardTitle>
                 <ToggleGroup
-                  className="gap-0"
+                  className="gap-0 ml-2"
                   type="single"
                   value={metric}
                   onValueChange={(val) =>
@@ -197,10 +240,13 @@ const OrdersOverTimeChart = () => {
                   Guest:{" "}
                   {metric === "revenue"
                     ? formatThaiCurrency(guestTotal)
-                    : guestTotal.toLocaleString()}{" "}Out:{" "}
-                  {metric === "revenue"
-                    ? formatThaiCurrency(outTotal)
-                    : outTotal.toLocaleString()}
+                    : guestTotal.toLocaleString()}{" "}
+                  <span className="ml-2">
+                    Out:{" "}
+                    {metric === "revenue"
+                      ? formatThaiCurrency(outTotal)
+                      : outTotal.toLocaleString()}
+                  </span>
                 </span>
               </div>
             </div>
@@ -247,6 +293,8 @@ const OrdersOverTimeChart = () => {
                       fill="var(--color-non_guest)"
                       stroke="#000"
                       strokeWidth={1}
+                      cursor="pointer"
+                      onClick={handleBarClick}
                     />
                     <Bar
                       dataKey="hotel_guest"
@@ -254,6 +302,8 @@ const OrdersOverTimeChart = () => {
                       fill="var(--color-hotel_guest)"
                       stroke="#000"
                       strokeWidth={1}
+                      cursor="pointer"
+                      onClick={handleBarClick}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -319,18 +369,45 @@ const OrdersOverTimeChart = () => {
                   {[...topProducts]
                     .sort((a, b) => b.total_quantity - a.total_quantity)
                     .map((product) => (
-                      <TableRow key={product.product_name}>
+                      <TableRow key={product.product_id}>
                         <TableCell className="text-left text-black">
                           {product.product_name}
                         </TableCell>
                         <TableCell className="text-right">
-                          {product.hotel_guest_quantity.toLocaleString()}
+                          {product.hotel_guest_quantity > 0 ? (
+                            <Link
+                              to={`/admin/product-orders/${product.product_id}?customerType=guest&startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                              className="hover:underline"
+                            >
+                              {product.hotel_guest_quantity.toLocaleString()}
+                            </Link>
+                          ) : (
+                            product.hotel_guest_quantity.toLocaleString()
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
-                          {product.non_guest_quantity.toLocaleString()}
+                          {product.non_guest_quantity > 0 ? (
+                            <Link
+                              to={`/admin/product-orders/${product.product_id}?customerType=non-guest&startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                              className="hover:underline"
+                            >
+                              {product.non_guest_quantity.toLocaleString()}
+                            </Link>
+                          ) : (
+                            product.non_guest_quantity.toLocaleString()
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-medium">
-                          {product.total_quantity.toLocaleString()}
+                          {product.total_quantity > 0 ? (
+                            <Link
+                              to={`/admin/product-orders/${product.product_id}?startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                              className="hover:underline"
+                            >
+                              {product.total_quantity.toLocaleString()}
+                            </Link>
+                          ) : (
+                            product.total_quantity.toLocaleString()
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

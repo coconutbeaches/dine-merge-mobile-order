@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -72,14 +71,14 @@ const DialogContent = React.forwardRef<
         }
         {...props}
       >
+        <DialogPrimitive.Close className="absolute -left-3 -top-3 rounded-full bg-black text-white h-8 w-8 flex items-center justify-center opacity-90 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
         {!hasDescriptionOrDescribedBy && (
           <AccessibleDialogDescription id={descId} />
         )}
         {children}
-        <DialogPrimitive.Close className="absolute left-4 top-4 rounded-full bg-black text-white h-7 w-7 flex items-center justify-center opacity-90 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none">
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
       </DialogPrimitive.Content>
     </DialogPortal>
   );

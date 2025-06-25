@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
@@ -7,8 +6,8 @@ import { toast } from 'sonner';
 
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
 import { formatThaiCurrency, cn } from '@/lib/utils';
-import { formatOrderDateTime, getStatusBadgeClasses, getStatusBadgeHoverClasses } from '@/utils/orderDashboardUtils';
-import { OrderStatus, mapOrderStatusToSupabase } from '@/types/supabaseTypes';
+import { formatOrderDateTime, getStatusBadgeClasses, getStatusBadgeHoverClasses, mapOrderStatusToSupabase } from '@/utils/orderDashboardUtils';
+import { Order, OrderStatus } from '@/types/app';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
