@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AppContextProvider from "./context/AppContextProvider";
 import ScrollToTop from "./components/layout/ScrollToTop";
+import AuthRedirect from "./components/AuthRedirect";
 
 // Pages
 import Index from "./pages/Index";
@@ -39,8 +40,9 @@ function App() {
         <AppContextProvider>
           <Toaster />
           <Sonner />
-          <Routes>
-            <Route path="/" element={<Index />} />
+          <AuthRedirect>
+            <Routes>
+              <Route path="/" element={<Index />} />
             <Route path="/menu/category/:categoryId" element={<ProductsByCategory />} />
             <Route path="/menu/item/:id" element={<MenuItemDetail />} />
             <Route path="/cart" element={<Cart />} />
@@ -66,7 +68,8 @@ function App() {
             </Route>
 
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </AuthRedirect>
         </AppContextProvider>
       </TooltipProvider>
     </BrowserRouter>
