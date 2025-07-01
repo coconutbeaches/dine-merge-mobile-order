@@ -59,7 +59,7 @@ const CustomerOrderCard = ({ order }: CustomerOrderCardProps) => {
         </div>
         <div className="mt-3 mb-3">
           {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
-            const name = item.name || (item.menuItem && item.menuItem.name) || "Item";
+            const name = item.product || item.name || (item.menuItem && item.menuItem.name) || "Item";
             const price = (typeof item.price === "number"
               ? item.price
               : item.menuItem && typeof item.menuItem.price === "number"

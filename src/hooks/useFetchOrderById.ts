@@ -46,7 +46,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
           // Fallback for any older data structures without menuItem
           return {
             id: item.id,
-            name: (item as any).name || 'Unknown Product',
+            name: (item as any).name || (item as any).product || 'Unknown Product',
             price: (item as any).price || 0,
             quantity: item.quantity,
             image_url: (item as any).image_url,

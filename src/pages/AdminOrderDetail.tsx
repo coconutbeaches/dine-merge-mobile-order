@@ -121,7 +121,7 @@ const AdminOrderDetailContent = () => {
         {order.order_items?.map((item, index) => (
             <div key={item.id || index} className="space-y-1">
                 <div className="flex justify-between items-center text-base">
-                    <span>{item.quantity}x {item.name || 'Unknown Product'}</span>
+                    <span>{item.quantity}x {item.name || item.product || 'Unknown Product'}</span>
                     <span className="font-regular">
                     {formatThaiCurrency((item.price || 0) * item.quantity)}
                     </span>
