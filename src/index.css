@@ -117,3 +117,13 @@
 .popular-badge {
   @apply absolute top-2 right-2 bg-black text-white text-xs px-2 py-1 rounded-sm;
 }
+
+/* Hide spinners on number inputs when using the `no-spinner` class */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+}

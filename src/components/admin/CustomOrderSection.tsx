@@ -55,12 +55,16 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
               className="flex-1"
             />
             <div className="w-24">
-              <Input
-                type="number"
-                placeholder="Price"
-                value={item.price}
-                onChange={e => updateItem(item.id, 'price', Number(e.target.value))}
-              />
+              <div className="relative">
+                <span className="absolute left-0 inset-y-0 flex items-center pl-3 text-gray-500">฿</span>
+                <Input
+                  type="number"
+                  placeholder="Price"
+                  value={item.price}
+                  onChange={e => updateItem(item.id, 'price', Number(e.target.value))}
+                  className="pl-7 no-spinner"
+                />
+              </div>
             </div>
             <div className="flex items-center gap-1">
               <Button variant="outline" size="icon" onClick={() => updateItem(item.id, 'quantity', Math.max(1, item.quantity - 1))}>
