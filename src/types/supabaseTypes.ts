@@ -75,6 +75,13 @@ export type Database = {
             foreignKeyName: "orders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "customer_with_last_order"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "orders_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -211,6 +218,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_path: string | null
+          avatar_url: string | null
           created_at: string
           customer_type: string | null
           email: string
@@ -221,6 +230,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_path?: string | null
+          avatar_url?: string | null
           created_at?: string
           customer_type?: string | null
           email: string
@@ -231,6 +242,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_path?: string | null
+          avatar_url?: string | null
           created_at?: string
           customer_type?: string | null
           email?: string
@@ -244,37 +257,72 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      customer_with_last_order: {
+        Row: {
+          customer_id: string | null
+          email: string | null
+          joined_at: string | null
+          last_order_date: string | null
+          name: string | null
+          total_spent: number | null
+        }
+        Insert: {
+          customer_id?: string | null
+          email?: string | null
+          joined_at?: string | null
+          last_order_date?: never
+          name?: string | null
+          total_spent?: never
+        }
+        Update: {
+          customer_id?: string | null
+          email?: string | null
+          joined_at?: string | null
+          last_order_date?: never
+          name?: string | null
+          total_spent?: never
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_customers_with_total_spent: {
         Args: Record<PropertyKey, never>
         Returns: {
           id: string
-          created_at: string
-          updated_at: string
           name: string
+          email: string
           phone: string
           role: string
-          email: string
           customer_type: string
+          created_at: string
+          updated_at: string
           total_spent: number
-          last_order_date: string | null
+          avatar_path: string
         }[]
       }
       get_orders_by_product: {
-        Args: { p_product_id: string; p_customer_type?: string }
+        Args: {
+          p_product_id: string
+          p_customer_type: string
+          p_start_date: string
+          p_end_date: string
+        }
         Returns: {
+          id: string
+          user_id: string
+          total_price: number
+          order_status: Database["public"]["Enums"]["order_status"]
           created_at: string
-          customer_name: string | null
-          id: number
-          order_items: Json | null
-          order_status: Database["public"]["Enums"]["order_status"] | null
-          table_number: string | null
-          total_amount: number
           updated_at: string
-          user_id: string | null
+          customer_name: string
+          order_items: Json
+          table_number: string
         }[]
+      }
+      get_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_user_role: {
         Args: { user_id: string }
@@ -293,9 +341,13 @@ export type Database = {
         Returns: {
           order_date: string
           hotel_guest_orders: number
-          hotel_guest_revenue: number
           outside_guest_orders: number
+          hotel_guest_revenue: number
           outside_guest_revenue: number
+          guest_count: number
+          non_guest_count: number
+          guest_amount: number
+          non_guest_amount: number
         }[]
       }
       top_products_by_quantity: {
