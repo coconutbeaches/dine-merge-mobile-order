@@ -83,7 +83,7 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
         </Button>
         <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="w-36" />
         <Input type="time" value={orderTime} onChange={e => setOrderTime(e.target.value)} className="w-24" />
-        <Button onClick={submit} disabled={items.length === 0}>Submit Order</Button>
+        <Button onClick={submit} disabled={items.length === 0}>Order</Button>
       </div>
     </Card>
   );
