@@ -18,7 +18,13 @@ import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { ProfilePictureUploader } from './ProfilePictureUploader';
 
 interface CustomersListProps {
-  customers: (Profile & { total_spent: number; avatar_path?: string | null })[];
+  customers: (
+    Profile & {
+      total_spent: number
+      last_order_date: string | null
+      avatar_path?: string | null
+    }
+  )[];
   selectedCustomers: string[];
   toggleSelectCustomer: (customerId: string) => void;
   selectAllCustomers: (customerIds?: string[]) => void;
@@ -93,6 +99,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
               <TableHead className="hidden md:table-cell">Status</TableHead>
               <TableHead className="hidden lg:table-cell">Email</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="hidden lg:table-cell">Last Order</TableHead>
               <TableHead className="hidden lg:table-cell">Joined</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -153,6 +160,16 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 </TableCell>
                 <TableCell className="text-right">
                   {formatThaiCurrencyWithComma(customer.total_spent)}
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  {customer.last_order_date ? (
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                      {format(new Date(customer.last_order_date), 'MMM d, yyyy \u2013 h:mm a')}
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground">&mdash;</div>
+                  )}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   <div className="flex items-center">

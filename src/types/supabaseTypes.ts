@@ -259,6 +259,7 @@ export type Database = {
           email: string
           customer_type: string
           total_spent: number
+          last_order_date: string | null
         }[]
       }
       get_orders_by_product: {
