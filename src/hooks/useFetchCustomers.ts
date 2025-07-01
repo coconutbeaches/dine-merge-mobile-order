@@ -9,7 +9,9 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
 export const useFetchCustomers = () => {
-  const [customers, setCustomers] = useState<(Profile & { total_spent: number })[]>([]);
+  const [customers, setCustomers] = useState<(
+    Profile & { total_spent: number; last_order_date: string | null }
+  )[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 

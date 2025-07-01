@@ -11,14 +11,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Profile } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Edit, User, Mail, Phone, Calendar, CreditCard } from 'lucide-react';
+import { Edit, User, Mail, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { ProfilePictureUploader } from './ProfilePictureUploader';
 
 interface CustomersListProps {
-  customers: (Profile & { total_spent: number; avatar_path?: string | null })[];
+  customers: (
+    Profile & {
+      total_spent: number
+      last_order_date: string | null
+      avatar_path?: string | null
+    }
+  )[];
   selectedCustomers: string[];
   toggleSelectCustomer: (customerId: string) => void;
   selectAllCustomers: (customerIds?: string[]) => void;
@@ -50,7 +56,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
     }
   };
 
-  const handleAvatarUpdate = useCallback((customerId: string) => 
+  const handleAvatarUpdate = useCallback((customerId: string) =>
     (newAvatarUrl: string | null, newAvatarPath: string | null) => {
       if (onUpdateCustomer) {
         onUpdateCustomer(customerId, {
@@ -61,6 +67,18 @@ const CustomersList: React.FC<CustomersListProps> = ({
     },
     [onUpdateCustomer]
   );
+
+  const renderLastOrder = (date: string | null) => {
+    if (!date) {
+      return <div className="text-sm text-muted-foreground">&mdash;</div>;
+    }
+    return (
+      <div className="flex items-center text-sm text-muted-foreground">
+        <Calendar className="h-4 w-4 mr-2" />
+        {format(new Date(date), 'MMM d, yyyy \u2013 h:mm a')}
+      </div>
+    );
+  };
 
   if (customers.length === 0) {
     return (
@@ -93,6 +111,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
               <TableHead className="hidden md:table-cell">Status</TableHead>
               <TableHead className="hidden lg:table-cell">Email</TableHead>
               <TableHead className="text-right">Total</TableHead>
+              <TableHead className="hidden lg:table-cell">Last Order</TableHead>
               <TableHead className="hidden lg:table-cell">Joined</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
@@ -153,6 +172,9 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 </TableCell>
                 <TableCell className="text-right">
                   {formatThaiCurrencyWithComma(customer.total_spent)}
+                </TableCell>
+                <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                  {renderLastOrder(customer.last_order_date)}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   <div className="flex items-center">
