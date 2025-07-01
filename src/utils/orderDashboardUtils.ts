@@ -183,3 +183,38 @@ export const mapSupabaseToOrderStatus = (
 export const mapOrderStatusToSupabase = (status: OrderStatus): any => {
   return status;
 };
+
+/**
+ * Safely formats the last order date, handling null/undefined values gracefully
+ * @param date - The date value which may be string, null, or undefined
+ * @returns Formatted date string or 'Never' for null/undefined values
+ */
+export const formatLastOrderDate = (date: string | null | undefined): string => {
+  // Handle null, undefined, or empty values
+  if (date === null || date === undefined || date === '') {
+    return 'Never';
+  }
+
+  // Ensure we have a string
+  const dateStr = typeof date === 'string' ? date : String(date);
+  
+  // Check for empty string after trimming
+  if (!dateStr.trim()) {
+    return 'Never';
+  }
+
+  try {
+    const parsed = new Date(dateStr);
+    
+    // Check if the date is valid
+    if (isNaN(parsed.getTime())) {
+      return 'Never';
+    }
+    
+    return format(parsed, 'MMM d, yyyy h:mm a');
+  } catch (error) {
+    // Log error for debugging but return fallback
+    console.warn('Error formatting last order date:', error, 'Input:', dateStr);
+    return 'Never';
+  }
+};

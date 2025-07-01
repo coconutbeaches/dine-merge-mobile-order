@@ -9,7 +9,8 @@ export default defineConfig(({ mode }) => ({
   test: {
     globals: true,
     environment: "jsdom",
-    setupFiles: [], // Can add setup files here if needed later
+    setupFiles: ['./src/test-setup.ts'],
+    css: true,
   },
   server: {
     // bind to all IPv4 addresses so headless scripts can connect via localhost
