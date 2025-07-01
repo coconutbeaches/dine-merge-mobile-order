@@ -29,7 +29,8 @@ const OrderConfirmation = () => {
 
     const itemsDetails = order.order_items.map(item => {
       const optionsText = item.optionsString ? ` (${item.optionsString})` : '';
-      return `- ${item.quantity}x ${item.name}${optionsText}`;
+      const itemName = item.name || (item as any).product || 'Item';
+      return `- ${item.quantity}x ${itemName}${optionsText}`;
     }).join('\n');
 
     const customerName = order.customer_name || order.customer_name_from_profile || 'Guest';

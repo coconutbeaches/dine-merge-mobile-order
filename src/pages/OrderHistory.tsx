@@ -106,7 +106,7 @@ const OrderHistory = () => {
                   <div className="mt-3 mb-3">
                     {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
                       const hasMenuItem = item.menuItem && typeof item.menuItem === 'object';
-                      const name = hasMenuItem ? item.menuItem.name : (item.name || "Item");
+                      const name = hasMenuItem ? item.menuItem.name : (item.product || item.name || "Item");
                       const quantity = item.quantity || 1;
                       const selectedOptions = item.selectedOptions;
 

@@ -59,8 +59,9 @@ const OrdersDashboard = () => {
         let containsProduct = false;
         if (Array.isArray(order.order_items)) {
           containsProduct = order.order_items.some((item: any) => {
-            if (typeof item?.name === 'string') {
-              return item.name.toLowerCase().includes(s);
+            const itemName = item.product || item.name;
+            if (typeof itemName === 'string') {
+              return itemName.toLowerCase().includes(s);
             }
             return false;
           });
