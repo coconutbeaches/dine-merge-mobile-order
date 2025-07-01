@@ -68,7 +68,7 @@ function renderLastOrder(date: unknown): string {
       return '—';
     }
     
-    const formatted = format(parsed, 'MMM d, yyyy – h:mm a');
+    const formatted = format(parsed, 'MMM d, yyyy h:mm a');
     console.log('✅ Successfully formatted date:', dateStr, '->', formatted);
     return formatted;
   } catch (err) {
@@ -214,10 +214,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   </Badge>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  <div className="flex items-center">
-                    <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                    {customer.email}
-                  </div>
+                  {customer.email}
                 </TableCell>
                 <TableCell className="text-right">
                   {formatThaiCurrencyWithComma(customer.total_spent)}
@@ -226,10 +223,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   {renderLastOrder(customer?.last_order_date)}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                    {format(new Date(customer.created_at), 'MMM d, yyyy')}
-                  </div>
+                  {format(new Date(customer.created_at), 'MMM d, yyyy')}
                 </TableCell>
                 <TableCell>
                   <Button
