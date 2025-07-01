@@ -6,6 +6,15 @@ import { format } from 'date-fns';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
 
+interface OrderItem {
+  product?: string;
+  name?: string;
+  menuItem?: { name: string; price: number };
+  price: number;
+  quantity: number;
+  selectedOptions?: Record<string, string[] | string>;
+}
+
 // Helper: get status color (copied from OrderHistory)
 const getStatusColor = (status: OrderStatus | null) => {
   switch (status) {
@@ -28,11 +37,40 @@ const getStatusColor = (status: OrderStatus | null) => {
   }
 };
 
+const getNextStatus = (currentStatus: OrderStatus): OrderStatus => {
+  switch (currentStatus) {
+    case 'new':
+      return 'preparing';
+    case 'preparing':
+      return 'ready';
+    case 'ready':
+      return 'delivery';
+    case 'delivery':
+      return 'completed';
+    case 'completed':
+      return 'paid';
+    case 'paid':
+    case 'cancelled':
+    default:
+      return currentStatus; // Do not change if already paid or cancelled, or unknown
+  }
+};
+
 interface CustomerOrderCardProps {
   order: Order;
+  onStatusClick: (orderId: string, newStatus: OrderStatus) => void;
 }
 
-const CustomerOrderCard = ({ order }: CustomerOrderCardProps) => {
+const CustomerOrderCard = ({ order, onStatusClick }: CustomerOrderCardProps) => {
+  const handleBadgeClick = () => {
+    if (order.order_status) {
+      const nextStatus = getNextStatus(order.order_status);
+      if (nextStatus !== order.order_status) {
+        onStatusClick(order.id, nextStatus);
+      }
+    }
+  };
+
   return (
     <Card className="overflow-hidden food-card">
       <CardContent className="p-4">
@@ -52,13 +90,16 @@ const CustomerOrderCard = ({ order }: CustomerOrderCardProps) => {
             )}
           </div>
           {order.order_status && (
-            <Badge className={`${getStatusColor(order.order_status)} text-white capitalize`}>
+            <Badge
+              className={`${getStatusColor(order.order_status)} text-white capitalize cursor-pointer`}
+              onClick={handleBadgeClick}
+            >
               {order.order_status === 'delivery' ? 'Delivery' : order.order_status}
             </Badge>
           )}
         </div>
         <div className="mt-3 mb-3">
-          {Array.isArray(order.order_items) && order.order_items.map((item: any, idx: number) => {
+          {Array.isArray(order.order_items) && order.order_items.map((item: OrderItem, idx: number) => {
             const name = item.product || item.name || (item.menuItem && item.menuItem.name) || "Item";
             const price = (typeof item.price === "number"
               ? item.price
@@ -81,7 +122,7 @@ const CustomerOrderCard = ({ order }: CustomerOrderCardProps) => {
                     {Object.values(selectedOptions)
                       .flat()
                       .filter(Boolean)
-                      .map((value: any, i: number) => (
+                      .map((value: string | string[], i: number) => (
                         <div key={i}>{String(value)}</div>
                       ))}
                   </div>

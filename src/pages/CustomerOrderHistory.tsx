@@ -8,6 +8,7 @@ import { useOrderActions } from '@/hooks/useOrderActions';
 import CustomerInfo from '@/components/customer/CustomerInfo';
 import CustomerOrdersList from '@/components/customer/CustomerOrdersList';
 import { toast } from 'sonner';
+import { OrderStatus } from '@/types/supabaseTypes';
 
 const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
@@ -39,6 +40,10 @@ const CustomerOrderHistory = () => {
     }
     
     updateMultipleOrderStatuses(orderIdsToUpdate, 'paid');
+  };
+
+  const handleStatusClick = (orderId: string, newStatus: OrderStatus) => {
+    updateMultipleOrderStatuses([orderId], newStatus);
   };
 
   if (isLoading) {
@@ -91,7 +96,7 @@ const CustomerOrderHistory = () => {
           <CustomerInfo customer={customer} totalSpent={totalSpent} />
         )}
         
-        <CustomerOrdersList orders={orders} />
+        <CustomerOrdersList orders={orders} onStatusClick={handleStatusClick} />
       </div>
     </Layout>
   );

@@ -1,13 +1,14 @@
 
 import React from 'react';
-import { Order } from '@/types/supabaseTypes';
+import { Order, OrderStatus } from '@/types/supabaseTypes';
 import CustomerOrderCard from './CustomerOrderCard';
 
 interface CustomerOrdersListProps {
   orders: Order[];
+  onStatusClick: (orderId: string, newStatus: OrderStatus) => void;
 }
 
-const CustomerOrdersList = ({ orders }: CustomerOrdersListProps) => {
+const CustomerOrdersList = ({ orders, onStatusClick }: CustomerOrdersListProps) => {
   if (orders.length === 0) {
     return (
       <div className="text-center py-10 border rounded-lg border-dashed">
@@ -20,7 +21,7 @@ const CustomerOrdersList = ({ orders }: CustomerOrdersListProps) => {
   return (
     <div className="space-y-4">
       {orders.map((order) => (
-        <CustomerOrderCard key={order.id} order={order} />
+        <CustomerOrderCard key={order.id} order={order} onStatusClick={onStatusClick} />
       ))}
     </div>
   );
