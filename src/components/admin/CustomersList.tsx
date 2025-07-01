@@ -56,7 +56,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
     }
   };
 
-  const handleAvatarUpdate = useCallback((customerId: string) => 
+  const handleAvatarUpdate = useCallback((customerId: string) =>
     (newAvatarUrl: string | null, newAvatarPath: string | null) => {
       if (onUpdateCustomer) {
         onUpdateCustomer(customerId, {
@@ -67,6 +67,18 @@ const CustomersList: React.FC<CustomersListProps> = ({
     },
     [onUpdateCustomer]
   );
+
+  const renderLastOrder = (date: string | null) => {
+    if (!date) {
+      return <div className="text-sm text-muted-foreground">&mdash;</div>;
+    }
+    return (
+      <div className="flex items-center text-sm text-muted-foreground">
+        <Calendar className="h-4 w-4 mr-2" />
+        {format(new Date(date), 'MMM d, yyyy \u2013 h:mm a')}
+      </div>
+    );
+  };
 
   if (customers.length === 0) {
     return (
@@ -161,15 +173,8 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 <TableCell className="text-right">
                   {formatThaiCurrencyWithComma(customer.total_spent)}
                 </TableCell>
-                <TableCell className="hidden lg:table-cell">
-                  {customer.last_order_date ? (
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                      {format(new Date(customer.last_order_date), 'MMM d, yyyy \u2013 h:mm a')}
-                    </div>
-                  ) : (
-                    <div className="text-muted-foreground">&mdash;</div>
-                  )}
+                <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                  {renderLastOrder(customer.last_order_date)}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   <div className="flex items-center">
