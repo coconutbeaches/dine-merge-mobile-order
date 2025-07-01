@@ -74,6 +74,44 @@ export const placeOrderInSupabase = async (
   }
 };
 
+export type CustomOrderItem = {
+  product: string;
+  price: number;
+  quantity: number;
+};
+
+export const createCustomOrder = async (
+  customerId: string,
+  customerName: string | null,
+  items: CustomOrderItem[],
+  orderDate: string
+) => {
+  const total = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const { data, error } = await supabase
+    .from('orders')
+    .insert({
+      user_id: customerId,
+      customer_name: customerName,
+      order_items: items as any,
+      total_amount: total,
+      order_status: 'completed',
+      created_at: orderDate,
+      updated_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error creating custom order:', error);
+    throw error;
+  }
+
+  return data;
+};
+
 export const getFilteredOrderHistory = (orders: Order[], userId?: string) => {
   if (!userId) return [];
   return orders.filter(order => order.user_id === userId);

@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
+import CustomOrderSection from '@/components/admin/CustomOrderSection';
 
 interface Category {
   id: string;
@@ -102,6 +103,13 @@ const Index = () => {
               </div>
             </Card>
           </div>
+        )}
+
+        {currentUser?.role === 'admin' && adminCustomerContext && (
+          <CustomOrderSection
+            customerId={adminCustomerContext.customerId}
+            customerName={adminCustomerContext.customerName}
+          />
         )}
 
         {/* Categories with Black Headers */}
