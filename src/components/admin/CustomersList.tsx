@@ -17,13 +17,11 @@ import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { ProfilePictureUploader } from './ProfilePictureUploader';
 
-function renderLastOrder(date: string | null) {
+function renderLastOrder(date: string | null | undefined) {
   if (!date) return '—';
-  try {
-    return format(new Date(date), 'MMM d, yyyy – h:mm a');
-  } catch {
-    return 'Invalid Date';
-  }
+  const parsedDate = new Date(date);
+  if (isNaN(parsedDate.getTime())) return '—';
+  return format(parsedDate, 'MMM d, yyyy – h:mm a');
 }
 
 interface CustomersListProps {
@@ -172,7 +170,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   {formatThaiCurrencyWithComma(customer.total_spent)}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                  {renderLastOrder(customer.last_order_date)}
+                  {renderLastOrder(customer?.last_order_date)}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   <div className="flex items-center">
