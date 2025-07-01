@@ -17,11 +17,17 @@ import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { ProfilePictureUploader } from './ProfilePictureUploader';
 
-function renderLastOrder(date: string | null | undefined) {
-  if (!date) return '—';
-  const parsedDate = new Date(date);
-  if (isNaN(parsedDate.getTime())) return '—';
-  return format(parsedDate, 'MMM d, yyyy – h:mm a');
+function renderLastOrder(date: unknown): string {
+  if (typeof date !== 'string') return '—';
+
+  try {
+    const parsed = new Date(date);
+    if (isNaN(parsed.getTime())) return '—';
+    return format(parsed, 'MMM d, yyyy – h:mm a');
+  } catch (err) {
+    console.error('Failed to format last_order_date:', date, err);
+    return '—';
+  }
 }
 
 interface CustomersListProps {
