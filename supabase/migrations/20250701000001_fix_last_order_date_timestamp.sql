@@ -1,5 +1,6 @@
--- Add last_order_date to get_customers_with_total_spent function
--- Drop the existing function first since we're changing the return type
+-- Fix last_order_date to preserve full timestamp with timezone
+-- The issue was that dates were being truncated to midnight
+
 DROP FUNCTION IF EXISTS public.get_customers_with_total_spent();
 
 CREATE FUNCTION public.get_customers_with_total_spent()
@@ -30,12 +31,18 @@ AS $$
     p.updated_at,
     COALESCE(SUM(o.total_amount), 0)::numeric(10,2) as total_spent,
     p.avatar_path,
-    MAX(o.created_at)::timestamptz as last_order_date
+    -- Ensure we preserve the full timestamp with timezone
+    MAX(o.created_at) as last_order_date
   FROM
     public.profiles p
-    LEFT JOIN public.orders o ON p.id = o.user_id
+    LEFT JOIN public.orders o ON p.id = o.user_id 
+      AND o.order_status != 'cancelled' -- Exclude cancelled orders
   GROUP BY
-    p.id
+    p.id, p.name, p.email, p.phone, p.role, p.customer_type, 
+    p.created_at, p.updated_at, p.avatar_path
   ORDER BY
     p.name;
 $$;
+
+-- Grant permissions
+GRANT EXECUTE ON FUNCTION public.get_customers_with_total_spent() TO authenticated;
