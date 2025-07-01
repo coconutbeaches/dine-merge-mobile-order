@@ -1,5 +1,8 @@
 -- Add last_order_date to get_customers_with_total_spent function
-CREATE OR REPLACE FUNCTION public.get_customers_with_total_spent()
+-- Drop the existing function first since we're changing the return type
+DROP FUNCTION IF EXISTS public.get_customers_with_total_spent();
+
+CREATE FUNCTION public.get_customers_with_total_spent()
 RETURNS TABLE (
   id uuid,
   name text,

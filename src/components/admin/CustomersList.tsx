@@ -18,14 +18,40 @@ import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { ProfilePictureUploader } from './ProfilePictureUploader';
 
 function renderLastOrder(date: unknown): string {
-  if (typeof date !== 'string') return '—';
+  console.log('Date input to render:', date, typeof date, 'isNull:', date === null, 'isUndefined:', date === undefined); // Enhanced debugging log
+  
+  // Handle null or undefined
+  if (date === null || date === undefined) {
+    console.log('Date is null or undefined, returning dash');
+    return '—';
+  }
+  
+  // Convert to string if it's not already
+  let dateStr: string;
+  if (typeof date === 'string') {
+    dateStr = date;
+  } else {
+    console.log('Date is not a string, attempting to convert:', date);
+    dateStr = String(date);
+  }
+  
+  // Check for empty string
+  if (!dateStr.trim()) {
+    console.log('Date string is empty, returning dash');
+    return '—';
+  }
 
   try {
-    const parsed = new Date(date);
-    if (isNaN(parsed.getTime())) return '—';
-    return format(parsed, 'MMM d, yyyy – h:mm a');
+    const parsed = new Date(dateStr);
+    if (isNaN(parsed.getTime())) {
+      console.log('Date parsing failed - invalid date:', dateStr);
+      return '—';
+    }
+    const formatted = format(parsed, 'MMM d, yyyy – h:mm a');
+    console.log('Successfully formatted date:', dateStr, '->', formatted);
+    return formatted;
   } catch (err) {
-    console.error('Failed to format last_order_date:', date, err);
+    console.error('Failed to format last_order_date:', dateStr, err);
     return '—';
   }
 }

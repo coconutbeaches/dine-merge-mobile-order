@@ -22,10 +22,32 @@ export const useFetchCustomers = () => {
     try {
       console.log('Fetching customers...');
       const { data, error: supabaseError } = await supabase
-        .from<any>('customer_with_last_order')
-        .select('*');
+        .rpc('get_customers_with_total_spent');
 
       if (supabaseError) {
+        // If the function doesn't exist, fall back to basic query
+        if (supabaseError.message?.includes('could not find') || supabaseError.code === 'PGRST202') {
+          console.log('Function not found, using fallback query...');
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('name');
+          
+          if (fallbackError) {
+            throw new Error(fallbackError.message || 'Failed to fetch customers');
+          }
+          
+          // Add dummy data for total_spent and last_order_date
+          const customersWithDummyData = (fallbackData || []).map(customer => ({
+            ...customer,
+            total_spent: 0,
+            last_order_date: null
+          }));
+          
+          setCustomers(customersWithDummyData);
+          console.log('Successfully fetched', customersWithDummyData.length, 'customers (fallback)');
+          return;
+        }
         throw new Error(supabaseError.message || 'Failed to fetch customers');
       }
 
@@ -52,6 +74,9 @@ export const useFetchCustomers = () => {
       }));
       setCustomers(customersWithAvatars);
       console.log('Successfully fetched', data.length, 'customers');
+      console.log('Sample customer data:', data[0]);
+      console.log('Customer with avatar data:', customersWithAvatars[0]);
+      console.log('Does first customer have last_order_date?', 'last_order_date' in (data[0] || {}));
     } catch (err: any) {
       console.error('Error in fetchCustomers:', err);
       
