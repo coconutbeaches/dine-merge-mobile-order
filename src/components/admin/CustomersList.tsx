@@ -18,11 +18,25 @@ import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { ProfilePictureUploader } from './ProfilePictureUploader';
 
 function renderLastOrder(date: unknown): string {
-  console.log('Date input to render:', date, typeof date, 'isNull:', date === null, 'isUndefined:', date === undefined); // Enhanced debugging log
+  console.log('=== RENDER LAST ORDER DEBUG ===');
+  console.log('Date input to render:', date);
+  console.log('Type of date:', typeof date);
+  console.log('isNull:', date === null);
+  console.log('isUndefined:', date === undefined);
+  console.log('JSON.stringify(date):', JSON.stringify(date));
+  console.log('String(date):', String(date));
+  console.log('Raw date value inspection:', {
+    value: date,
+    type: typeof date,
+    constructor: date?.constructor?.name,
+    isArray: Array.isArray(date),
+    keys: typeof date === 'object' && date !== null ? Object.keys(date) : 'N/A'
+  });
+  console.log('================================');
   
   // Handle null or undefined
   if (date === null || date === undefined) {
-    console.log('Date is null or undefined, returning dash');
+    console.log('❌ Date is null or undefined, returning dash');
     return '—';
   }
   
@@ -30,28 +44,35 @@ function renderLastOrder(date: unknown): string {
   let dateStr: string;
   if (typeof date === 'string') {
     dateStr = date;
+    console.log('✅ Date is already a string:', dateStr);
   } else {
-    console.log('Date is not a string, attempting to convert:', date);
+    console.log('🔄 Date is not a string, attempting to convert:', date);
     dateStr = String(date);
+    console.log('🔄 Converted to string:', dateStr);
   }
   
   // Check for empty string
   if (!dateStr.trim()) {
-    console.log('Date string is empty, returning dash');
+    console.log('❌ Date string is empty after trim, returning dash. Original:', JSON.stringify(dateStr));
     return '—';
   }
 
   try {
+    console.log('🔄 Attempting to parse date string:', dateStr);
     const parsed = new Date(dateStr);
+    console.log('🔄 Parsed date object:', parsed);
+    console.log('🔄 Parsed date getTime():', parsed.getTime());
+    
     if (isNaN(parsed.getTime())) {
-      console.log('Date parsing failed - invalid date:', dateStr);
+      console.log('❌ Date parsing failed - invalid date:', dateStr);
       return '—';
     }
+    
     const formatted = format(parsed, 'MMM d, yyyy – h:mm a');
-    console.log('Successfully formatted date:', dateStr, '->', formatted);
+    console.log('✅ Successfully formatted date:', dateStr, '->', formatted);
     return formatted;
   } catch (err) {
-    console.error('Failed to format last_order_date:', dateStr, err);
+    console.error('❌ Exception while formatting last_order_date:', dateStr, err);
     return '—';
   }
 }
