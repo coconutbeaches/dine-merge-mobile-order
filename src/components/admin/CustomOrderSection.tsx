@@ -44,7 +44,12 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
   };
   return (
     <Card className="p-4 mb-6 space-y-4">
-      <h3 className="text-lg font-semibold">Custom Order Items</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">Custom Order</h3>
+        <Button type="button" variant="outline" size="icon" onClick={addItem}>
+          <Plus className="w-4 h-4" />
+        </Button>
+      </div>
       <div className="space-y-4">
         {items.map(item => (
           <div key={item.id} className="flex gap-2 items-end">
@@ -82,9 +87,6 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
         ))}
       </div>
       <div className="flex items-center gap-2">
-        <Button type="button" variant="outline" onClick={addItem}>
-          Add custom item
-        </Button>
         <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="w-36" />
         <Input type="time" value={orderTime} onChange={e => setOrderTime(e.target.value)} className="w-24" />
         <Button onClick={submit} disabled={items.length === 0}>Order</Button>
