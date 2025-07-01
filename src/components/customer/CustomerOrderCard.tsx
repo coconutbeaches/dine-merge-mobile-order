@@ -81,13 +81,11 @@ const CustomerOrderCard = ({ order, onStatusClick }: CustomerOrderCardProps) => 
               {/* Format: Jun 14 2025  8:39 PM */}
               {format(new Date(order.created_at), "MMM dd yyyy  h:mm a")}
             </p>
-            {order.table_number && (
-              <p className="text-xs text-muted-foreground capitalize">
-                {order.table_number === 'Take Away'
-                  ? 'Take Away'
-                  : `Table ${order.table_number}`}
-              </p>
-            )}
+            <p className="text-xs text-muted-foreground capitalize">
+              {order.table_number && order.table_number !== 'Take Away'
+                ? `Table ${order.table_number}`
+                : 'Take Away'}
+            </p>
           </div>
           {order.order_status && (
             <Badge
