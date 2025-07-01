@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Profile } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Edit, User, Mail, Phone, Calendar, CreditCard } from 'lucide-react';
+import { Edit, User, Mail, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
