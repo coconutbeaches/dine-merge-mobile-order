@@ -91,20 +91,8 @@ export const createCustomOrder = async (
     0
   );
   
-  // Parse the orderDate and preserve current time if only date is provided
-  const parsedDate = new Date(orderDate);
-  const now = new Date();
-  
-  // If the date is set to midnight (00:00:00), use current time instead
-  let finalDateTime: string;
-  if (parsedDate.getHours() === 0 && parsedDate.getMinutes() === 0 && parsedDate.getSeconds() === 0) {
-    // Date was likely just a date string without time, so use current time
-    parsedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
-    finalDateTime = parsedDate.toISOString();
-  } else {
-    // Use the provided datetime as-is
-    finalDateTime = orderDate;
-  }
+  // Use the provided datetime directly since it should now include time
+  const finalDateTime = orderDate;
   
   const { data, error } = await supabase
     .from('orders')

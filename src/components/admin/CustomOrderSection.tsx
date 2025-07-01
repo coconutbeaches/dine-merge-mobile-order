@@ -21,6 +21,7 @@ const emptyItem = (): CustomOrderItem & { id: string } => ({
 const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, customerName }) => {
   const [items, setItems] = useState<(CustomOrderItem & { id: string })[]>([]);
   const [orderDate, setOrderDate] = useState<string>(new Date().toISOString().slice(0,10));
+  const [orderTime, setOrderTime] = useState<string>(new Date().toTimeString().slice(0,5));
   const addItem = () => setItems(prev => [...prev, emptyItem()]);
   const removeItem = (id: string) => setItems(prev => prev.filter(i => i.id !== id));
   const updateItem = (id: string, field: keyof CustomOrderItem, value: string | number) => {
@@ -29,7 +30,11 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
   const submit = async () => {
     if (items.length === 0) return;
     try {
-      await createCustomOrder(customerId, customerName, items.map(({id, ...rest}) => rest), new Date(orderDate).toISOString());
+      // Combine date and time properly
+      const dateTimeString = `${orderDate}T${orderTime}:00`;
+      const dateTime = new Date(dateTimeString);
+      
+      await createCustomOrder(customerId, customerName, items.map(({id, ...rest}) => rest), dateTime.toISOString());
       toast.success('Custom order created');
       setItems([]);
     } catch (e:any) {
@@ -77,6 +82,7 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
           Add custom item
         </Button>
         <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="w-36" />
+        <Input type="time" value={orderTime} onChange={e => setOrderTime(e.target.value)} className="w-24" />
         <Button onClick={submit} disabled={items.length === 0}>Submit Order</Button>
       </div>
     </Card>
