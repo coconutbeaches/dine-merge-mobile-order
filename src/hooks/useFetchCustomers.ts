@@ -22,7 +22,8 @@ export const useFetchCustomers = () => {
     try {
       console.log('Fetching customers...');
       const { data, error: supabaseError } = await supabase
-        .rpc('get_customers_with_total_spent');
+        .from<any>('customer_with_last_order')
+        .select('*');
 
       if (supabaseError) {
         throw new Error(supabaseError.message || 'Failed to fetch customers');

@@ -17,6 +17,15 @@ import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { ProfilePictureUploader } from './ProfilePictureUploader';
 
+function renderLastOrder(date: string | null) {
+  if (!date) return '—';
+  try {
+    return format(new Date(date), 'MMM d, yyyy – h:mm a');
+  } catch {
+    return 'Invalid Date';
+  }
+}
+
 interface CustomersListProps {
   customers: (
     Profile & {
@@ -68,17 +77,6 @@ const CustomersList: React.FC<CustomersListProps> = ({
     [onUpdateCustomer]
   );
 
-  const renderLastOrder = (date: string | null) => {
-    if (!date) {
-      return <div className="text-sm text-muted-foreground">&mdash;</div>;
-    }
-    return (
-      <div className="flex items-center text-sm text-muted-foreground">
-        <Calendar className="h-4 w-4 mr-2" />
-        {format(new Date(date), 'MMM d, yyyy \u2013 h:mm a')}
-      </div>
-    );
-  };
 
   if (customers.length === 0) {
     return (
