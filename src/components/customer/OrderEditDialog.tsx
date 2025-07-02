@@ -100,14 +100,15 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         </DialogHeader>
         <div className="space-y-3 mb-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <Label htmlFor="orderDate" className="w-full sm:w-1/4 text-left sm:text-right">Date & Time</Label>
+            <Label htmlFor="orderDate" className="w-full sm:w-1/4 text-left sm:text-right">Date</Label>
             <div className="flex flex-1 gap-2">
               <Input id="orderDate" type="date" value={orderDate} onChange={handleDateChange} className="flex-1" />
+              <Label htmlFor="orderTime" className="sr-only">Time</Label>
               <Input id="orderTime" type="time" value={orderTime} onChange={handleTimeChange} className="flex-1" />
             </div>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <Label htmlFor="tableNumber" className="w-full sm:w-1/4 text-left sm:text-right">Table No.</Label>
+            <Label htmlFor="tableNumber" className="w-full sm:w-1/4 text-left sm:text-right">Table</Label>
             <Input id="tableNumber" value={tableNumber} onChange={handleTableNumberChange} className="flex-1" />
           </div>
           <div className="flex justify-between items-center mt-4 pt-2 border-t">
