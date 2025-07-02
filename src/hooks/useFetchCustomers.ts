@@ -10,7 +10,7 @@ const RETRY_DELAY = 1000;
 
 export const useFetchCustomers = () => {
   const [customers, setCustomers] = useState<(
-    Profile & { total_spent: number; last_order_date: string | null }
+    Profile & { total_spent: number; last_order_date: string | null; avatar_url: string | null }
   )[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -55,27 +55,9 @@ export const useFetchCustomers = () => {
         throw new Error('No data returned from server');
       }
 
-      // Also fetch avatar URLs for each profile to persist uploaded images
-      const ids = data.map((c: any) => c.id);
-      const { data: avatarsData } = await supabase
-        .from('profiles')
-        .select('id, avatar_url')
-        .in('id', ids);
-      const avatarMap: Record<string, string | null> = {};
-      if (avatarsData) {
-        avatarsData.forEach(row => {
-          avatarMap[row.id] = row.avatar_url;
-        });
-      }
-      // Merge avatar_url into customer records
-      const customersWithAvatars = data.map((c: any) => ({
-        ...c,
-        avatar_url: avatarMap[c.id] || null,
-      }));
-      setCustomers(customersWithAvatars);
+      setCustomers(data as (Profile & { total_spent: number; last_order_date: string | null; avatar_url: string | null })[]);
       console.log('Successfully fetched', data.length, 'customers');
       console.log('Sample customer data:', data[0]);
-      console.log('Customer with avatar data:', customersWithAvatars[0]);
       console.log('Does first customer have last_order_date?', 'last_order_date' in (data[0] || {}));
     } catch (err: any) {
       console.error('Error in fetchCustomers:', err);

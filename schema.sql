@@ -58,9 +58,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
-CREATE OR REPLACE FUNCTION "public"."get_customers_with_total_spent"() RETURNS TABLE("id" "uuid", "name" "text", "email" "text", "phone" "text", "role" "text", "customer_type" "text", "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "total_spent" numeric, "avatar_path" "text")
+CREATE OR REPLACE FUNCTION "public"."get_customers_with_total_spent"() RETURNS TABLE("id" "uuid", "name" "text", "email" "text", "phone" "text", "role" "text", "customer_type" "text", "created_at" timestamp with time zone, "updated_at" timestamp with time zone, "total_spent" numeric, "avatar_path" "text", "avatar_url" "text", "last_order_date" timestamp with time zone)
     LANGUAGE "sql" SECURITY DEFINER
-    AS $$
+    AS $
   SELECT 
     p.id,
     p.name,
@@ -71,7 +71,9 @@ CREATE OR REPLACE FUNCTION "public"."get_customers_with_total_spent"() RETURNS T
     p.created_at,
     p.updated_at,
     COALESCE(SUM(o.total_amount), 0)::numeric(10,2) as total_spent,
-    p.avatar_path
+    p.avatar_path,
+    p.avatar_url,
+    MAX(o.created_at) as last_order_date
   FROM 
     public.profiles p
     LEFT JOIN public.orders o ON p.id = o.user_id
@@ -79,7 +81,7 @@ CREATE OR REPLACE FUNCTION "public"."get_customers_with_total_spent"() RETURNS T
     p.id
   ORDER BY 
     p.name;
-$$;
+$;
 
 
 ALTER FUNCTION "public"."get_customers_with_total_spent"() OWNER TO "postgres";

@@ -214,7 +214,7 @@ export const formatLastOrderDate = (date: string | null | undefined): string => 
       return 'Never';
     }
     
-    return format(parsed, 'MMM d, yyyy h:mm a');
+    return format(parsed, 'MMM d h:mm a');
   } catch (error) {
     // Log error for debugging but return fallback
     console.warn('Error formatting last order date:', error, 'Input:', dateStr);

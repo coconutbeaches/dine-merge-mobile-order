@@ -164,7 +164,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   {formatLastOrderDate(customer?.last_order_date)}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  {format(new Date(customer.created_at), 'MMM d, yyyy')}
+                  {format(new Date(customer.created_at), 'MMM d')}
                 </TableCell>
                 <TableCell>
                   <Button
