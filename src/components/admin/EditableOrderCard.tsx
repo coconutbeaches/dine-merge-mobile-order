@@ -13,6 +13,7 @@ interface OrderItem {
   price: number;
   quantity: number;
   selectedOptions?: Record<string, string[] | string>;
+  optionsString?: string; // Add optionsString to the interface
 }
 
 // Helper: get status color (copied from OrderHistory)
@@ -130,14 +131,9 @@ const EditableOrderCard = ({ order, onStatusClick, onOrderSave, onClose }: Edita
                   <span>{formatThaiCurrency(price * item.quantity)}</span>
                 </div>
 
-                {selectedOptions && Object.keys(selectedOptions).length > 0 && (
+                {item.optionsString && (
                   <div className="pl-5 text-xs text-muted-foreground">
-                    {Object.values(selectedOptions)
-                      .flat()
-                      .filter(Boolean)
-                      .map((value: string | string[], i: number) => (
-                        <div key={i}>{String(value)}</div>
-                      ))}
+                    <div>{item.optionsString}</div>
                   </div>
                 )}
               </div>
