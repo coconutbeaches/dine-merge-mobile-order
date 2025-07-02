@@ -59,6 +59,8 @@ function App() {
               <Route path="/admin" element={<Admin />} />
               <Route path="/orders-dashboard" element={<OrdersDashboard />} />
               <Route path="/products-dashboard" element={<ProductsDashboard />} />
+              <Route path="/products/new" element={<ProductForm />} />
+              <Route path="/products/edit/:id" element={<ProductForm />} />
               <Route path="/admin/analytics/orders-over-time" element={<OrdersOverTimeChart />} />
               <Route path="/admin/orders/:orderId" element={<AdminOrderDetail />} />
               <Route path="/categories-manager" element={<CategoriesManager />} />
