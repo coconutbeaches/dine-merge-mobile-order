@@ -7,10 +7,10 @@ import { toast } from 'sonner';
 export const useOrderActions = (
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>
 ) => {
-  const updateOrderStatus = async (orderId: number, newStatus: OrderStatus) => {
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      let supabaseStatus: any = newStatus;
-      if (supabaseStatus === "delivery") supabaseStatus = "out_for_delivery";
+      let supabaseStatus: OrderStatus = newStatus;
+      if (newStatus === "delivery") supabaseStatus = "out_for_delivery";
 
       console.log(`Updating order ${orderId} status to ${newStatus} (Supabase: ${supabaseStatus})`);
 
@@ -47,11 +47,11 @@ export const useOrderActions = (
     }
   };
 
-  const updateMultipleOrderStatuses = async (orderIds: number[], newStatus: OrderStatus) => {
+  const updateMultipleOrderStatuses = async (orderIds: string[], newStatus: OrderStatus) => {
     if (orderIds.length === 0) return;
     try {
-      let supabaseStatus: any = newStatus;
-      if (supabaseStatus === "delivery") supabaseStatus = "out_for_delivery";
+      let supabaseStatus: OrderStatus = newStatus;
+      if (newStatus === "delivery") supabaseStatus = "out_for_delivery";
 
       const { error, count } = await supabase
         .from('orders')
@@ -84,7 +84,7 @@ export const useOrderActions = (
   };
 
   const deleteSelectedOrders = async (
-    selectedOrders: number[], 
+    selectedOrders: string[], 
     setSelectedOrders: React.Dispatch<React.SetStateAction<number[]>>
   ) => {
     if (selectedOrders.length === 0) return;
@@ -109,9 +109,43 @@ export const useOrderActions = (
     }
   };
 
+  const updateOrder = async (updatedOrder: Order) => {
+    try {
+      const { id, created_at, table_number, order_items, total_amount } = updatedOrder;
+      console.log('[useOrderActions] Sending update to Supabase:', { id, created_at, table_number, order_items, total_amount });
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          created_at: created_at,
+          table_number: table_number,
+          order_items: order_items,
+          total_amount: total_amount,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+
+      if (error) {
+        console.error('[Dashboard] Supabase error updating order:', error);
+        toast.error('Supabase error: ' + error.message);
+        return;
+      }
+
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order.id === id ? { ...updatedOrder } : order
+        )
+      );
+      toast.success(`Order #${id.toString().padStart(4, '0')} updated successfully`);
+    } catch (error: any) {
+      console.error('Error updating order:', error);
+      toast.error(`Failed to update order: ${error.message}`);
+    }
+  };
+
   return {
     updateOrderStatus,
     updateMultipleOrderStatuses,
     deleteSelectedOrders,
+    updateOrder,
   };
 };

@@ -7,7 +7,15 @@ export type Profile = Tables<'profiles'>;
 export type Category = Tables<'categories'>;
 
 // Enums
-export type OrderStatus = Database['public']['Enums']['order_status'];
+export type OrderStatus =
+  | 'new'
+  | 'preparing'
+  | 'ready'
+  | 'out_for_delivery'
+  | 'completed'
+  | 'paid'
+  | 'cancelled';
+
 export type SupabaseOrderStatus = OrderStatus;
 
 // JSON column types
