@@ -24,7 +24,10 @@ const CustomersDashboard = () => {
     deleteSelectedCustomers,
     toggleSelectCustomer,
     selectAllCustomers,
-    clearSelection
+    clearSelection,
+    sortKey,
+    sortDirection,
+    handleSort,
   } = useCustomersDashboard();
 
   const [search, setSearch] = useState('');
@@ -280,6 +283,9 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
                 onUpdateCustomer={handleUpdateCustomer}
                 toggleCustomerType={toggleCustomerType}
                 recentlyUpdatedId={recentlyUpdatedId}
+                sortKey={sortKey}
+                sortDirection={sortDirection}
+                handleSort={handleSort}
               />
             )}
           </CardContent>

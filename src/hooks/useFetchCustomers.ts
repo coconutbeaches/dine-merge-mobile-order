@@ -25,6 +25,7 @@ export const useFetchCustomers = () => {
         .rpc('get_customers_with_total_spent');
 
       if (supabaseError) {
+        console.error('Supabase RPC error in get_customers_with_total_spent:', supabaseError);
         // If the function doesn't exist, fall back to basic query
         if (supabaseError.message?.includes('could not find') || supabaseError.code === 'PGRST202') {
           console.log('Function not found, using fallback query...');

@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Profile } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Edit, User, Mail, Calendar } from 'lucide-react';
+import { Edit, User, Mail, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
@@ -24,6 +24,7 @@ interface CustomersListProps {
       total_spent: number
       last_order_date: string | null
       avatar_path?: string | null
+      avatar_url?: string | null
     }
   )[];
   selectedCustomers: string[];
@@ -34,6 +35,9 @@ interface CustomersListProps {
   onUpdateCustomer?: (customerId: string, updates: Partial<Profile>) => void;
   toggleCustomerType?: (id: string, isGuestNow: boolean) => void;
   recentlyUpdatedId?: string | null;
+  sortKey: 'name' | 'total_spent' | 'last_order_date' | 'created_at';
+  sortDirection: 'asc' | 'desc';
+  handleSort: (key: 'name' | 'total_spent' | 'last_order_date' | 'created_at') => void;
 }
 
 const CustomersList: React.FC<CustomersListProps> = ({
@@ -46,6 +50,9 @@ const CustomersList: React.FC<CustomersListProps> = ({
   onUpdateCustomer,
   toggleCustomerType,
   recentlyUpdatedId,
+  sortKey,
+  sortDirection,
+  handleSort,
 }) => {
   const allOnPageSelected = customers.length > 0 && selectedCustomers.length === customers.length;
   
@@ -97,12 +104,62 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   aria-label="Select all"
                 />
               </TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead className="hidden md:table-cell">Status</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:text-primary transition-colors"
+                onClick={() => handleSort('name')}
+              >
+                <div className="flex items-center gap-1">
+                  Customer
+                  {sortKey === 'name' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="hidden md:table-cell cursor-pointer hover:text-primary transition-colors"
+                onClick={() => handleSort('customer_type')}
+              >
+                <div className="flex items-center gap-1">
+                  Status
+                  {sortKey === 'customer_type' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </TableHead>
               <TableHead className="hidden lg:table-cell">Email</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead className="hidden lg:table-cell">Last Order</TableHead>
-              <TableHead className="hidden lg:table-cell">Joined</TableHead>
+              <TableHead 
+                className="text-right cursor-pointer hover:text-primary transition-colors"
+                onClick={() => handleSort('total_spent')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  Total
+                  {sortKey === 'total_spent' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="hidden lg:table-cell cursor-pointer hover:text-primary transition-colors"
+                onClick={() => handleSort('last_order_date')}
+              >
+                <div className="flex items-center gap-1">
+                  Last Order
+                  {sortKey === 'last_order_date' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead 
+                className="hidden lg:table-cell cursor-pointer hover:text-primary transition-colors"
+                onClick={() => handleSort('created_at')}
+              >
+                <div className="flex items-center gap-1">
+                  Joined
+                  {sortKey === 'created_at' && (
+                    sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
+              </TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
