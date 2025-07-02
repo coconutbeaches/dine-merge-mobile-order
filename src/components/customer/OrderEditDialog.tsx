@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, Plus } from 'lucide-react';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
 
@@ -50,26 +49,9 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
   const handleItemChange = <K extends keyof OrderItem>(index: number, field: K, value: OrderItem[K]) => {
     const newItems = [...items];
     if (newItems[index]) {
-      if (field === 'quantity') {
-        newItems[index][field] = value === '' ? '' : Number(value);
-      } else if (field === 'price') {
-        newItems[index][field] = value === '' ? '' : Number(value);
-      } else {
-        newItems[index][field] = value;
-      }
+      newItems[index][field] = value;
     }
     setItems(newItems);
-  };
-
-  const handleRemoveItem = (indexToRemove: number) => {
-    setItems(prevItems => prevItems.filter((_, index) => index !== indexToRemove));
-  };
-
-  const handleAddItem = () => {
-    setItems(prevItems => [
-      ...prevItems,
-      { product: '', quantity: 1, price: 0, selectedOptions: {} },
-    ]);
   };
 
   const handleSave = () => {
@@ -88,81 +70,56 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
       order_items: items,
       total_amount: newTotalAmount, // Update total_amount
     };
+    console.log("Items before save:", items);
+    console.log("New total amount calculated:", newTotalAmount);
+    console.log("Updated order before save:", updatedOrder);
     onSave(updatedOrder);
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-4">
-        <DialogHeader className="mb-4">
-          <DialogTitle className="text-lg">Edit Order #{order.id.toString().padStart(4, '0')}</DialogTitle>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit Order #{order.id.toString().padStart(4, '0')}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <Label htmlFor="orderDate" className="w-full sm:w-1/4 text-left sm:text-right">Date & Time</Label>
-            <div className="flex flex-1 gap-2">
-              <Input id="orderDate" type="date" value={orderDate} onChange={handleDateChange} className="flex-1" />
-              <Input id="orderTime" type="time" value={orderTime} onChange={handleTimeChange} className="flex-1" />
-            </div>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="orderDate" className="text-right">Date</Label>
+            <Input id="orderDate" type="date" value={orderDate} onChange={handleDateChange} className="col-span-3" />
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-            <Label htmlFor="tableNumber" className="w-full sm:w-1/4 text-left sm:text-right">Table No.</Label>
-            <Input id="tableNumber" value={tableNumber} onChange={handleTableNumberChange} className="flex-1" />
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="orderTime" className="text-right">Time</Label>
+            <Input id="orderTime" type="time" value={orderTime} onChange={handleTimeChange} className="col-span-3" />
           </div>
-          <div className="flex justify-between items-center mt-4 pt-2 border-t">
-            <h4 className="font-semibold">Order Items</h4>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleAddItem}
-              className="flex-shrink-0"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="tableNumber" className="text-right">Table No.</Label>
+            <Input id="tableNumber" value={tableNumber} onChange={handleTableNumberChange} className="col-span-3" />
           </div>
+          <h4 className="font-semibold mt-4">Order Items</h4>
           {items.map((item, index) => (
-            <div key={index} className="flex items-center gap-2">
+            <div key={index} className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor={`item-name-${index}`} className="text-right">Item</Label>
               <Input
                 id={`item-name-${index}`}
                 value={item.product || item.name || (item.menuItem && item.menuItem.name) || ''}
                 onChange={e => handleItemChange(index, 'product', e.target.value)}
-                className="flex-[2]"
-                placeholder="Item Name"
+                className="col-span-3"
               />
+              <Label htmlFor={`item-quantity-${index}`} className="text-right">Qty</Label>
               <Input
                 id={`item-quantity-${index}`}
-                type="text"
-                value={item.quantity === 0 && items[index]?.quantity === '' ? '' : item.quantity}
-                onChange={e => handleItemChange(index, 'quantity', e.target.value)}
-                className="w-16 text-center"
-                placeholder="Qty"
+                type="number"
+                value={item.quantity}
+                onChange={e => handleItemChange(index, 'quantity', Number(e.target.value))}
+                className="col-span-3"
               />
-              <div className="relative w-20">
-                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">฿</span>
-                <Input
-                  id={`item-price-${index}`}
-                  type="text"
-                  value={item.price === 0 && items[index]?.price === '' ? '' : item.price}
-                  onChange={e => handleItemChange(index, 'price', e.target.value)}
-                  className="w-full text-right pl-6"
-                  placeholder="Price"
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveItem(index)}
-                className="flex-shrink-0"
-              >
-                <Trash2 className="h-4 w-4 text-red-500" />
-              </Button>
             </div>
           ))}
         </div>
-        <DialogFooter className="grid grid-cols-2 gap-2 pt-4 border-t">
+        <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={handleSave}>Save changes</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
