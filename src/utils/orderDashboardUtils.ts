@@ -177,6 +177,9 @@ export const orderStatusOptions: OrderStatus[] = [
 export const mapSupabaseToOrderStatus = (
   status: SupabaseOrderStatus | null,
 ): OrderStatus => {
+  if (status === 'out_for_delivery') {
+    return 'delivery';
+  }
   return status as OrderStatus;
 };
 

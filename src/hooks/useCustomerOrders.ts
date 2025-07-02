@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { 
   Order, 
@@ -8,6 +7,23 @@ import {
   SupabaseOrderStatus
 } from '@/types/app';
 import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
+
+// Helper function to transform a single Supabase order
+const transformSupabaseOrder = (order: any, profileData: Profile | null): Order => {
+  let appOrderStatus: OrderStatus;
+  if (order.order_status) {
+    appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+  } else {
+    console.warn(`Order ${order.id} - order_status from DB is null or empty. Defaulting to 'new'. DB value: `, order.order_status);
+    appOrderStatus = 'new';
+  }
+  return {
+    ...order,
+    order_status: appOrderStatus,
+    customer_name_from_profile: profileData?.name || null,
+    customer_email_from_profile: profileData?.email || null
+  } as Order;
+};
 
 export const useCustomerOrders = (customerId: string | undefined) => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -29,7 +45,23 @@ export const useCustomerOrders = (customerId: string | undefined) => {
           { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${customerId}` },
           (payload) => {
             console.log("Real-time order update:", payload);
-            fetchCustomerOrders(customerId);
+            setOrders(prevOrders => {
+              const newOrder = payload.new as Order;
+              const oldOrder = payload.old as Order;
+
+              switch (payload.eventType) {
+                case 'INSERT':
+                  return [transformSupabaseOrder(newOrder, customer), ...prevOrders];
+                case 'UPDATE':
+                  return prevOrders.map(order =>
+                    order.id === newOrder.id ? transformSupabaseOrder(newOrder, customer) : order
+                  );
+                case 'DELETE':
+                  return prevOrders.filter(order => order.id !== oldOrder.id);
+                default:
+                  return prevOrders;
+              }
+            });
           }
         )
         .subscribe();
@@ -38,7 +70,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         supabase.removeChannel(channel);
       };
     }
-  }, [customerId]);
+  }, [customerId, customer]); // Add customer to dependency array
 
   const fetchCustomerDetails = async (userId: string) => {
     try {
@@ -82,25 +114,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
       
       if (ordersData) {
         // Transform the data to correctly handle the order_status and add customer info
-        const transformedOrders = ordersData.map(order => {
-          let appOrderStatus: OrderStatus;
-          
-          if (order.order_status) {
-            appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
-          } else {
-            console.warn(`Order ${order.id} - order_status from DB is null or empty. Defaulting to 'new'. DB value: `, order.order_status);
-            appOrderStatus = 'new';
-          }
-          
-          console.log(`Order ${order.id} - DB order_status: ${order.order_status}, Calculated app_status: ${appOrderStatus}`);
-          
-          return {
-            ...order,
-            order_status: appOrderStatus,
-            customer_name_from_profile: profileData?.name || null,
-            customer_email_from_profile: profileData?.email || null
-          } as Order;
-        });
+        const transformedOrders = ordersData.map(order => transformSupabaseOrder(order, profileData));
         
         // EXTRA LOGGING: show order ids & statuses from DB
         console.log('[CustomerOrders] Raw orders from DB:', ordersData.map(order => ({
@@ -115,6 +129,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         })));
         
         setOrders(transformedOrders);
+        console.log("[useCustomerOrders] fetchCustomerOrders completed. Orders set.");
       } else {
         setOrders([]);
       }

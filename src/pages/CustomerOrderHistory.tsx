@@ -14,7 +14,7 @@ const CustomerOrderHistory = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
   const { orders, setOrders, customer, isLoading } = useCustomerOrders(customerId);
-  const { updateMultipleOrderStatuses } = useOrderActions(setOrders);
+  const { updateMultipleOrderStatuses, updateOrder } = useOrderActions(setOrders);
 
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
 
@@ -44,6 +44,10 @@ const CustomerOrderHistory = () => {
 
   const handleStatusClick = (orderId: string, newStatus: OrderStatus) => {
     updateMultipleOrderStatuses([orderId], newStatus);
+  };
+
+  const handleOrderSave = (updatedOrder: Order) => {
+    updateOrder(updatedOrder);
   };
 
   if (isLoading) {
@@ -93,7 +97,7 @@ const CustomerOrderHistory = () => {
           <CustomerInfo customer={customer} totalSpent={totalSpent} />
         )}
         
-        <CustomerOrdersList orders={orders} onStatusClick={handleStatusClick} />
+        <CustomerOrdersList orders={orders} onStatusClick={handleStatusClick} onOrderSave={handleOrderSave} />
       </div>
     </Layout>
   );

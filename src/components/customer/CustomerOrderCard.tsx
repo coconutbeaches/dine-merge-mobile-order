@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency } from '@/lib/utils';
+import OrderEditDialog from './OrderEditDialog';
 
 interface OrderItem {
   product?: string;
@@ -59,9 +60,12 @@ const getNextStatus = (currentStatus: OrderStatus): OrderStatus => {
 interface CustomerOrderCardProps {
   order: Order;
   onStatusClick: (orderId: string, newStatus: OrderStatus) => void;
+  onOrderSave: (updatedOrder: Order) => void;
 }
 
-const CustomerOrderCard = ({ order, onStatusClick }: CustomerOrderCardProps) => {
+const CustomerOrderCard = ({ order, onStatusClick, onOrderSave }: CustomerOrderCardProps) => {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
   const handleBadgeClick = () => {
     if (order.order_status) {
       const nextStatus = getNextStatus(order.order_status);
@@ -71,12 +75,24 @@ const CustomerOrderCard = ({ order, onStatusClick }: CustomerOrderCardProps) => 
     }
   };
 
+  const handleOrderNumberClick = () => {
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditDialogClose = () => {
+    setIsEditDialogOpen(false);
+  };
+
+  const handleEditDialogSave = (updatedOrder: Order) => {
+    onOrderSave(updatedOrder);
+  };
+
   return (
     <Card className="overflow-hidden food-card">
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h3 className="font-semibold">Order #{order.id.toString().padStart(4, '0')}</h3>
+            <h3 className="font-semibold cursor-pointer" onClick={handleOrderNumberClick}>Order #{order.id.toString().padStart(4, '0')}</h3>
             <p className="text-xs text-muted-foreground">
               {/* Format: Jun 14 2025  8:39 PM */}
               {format(new Date(order.created_at), "MMM dd yyyy  h:mm a")}
@@ -134,6 +150,14 @@ const CustomerOrderCard = ({ order, onStatusClick }: CustomerOrderCardProps) => 
           <span>{formatThaiCurrency(order.total_amount)}</span>
         </div>
       </CardContent>
+      {isEditDialogOpen && (
+        <OrderEditDialog
+          order={order}
+          isOpen={isEditDialogOpen}
+          onClose={handleEditDialogClose}
+          onSave={handleEditDialogSave}
+        />
+      )}
     </Card>
   );
 };

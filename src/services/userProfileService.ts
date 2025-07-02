@@ -4,12 +4,15 @@ import { User } from '@/types';
 // Fetch single user profile
 export async function fetchUserProfile(userId: string): Promise<User | null> {
   if (!userId) return null;
+  const startTime = Date.now();
   try {
     const { data, error } = await supabase
       .from('profiles')
       .select('*, role')
       .eq('id', userId)
       .maybeSingle();
+    const endTime = Date.now();
+    console.log(`[userProfileService] fetchUserProfile took ${endTime - startTime} ms`);
 
     if (error) {
       console.error('[userProfileService] Error fetching user profile:', error);
