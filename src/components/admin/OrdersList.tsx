@@ -2,40 +2,26 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Order, OrderStatus } from '@/types/supabaseTypes';
+// Use OrderWithCustomerDetails from useFetchOrders for the order type
+import { OrderWithCustomerDetails } from '@/hooks/useFetchOrders';
+import { OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency, cn } from '@/lib/utils';
 import { formatOrderDate, formatOrderTime, getStatusBadgeClasses, getStatusBadgeHoverClasses } from '@/utils/orderDashboardUtils';
-
-// Helper for pill-style status badge (smaller, rounded, colored)
-const getStatusPillStyles = (status: OrderStatus) => {
-  switch (status) {
-    case 'new':
-      return 'bg-red-100 text-red-700 border border-red-200';
-    case 'preparing':
-      return 'bg-yellow-300 text-yellow-900 border border-yellow-400';
-    case 'ready':
-      return 'bg-orange-200 text-orange-800 border border-orange-400';
-    case 'delivery':
-      return 'bg-blue-100 text-blue-700 border border-blue-300';
-    case 'completed':
-      return 'bg-green-100 text-green-800 border border-green-300';
-    case 'paid':
-      return 'bg-green-200 text-green-900 border border-green-400';
-    case 'cancelled':
-      return 'bg-gray-200 text-gray-600 border border-gray-300';
-    default:
-      return 'bg-gray-100 text-gray-800 border border-gray-300';
-  }
-};
+import { Button } from '@/components/ui/button'; // For Load More button
+import { Loader2, Inbox } from 'lucide-react'; // For loading icon and empty state
 
 interface OrdersListProps {
-  orders: Order[];
-  selectedOrders: number[];
+  orders: OrderWithCustomerDetails[]; // Use the more detailed type
+  selectedOrders: number[]; // Assuming order IDs are numbers
   toggleSelectOrder: (orderId: number) => void;
   updateOrderStatus: (orderId: number, newStatus: OrderStatus) => void;
   orderStatusOptions: OrderStatus[];
-  selectAllOrders: () => void;
+  selectAllOrders: () => void; // Should now correctly use the filtered list from parent
   clearSelection: () => void;
+  // Pagination props
+  fetchNextPage: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage: boolean;
 }
 
 const OrdersList = ({ 
@@ -46,42 +32,59 @@ const OrdersList = ({
   orderStatusOptions,
   selectAllOrders,
   clearSelection,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
 }: OrdersListProps) => {
-  if (orders.length === 0) {
-    return <div className="p-6 text-center text-muted-foreground">No orders found.</div>;
+
+  // Show "No orders found" only if truly no orders and no more to load.
+  if (orders.length === 0 && !isFetchingNextPage && !hasNextPage) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Inbox className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-medium">No Orders Found</h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          There are no orders matching your current filters.
+        </p>
+      </div>
+    );
   }
 
-  const allSelected = orders.length > 0 && selectedOrders.length === orders.length;
-  const isIndeterminate = selectedOrders.length > 0 && !allSelected;
+  const allSelectedOnPage = orders.length > 0 && orders.every(o => selectedOrders.includes(o.id));
+  const isIndeterminate = selectedOrders.length > 0 && !allSelectedOnPage;
 
   const handleSelectAllChange = () => {
-    if (allSelected) {
-      clearSelection();
+    if (allSelectedOnPage) {
+      clearSelection(); // Clears all selected orders
     } else {
-      selectAllOrders();
+      selectAllOrders(); // Selects all orders passed in (which should be filtered list)
     }
   };
 
   return (
     <div>
-      {/* Header row for select all */}
-      <div className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b bg-muted/50 text-sm font-medium text-muted-foreground">
-        <div className="col-span-1 flex items-center min-w-[32px]">
-            <Checkbox 
-                checked={isIndeterminate ? 'indeterminate' : allSelected}
-                onCheckedChange={handleSelectAllChange}
-                aria-label="Select all orders"
-            />
+      {/* Header row for select all, only if there are orders to display */}
+      {orders.length > 0 && (
+        <div className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b bg-muted/50 text-sm font-medium text-muted-foreground">
+          <div className="col-span-1 flex items-center min-w-[32px]">
+              <Checkbox
+                  checked={isIndeterminate ? 'indeterminate' : allSelectedOnPage}
+                  onCheckedChange={handleSelectAllChange}
+                  aria-label="Select all orders on this page"
+              />
+          </div>
+          <div className="col-span-11"></div> {/* Placeholder for other header info if needed */}
         </div>
-        <div className="col-span-11"></div>
-      </div>
+      )}
+
       {/* Orders rows */}
       {orders.map((order) => {
+        // customer_name_from_profile is now directly on the order object from useFetchOrders
         const customerDisplayName = order.customer_name_from_profile || 
-                                  order.customer_name || 
+                                  order.customer_name || // Fallback if join failed or no profile
                                   `Order #${order.id}`;
 
-        const statusVal: OrderStatus = order.order_status || "new";
+        const statusVal: OrderStatus = order.order_status || "new"; // Default to new if undefined
 
         return (
           <div
@@ -179,6 +182,51 @@ const OrdersList = ({
           </div>
         );
       })}
+
+      {/* Load More Button */}
+      {hasNextPage && (
+        <div className="flex justify-center py-4">
+          <Button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            variant="outline"
+            size="sm"
+          >
+            {isFetchingNextPage ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading More...
+              </>
+            ) : (
+              'Load More Orders'
+            )}
+          </Button>
+        </div>
+      )}
+      {/* Message if all orders are loaded and list is empty (e.g. due to filters) */}
+      {orders.length > 0 && !hasNextPage && !isFetchingNextPage && (
+         <div className="p-4 text-center text-sm text-muted-foreground">
+           All orders loaded.
+         </div>
+      )}
+       {(orders.length === 0 && hasNextPage) && (
+         <div className="flex justify-center py-4">
+          <Button
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            variant="outline"
+          >
+            {isFetchingNextPage ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load Orders'
+            )}
+          </Button>
+        </div>
+       )}
     </div>
   );
 };
