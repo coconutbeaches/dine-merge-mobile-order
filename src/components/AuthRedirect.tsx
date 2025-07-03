@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserContext } from '@/context/UserContext';
 
 interface AuthRedirectProps {

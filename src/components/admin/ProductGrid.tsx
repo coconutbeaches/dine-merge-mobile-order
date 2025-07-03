@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { formatThaiCurrency } from '@/lib/utils';
-import { NavigateFunction } from 'react-router-dom';
 import { Product } from '@/types/supabaseTypes';
 
 interface Category {

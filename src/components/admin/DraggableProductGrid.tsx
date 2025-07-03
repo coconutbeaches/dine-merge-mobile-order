@@ -8,7 +8,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatThaiCurrency } from '@/lib/utils';
-import { NavigateFunction } from 'react-router-dom';
 import { Product } from '@/types/supabaseTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
