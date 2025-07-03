@@ -31,7 +31,6 @@ import ProtectedAdminRoute from "./components/layout/ProtectedAdminRoute";
 import AdminOrderDetail from "./pages/AdminOrderDetail";
 import CustomersDashboard from "./pages/CustomersDashboard";
 import ProductOrders from './pages/admin/ProductOrders';
-import Register from './pages/Register';
 
 function App() {
   return (
@@ -55,7 +54,6 @@ function App() {
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/order-history" element={<OrderHistory />} />
-              <Route path="/register" element={<Register />} />
 
             {/* Admin Protected Routes */}
             <Route element={<ProtectedAdminRoute />}>
