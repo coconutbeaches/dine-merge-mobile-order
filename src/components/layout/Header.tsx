@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingCart, User, Settings } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';

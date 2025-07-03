@@ -4,6 +4,13 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { fetchUserProfile, updateUserProfile } from '@/services/userProfileService';
 import { supabase } from '@/integrations/supabase/client';
 
+// Runtime check for required environment variables
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  throw new Error('Missing required environment variable: NEXT_PUBLIC_SUPABASE_URL');
+}
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+
 interface UserContextType {
   currentUser: User | GuestUser | null;
   isLoggedIn: boolean;
@@ -166,7 +173,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       options: {
         // The handle_new_user trigger in the DB will use the email as name if not provided.
         data: { name: name && name.trim().length > 0 ? name.trim() : undefined },
-        emailRedirectTo: window.location.origin,
+emailRedirectTo: SUPABASE_URL, // Use the Supabase URL directly for now
       },
     });
 

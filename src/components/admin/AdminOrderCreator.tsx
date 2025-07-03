@@ -6,6 +6,7 @@ import { Plus, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { nanoid } from 'nanoid';
+import { useNavigate } from 'react-router-dom';
 
 interface Customer {
   id: string;
@@ -76,7 +77,7 @@ const AdminOrderCreator = () => {
 
   const handleCreateOrder = (customerId: string) => {
     console.log('Navigating to customer orders for:', customerId);
-    // Use React Router navigation instead of window.location.href
+    // Use Next.js router navigation for client-side routing
     navigate(`/admin/customer-orders/${customerId}`);
     setOpen(false); // Close main dialog
   };
