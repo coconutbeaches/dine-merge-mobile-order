@@ -4,11 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "next dev",
     "build": "next build",
-    "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview",
+    "preview": "next start",
     "start": "next start",
     "test": "vitest",
     "collect-logs": "node scripts/collect-logs.js",
@@ -61,6 +60,7 @@
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
     "nanoid": "^5.1.5",
+    "next": "^14.2.30",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -86,7 +86,6 @@
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
@@ -99,6 +98,7 @@
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
+    "@vitejs/plugin-react-swc": "^3.5.0",
     "vitest": "^3.1.4"
   }
 }
