@@ -78,7 +78,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
         
       if (error) throw error;
       console.log("Customer details:", data);
@@ -104,7 +104,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         .from('profiles')
         .select('name, email')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
         
       if (profileError) {
         console.warn('Could not fetch profile data:', profileError);

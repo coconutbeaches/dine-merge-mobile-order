@@ -86,7 +86,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
           .from('profiles')
           .select('name, email')
           .eq('id', orderData.user_id)
-          .single();
+          .maybeSingle();
 
         if (profileError) {
           console.error(`Error fetching profile for user ${orderData.user_id}:`, profileError);

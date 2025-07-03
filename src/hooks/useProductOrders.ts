@@ -31,7 +31,7 @@ export const useProductOrders = (
           .from('products')
           .select('name')
           .eq('id', productId)
-          .single();
+          .maybeSingle();
 
         if (productError) throw productError;
         setProductName(productData.name);

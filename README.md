@@ -73,6 +73,18 @@ npm run dev        # e.g. http://localhost:8080 or http://localhost:8081
 VITE_PORT=8081 npm run collect-logs
 ```
 
+Ensure the Vite dev server is running (`npm run dev`) so that the CORS proxy and error-overlay settings take effect. Once started, visit http://localhost:8080 (or your chosen port).
+
+#### CORS workaround in development
+
+The Vite dev server proxies Supabase API endpoints and Realtime websockets to avoid CORS issues:
+
+- `/auth/v1`, `/rest/v1`, and `/storage/v1` requests are forwarded to your Supabase project.
+- `/realtime/v1` websocket connections are also proxied (enabling Replication/Recoil updates).
+- In development the Supabase client uses relative URLs (`import.meta.env.DEV`).
+
+If you prefer not to use the proxy, whitelist your dev origin in the Supabase Dashboard (Settings → API → Allowed CORS origins).
+
 ## What technologies are used for this project?
 
 This project is built with:

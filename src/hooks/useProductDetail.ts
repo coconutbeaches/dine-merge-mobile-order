@@ -16,7 +16,7 @@ export const useProductDetail = (id: string | undefined) => {
           .from('products')
           .select('*')
           .eq('id', id)
-          .single();
+          .maybeSingle();
           
         if (productError) {
           console.error("Error fetching product:", productError);

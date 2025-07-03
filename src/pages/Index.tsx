@@ -84,7 +84,7 @@ const Index = () => {
           <div className="mb-6">
             <Card className="border border-gray-200">
               <div className="p-4">
-                <h2 className="text-lg font-semibold">Welcome back, {currentUser.name.split(' ')[0]}!</h2>
+                <h2 className="text-lg font-semibold">Welcome back, {currentUser.first_name || currentUser.name.split(' ')[0]}!</h2>
                 {adminCustomerContext && (
                   <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-3 mb-3 rounded">
                     <p className="font-bold">Ordering for: {adminCustomerContext.customerName}</p>

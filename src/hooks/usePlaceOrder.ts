@@ -32,6 +32,52 @@ export function usePlaceOrder(
       return null;
     }
 
+    let customerName: string | null = null;
+    let customerEmail: string | null = null;
+
+    let profileData: { name: string | null; email: string | null } | null = null;
+    let guestProfileData: { first_name: string | null } | null = null;
+
+    // Try to fetch guest user first
+    if (finalUserId.includes('-') && finalUserId.includes('_')) { // Heuristic for guest user_id format (e.g., A5-CROWLEY_tyrone)
+      const { data: guestData, error: guestError } = await supabase
+        .from('guest_users')
+        .select('first_name')
+        .eq('auth_user_id', finalUserId)
+        .maybeSingle();
+
+      if (guestData) {
+        guestProfileData = guestData;
+        customerName = guestData.first_name;
+        customerEmail = null; // Guest users don't have emails in this setup
+      } else if (guestError) {
+        console.warn('Guest user not found or error fetching guest profile:', guestError.message);
+        // Fallback to regular profile fetch if guest user not found
+      }
+    }
+
+    // If not a guest user or guest user not found, try fetching from profiles table
+    if (!customerName) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('name, email')
+        .eq('id', finalUserId)
+        .maybeSingle();
+      
+      if (profile) {
+        profileData = profile;
+        customerName = profile.name;
+        customerEmail = profile.email;
+      } else if (profileError) {
+        console.error("Error fetching profile for order:", profileError);
+      }
+    }
+
+    // If still no customer name, use a fallback
+    if (!customerName) {
+      customerName = 'Unknown Customer';
+    }
+
     try {
       console.log("useOrders: Placing order with:", { 
         userId: finalUserId, 
@@ -39,21 +85,10 @@ export function usePlaceOrder(
         paymentMethod, 
         cart: cart.length, 
         tableNumberInput,
-        adminContext
+        adminContext,
+        customerName, // Log resolved customer name
+        customerEmail // Log resolved customer email
       });
-      
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('name, email')
-        .eq('id', finalUserId)
-        .single();
-      
-      if (profileError) {
-        console.error("Error fetching profile for order:", profileError);
-      }
-      
-      const customerName = adminContext?.customerName || profile?.name || null;
-      console.log("Customer profile found:", profile);
       
       const insertedOrderData = await placeOrderInSupabase(
         finalUserId, // Always associate with the profile ID
@@ -82,7 +117,7 @@ export function usePlaceOrder(
         table_number: insertedOrderData.table_number || tableNumberInput,
         customer_name: insertedOrderData.customer_name,
         customer_name_from_profile: customerName,
-        customer_email_from_profile: profile?.email || null
+        customer_email_from_profile: customerEmail
       };
       
       console.log("New order created for local state:", newOrderForLocalState);

@@ -12,6 +12,10 @@ export const useSupabaseAuth = (onProfileFetch: (userId: string) => Promise<void
   const onProfileFetchRef = useRef(onProfileFetch);
   onProfileFetchRef.current = onProfileFetch;
 
+  const lastUserIdRef = useRef<string | null>(null);
+
+
+
   useEffect(() => {
     let isMounted = true;
     let authSubscription: { unsubscribe: () => void } | null = null;
@@ -19,15 +23,13 @@ export const useSupabaseAuth = (onProfileFetch: (userId: string) => Promise<void
     const handleAuthChange = async (event: string, session: Session | null) => {
       if (!isMounted) return;
       console.log('[useSupabaseAuth] Auth state change:', event, session);
-      setSupabaseSession(session ?? null);
-      setSupabaseUser(session?.user ?? null);
-
-      if (session?.user) {
-        await onProfileFetchRef.current(session.user.id);
-      } else {
-        await onProfileFetchRef.current('');
+      const newUserId = session?.user?.id ?? '';
+      if (newUserId !== lastUserIdRef.current) {
+        setSupabaseSession(session ?? null);
+        setSupabaseUser(session?.user ?? null);
+        await onProfileFetchRef.current(newUserId);
+        lastUserIdRef.current = newUserId;
       }
-
       if (isMounted) {
         setIsLoading(false);
         console.log('[useSupabaseAuth] Loading complete.');

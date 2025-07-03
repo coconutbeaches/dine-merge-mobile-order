@@ -30,6 +30,8 @@ const Checkout = () => {
     setAdminCustomerContext
   } = useAppContext();
 
+  console.log("[Checkout] Render. currentUser:", currentUser);
+
   const [tableNumber, setTableNumber] = useState('Take Away');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});

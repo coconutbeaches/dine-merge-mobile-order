@@ -8,4 +8,6 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+// In development, point to the local Vite server (with proxy) to bypass CORS
+const BASE_URL = import.meta.env.DEV ? window.location.origin : SUPABASE_URL;
+export const supabase = createClient<Database>(BASE_URL, SUPABASE_PUBLISHABLE_KEY);

@@ -27,7 +27,7 @@ export const useUserOrders = (userId: string | undefined) => {
         .from('profiles')
         .select('name, email')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
         
       if (profileError) {
         console.warn('Could not fetch profile data:', profileError);

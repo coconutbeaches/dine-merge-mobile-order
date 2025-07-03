@@ -16,6 +16,31 @@ export default defineConfig(({ mode }) => ({
     // bind to all IPv4 addresses so headless scripts can connect via localhost
     host: '0.0.0.0',
     port: 8080,
+    // disable the default error overlay to avoid duplicate element definition
+    hmr: {
+      overlay: false,
+    },
+    // proxy Supabase endpoints in development to bypass CORS
+    proxy: {
+      '/auth/v1': {
+        target: 'https://wcplwmvbhreevxvsdmog.supabase.co',
+        changeOrigin: true,
+      },
+      '/rest/v1': {
+        target: 'https://wcplwmvbhreevxvsdmog.supabase.co',
+        changeOrigin: true,
+      },
+      '/storage/v1': {
+        target: 'https://wcplwmvbhreevxvsdmog.supabase.co',
+        changeOrigin: true,
+      },
+      // Proxy Supabase Realtime websockets
+      '/realtime/v1': {
+        target: 'https://wcplwmvbhreevxvsdmog.supabase.co',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   plugins: [
     react(),

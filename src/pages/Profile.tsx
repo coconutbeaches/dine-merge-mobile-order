@@ -25,9 +25,15 @@ const Profile = () => {
       navigate('/login', { state: { returnTo: '/profile' } });
     }
     if (currentUser) {
-      setName(currentUser.name || '');
-      setEmail(currentUser.email || '');
-      setPhone(currentUser.phone || ''); 
+      if ('first_name' in currentUser) { // Check if it's a GuestUser
+        setName(currentUser.first_name || '');
+        setEmail(`guest_${currentUser.stay_id.toLowerCase()}@example.com`); // Derive a dummy email for display
+        setPhone(''); // Guest users don't have phone numbers in this setup
+      } else { // Regular User
+        setName(currentUser.name || '');
+        setEmail(currentUser.email || '');
+        setPhone(currentUser.phone || ''); 
+      }
     }
   }, [currentUser, isLoggedIn, isLoadingUserContext, navigate]);
 
@@ -100,7 +106,7 @@ const Profile = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Account Information</CardTitle>
-            {!isEditing && (
+            {!isEditing && !('first_name' in currentUser) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -119,7 +125,7 @@ const Profile = () => {
                   id="name" 
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
-                  disabled={!isEditing || isLoading} 
+                  disabled={!isEditing || isLoading || ('first_name' in currentUser)} 
                 />
               </div>
               <div>
@@ -139,7 +145,7 @@ const Profile = () => {
                   type="tel" 
                   value={phone} 
                   onChange={(e) => setPhone(e.target.value)} 
-                  disabled={!isEditing || isLoading} 
+                  disabled={!isEditing || isLoading || ('first_name' in currentUser)} 
                 />
               </div>
             </CardContent>

@@ -34,6 +34,7 @@ const OrderConfirmation = () => {
     }).join('\n');
 
     const customerName = order.customer_name || order.customer_name_from_profile || 'Guest';
+    console.log("OrderConfirmation: customerName for WhatsApp message:", customerName);
     const tableNumber = order.table_number || 'Takeaway';
     const formattedTotal = formatThaiCurrency(order.total_amount);
 

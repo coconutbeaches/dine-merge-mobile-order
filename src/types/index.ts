@@ -8,6 +8,14 @@ export interface User {
   orderHistory: import('./supabaseTypes').Order[];
 }
 
+export interface GuestUser {
+  id: string;
+  user_id: string;
+  first_name: string;
+  stay_id: string;
+  created_at: string;
+}
+
 export interface Address {
   id: string;
   street: string;
