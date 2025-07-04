@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <rect fill="#f5f5f5" width="180" height="180" rx="40"/>
+  <g fill="#1a1a1a">
+    <!-- Ground/Island -->
+    <ellipse cx="90" cy="160" rx="70" ry="15"/>
+    
+    <!-- Palm tree trunk -->
+    <path d="M80 155 Q85 135 86 115 Q88 95 89 75 Q91 95 93 115 Q95 135 100 155 Q95 155 90 152 Q85 155 80 155"/>
+    
+    <!-- Palm fronds/leaves -->
+    <!-- Top fronds -->
+    <path d="M89 75 Q105 45 125 25 Q135 15 150 10 Q130 30 110 50 Q99 62 89 75"/>
+    <path d="M89 75 Q73 45 53 25 Q43 15 28 10 Q48 30 68 50 Q79 62 89 75"/>
+    
+    <!-- Side fronds -->
+    <path d="M89 75 Q115 65 145 55 Q160 50 170 45 Q150 60 125 70 Q107 76 89 75"/>
+    <path d="M89 75 Q63 65 33 55 Q18 50 8 45 Q28 60 53 70 Q71 76 89 75"/>
+    
+    <!-- Lower angled fronds -->
+    <path d="M89 75 Q110 85 135 105 Q150 115 160 135 Q140 110 115 90 Q102 80 89 75"/>
+    <path d="M89 75 Q68 85 43 105 Q28 115 18 135 Q38 110 63 90 Q76 80 89 75"/>
+    
+    <!-- Center top fronds -->
+    <path d="M89 75 Q92 45 95 15 Q96 5 95 0 Q94 15 91 45 Q89.5 60 89 75"/>
+    <path d="M89 75 Q86 45 83 15 Q82 5 83 0 Q84 15 87 45 Q88.5 60 89 75"/>
+  </g>
+</svg>

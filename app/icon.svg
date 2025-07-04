@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect fill="#f5f5f5" width="32" height="32"/>
+  <g fill="#1a1a1a">
+    <!-- Ground/Island -->
+    <ellipse cx="16" cy="29" rx="14" ry="3"/>
+    
+    <!-- Palm tree trunk -->
+    <path d="M14 28 Q15 24 15.2 20 Q15.5 16 15.8 12 Q16.2 16 16.5 20 Q17 24 18 28 Q17 28 16 27.5 Q15 28 14 28"/>
+    
+    <!-- Palm fronds/leaves -->
+    <!-- Top fronds -->
+    <path d="M15.8 12 Q18 8 22 5 Q24 3 27 2 Q23 6 19 9 Q17 10.5 15.8 12"/>
+    <path d="M15.8 12 Q13 8 9 5 Q7 3 4 2 Q8 6 12 9 Q14 10.5 15.8 12"/>
+    
+    <!-- Side fronds -->
+    <path d="M15.8 12 Q20 10 25 9 Q28 8 30 7 Q26 10 22 11.5 Q19 12.2 15.8 12"/>
+    <path d="M15.8 12 Q11 10 6 9 Q3 8 1 7 Q5 10 9 11.5 Q12 12.2 15.8 12"/>
+    
+    <!-- Lower angled fronds -->
+    <path d="M15.8 12 Q19 14 23 17 Q26 19 28 22 Q24 18 20 15 Q18 13.5 15.8 12"/>
+    <path d="M15.8 12 Q12 14 8 17 Q5 19 3 22 Q7 18 11 15 Q13 13.5 15.8 12"/>
+    
+    <!-- Center top fronds -->
+    <path d="M15.8 12 Q16.5 8 17 4 Q17.2 1 17 0 Q16.8 4 16.2 8 Q15.9 10 15.8 12"/>
+    <path d="M15.8 12 Q15.1 8 14.6 4 Q14.4 1 14.6 0 Q14.8 4 15.4 8 Q15.7 10 15.8 12"/>
+  </g>
+</svg>
