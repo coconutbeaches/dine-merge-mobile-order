@@ -11,6 +11,7 @@ import ProductOptions from '@/components/menu-item/ProductOptions';
 import QuantityAddToCart from '@/components/menu-item/QuantityAddToCart';
 import { calculateTotalPrice, convertProductToMenuItem } from '@/utils/productUtils';
 import { Product, ProductOption } from '@/types/supabaseTypes';
+import Layout from '@/components/layout/Layout';
 
 type ProductWithOptions = Product & {
   options: ProductOption[];
@@ -72,28 +73,30 @@ export default function MenuItemClient({ product }: MenuItemClientProps) {
   const totalPrice = menuItemForCart ? calculateTotalPrice(menuItemForCart, selectedOptions) * quantity : 0;
 
   return (
-    <div className="page-container">
-      <ProductImageHeader 
-        isLoading={false}
-        error={null}
-        productDescription={product.description}
-        imageUrl={product.image_url}
-      />
-      
-      <ProductOptions 
-        options={product.options || []}
-        selectedOptions={selectedOptions}
-        onOptionChange={handleOptionChange}
-        onCheckboxChange={handleCheckboxChange}
-      />
-      
-      <QuantityAddToCart 
-        quantity={quantity}
-        totalPrice={totalPrice}
-        onQuantityDecrease={decreaseQuantity}
-        onQuantityIncrease={increaseQuantity}
-        onAddToCart={handleAddToCart}
-      />
-    </div>
+    <Layout title={product.name} showBackButton>
+      <div className="page-container">
+        <ProductImageHeader 
+          isLoading={false}
+          error={null}
+          productDescription={product.description}
+          imageUrl={product.image_url}
+        />
+        
+        <ProductOptions 
+          options={product.options || []}
+          selectedOptions={selectedOptions}
+          onOptionChange={handleOptionChange}
+          onCheckboxChange={handleCheckboxChange}
+        />
+        
+        <QuantityAddToCart 
+          quantity={quantity}
+          totalPrice={totalPrice}
+          onQuantityDecrease={decreaseQuantity}
+          onQuantityIncrease={increaseQuantity}
+          onAddToCart={handleAddToCart}
+        />
+      </div>
+    </Layout>
   );
 }
