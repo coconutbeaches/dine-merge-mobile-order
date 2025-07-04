@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client'; // Import if direct Supabase interaction is needed
 
 const ForgotPassword = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
   
   const [email, setEmail] = useState('');
@@ -70,7 +71,7 @@ const ForgotPassword = () => {
               </CardHeader>
               <CardContent className="text-center">
                 <Button 
-                  onClick={() => navigate('/login')} 
+                  onClick={() => router.push('/login')} 
                   className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
                 >
                   Back to Login
@@ -112,7 +113,7 @@ const ForgotPassword = () => {
                     <div className="text-center mt-4">
                       <p className="text-sm text-muted-foreground">
                         Remembered your password?{" "}
-                        <Link to="/login" className="text-restaurant-primary hover:underline">
+                        <Link href="/login" className="text-restaurant-primary hover:underline">
                           Login
                         </Link>
                       </p>

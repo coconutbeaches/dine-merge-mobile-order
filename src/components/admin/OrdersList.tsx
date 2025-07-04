@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
@@ -100,7 +100,7 @@ const OrdersList = ({
             <div className="col-span-4 min-w-0">
               {order.user_id ? (
                 <Link 
-                  to={`/admin/customer-orders/${order.user_id}`} 
+                  href={`/admin/customer-orders/${order.user_id}`} 
                   className="font-medium text-primary hover:underline truncate block"
                   title={`${customerDisplayName} (${order.customer_email_from_profile || 'No Email'})`}
                 >
@@ -128,7 +128,7 @@ const OrdersList = ({
               title={`Order #${order.id}`}
               style={{ minWidth: 0 }}
             >
-              <Link to={`/admin/orders/${order.id}`} className="hover:underline">
+              <Link href={`/admin/orders/${order.id}`} className="hover:underline">
                 {formatThaiCurrency(order.total_amount)}
               </Link>
             </div>

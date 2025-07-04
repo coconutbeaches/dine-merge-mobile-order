@@ -1,5 +1,6 @@
 import React from 'react';
-import { useParams, useLocation, Link } from 'react-router-dom';
+import { useParams, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
 import { useProductOrders } from '@/hooks/useProductOrders';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,9 +19,9 @@ import { getStatusClass } from '@/utils/orderDashboardUtils';
 import { OrderStatus } from '@/types/supabaseTypes';
 
 const ProductOrders = () => {
-  const { productId } = useParams<{ productId: string }>();
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const productId = params.productId as string;
   const customerType = searchParams.get('customerType');
   const startDate = searchParams.get('startDate');
   const endDate = searchParams.get('endDate');
@@ -73,7 +74,7 @@ const ProductOrders = () => {
                   {orders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell>
-                        <Link to={`/admin/orders/${order.id}`} className="underline">
+                        <Link href={`/admin/orders/${order.id}`} className="underline">
                           {order.id.slice(0, 8)}...
                         </Link>
                       </TableCell>

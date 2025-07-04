@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Product } from '@/types/supabaseTypes';
 import DraggableProductGrid from '@/components/admin/DraggableProductGrid';
@@ -22,7 +22,7 @@ interface ProductWithCategory extends Product {
 }
 
 const ProductsDashboard = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { currentUser } = useUserContext();
   const queryClient = useQueryClient();
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -77,7 +77,7 @@ const ProductsDashboard = () => {
   }
 
   const handleAddProduct = () => {
-    navigate('/products/new');
+    router.push('/products/new');
   };
 
   const handleProductsReorder = (reorderedProducts: ProductWithCategory[]) => {
@@ -132,7 +132,7 @@ const ProductsDashboard = () => {
             categoryFilter={categoryFilter}
             categories={categories || []}
             handleAddProduct={handleAddProduct}
-            navigate={navigate}
+            navigate={router}
             onProductsReorder={handleProductsReorder}
             onProductDelete={handleDeleteProduct}
             isAdmin={isAdmin}

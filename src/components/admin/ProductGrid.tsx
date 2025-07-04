@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus } from 'lucide-react';
 import { formatThaiCurrency } from '@/lib/utils';
-import { NavigateFunction } from 'react-router-dom';
+// Types for Next.js router
 import { Product } from '@/types/supabaseTypes';
 
 interface Category {
@@ -22,7 +22,7 @@ interface ProductGridProps {
   categoryFilter: string | null;
   categories: Category[];
   handleAddProduct: () => void;
-  navigate: NavigateFunction;
+  navigate: { push: (url: string) => void };
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
@@ -76,7 +76,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         <Card 
           key={product.id} 
           className="cursor-pointer hover:shadow-lg transition-shadow flex flex-col"
-          onClick={() => navigate(`/products/edit/${product.id}`)}
+          onClick={() => navigate.push(`/products/edit/${product.id}`)}
         >
           <div className="relative aspect-square bg-gray-100 w-full">
             {product.image_url ? (
@@ -113,7 +113,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/products/edit/${product.id}`);
+                  navigate.push(`/products/edit/${product.id}`);
                 }}
               >
                 Edit

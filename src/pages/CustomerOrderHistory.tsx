@@ -62,7 +62,7 @@ const CustomerOrderHistory = () => {
       <div className="page-container p-4 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Link to="/orders-dashboard">
+            <Link href="/orders-dashboard">
               <Button variant="outline" size="icon">
                 <ArrowLeft className="h-4 w-4" />
               </Button>

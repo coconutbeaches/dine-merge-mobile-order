@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
@@ -12,14 +12,14 @@ import { formatThaiCurrency } from '@/lib/utils';
 import { calculateTotalPrice } from '@/utils/productUtils';
 
 const OrderHistory = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { getOrderHistory, isLoggedIn, isLoading } = useAppContext();
   
   React.useEffect(() => {
     if (!isLoading && !isLoggedIn) {
-      navigate('/login', { state: { returnTo: '/order-history' } });
+      router.push('/login?returnTo=%2Forder-history');
     }
-  }, [isLoggedIn, navigate, isLoading]);
+  }, [isLoggedIn, router, isLoading]);
   
   // The getOrderHistory from context already filters by user and sorts.
   const orders = getOrderHistory();
@@ -74,7 +74,7 @@ const OrderHistory = () => {
           <div className="text-center py-10">
             <h2 className="text-xl font-bold mb-2">No Orders Yet</h2>
             <p className="text-muted-foreground mb-6">You haven't placed any orders yet.</p>
-            <Button onClick={() => navigate('/menu')}>Browse Menu</Button>
+            <Button onClick={() => router.push('/menu')}>Browse Menu</Button>
           </div>
         ) : (
           <div className="space-y-4">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,7 @@ const Admin = () => {
       <div className="p-4 max-w-lg mx-auto">
         
         <div className="grid gap-4 mt-6 mb-8">
-          <Link to="/orders-dashboard">
+          <Link href="/orders-dashboard">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">
@@ -28,7 +28,7 @@ const Admin = () => {
             </Card>
           </Link>
           
-          <Link to="/products-dashboard">
+          <Link href="/products-dashboard">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">
@@ -39,7 +39,7 @@ const Admin = () => {
             </Card>
           </Link>
           
-          <Link to="/categories-manager">
+          <Link href="/categories-manager">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">
@@ -50,7 +50,7 @@ const Admin = () => {
             </Card>
           </Link>
           
-          <Link to="/customers-dashboard">
+          <Link href="/customers-dashboard">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">
@@ -61,7 +61,7 @@ const Admin = () => {
             </Card>
           </Link>
 
-          <Link to="/admin/analytics/orders-over-time">
+          <Link href="/admin/analytics/orders-over-time">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">

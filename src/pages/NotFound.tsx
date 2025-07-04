@@ -1,18 +1,19 @@
 
-import { useLocation, Link } from "react-router-dom";
+import Link from "next/link";
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 const NotFound = () => {
-  const location = useLocation();
+  const pathname = usePathname();
 
   useEffect(() => {
     console.error(
       "404 Error: User attempted to access non-existent route:",
-      location.pathname
+      pathname
     );
-  }, [location.pathname]);
+  }, [pathname]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -23,7 +24,7 @@ const NotFound = () => {
           The page you are looking for might have been removed, had its name changed,
           or is temporarily unavailable.
         </p>
-        <Link to="/">
+        <Link href="/">
           <Button className="flex items-center gap-2">
             <ArrowLeft size={16} />
             Return to Home

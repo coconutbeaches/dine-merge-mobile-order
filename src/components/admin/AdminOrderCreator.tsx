@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ interface Customer {
 }
 
 const AdminOrderCreator = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
@@ -79,7 +79,7 @@ const AdminOrderCreator = () => {
   const handleCreateOrder = (customerId: string) => {
     console.log('Navigating to customer orders for:', customerId);
     // Use React Router navigation instead of window.location.href
-    navigate(`/admin/customer-orders/${customerId}`);
+    router.push(`/admin/customer-orders/${customerId}`);
     setOpen(false); // Close main dialog
   };
 

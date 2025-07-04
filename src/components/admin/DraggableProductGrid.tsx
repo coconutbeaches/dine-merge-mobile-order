@@ -8,7 +8,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatThaiCurrency } from '@/lib/utils';
-import { NavigateFunction } from 'react-router-dom';
+// Types for Next.js router
 import { Product } from '@/types/supabaseTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -24,7 +24,7 @@ interface ProductWithCategory extends Product {
 
 interface DraggableProductItemProps {
   product: ProductWithCategory;
-  navigate: NavigateFunction;
+  navigate: { push: (url: string) => void };
   onDelete: (productId: string) => void;
   isAdmin: boolean;
 }
@@ -52,7 +52,7 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
       className={`cursor-pointer hover:shadow-lg transition-shadow flex flex-col relative ${
         isDragging ? 'z-50' : ''
       }`}
-      onClick={() => navigate(`/products/edit/${product.id}`)}
+      onClick={() => navigate.push(`/products/edit/${product.id}`)}
     >
       <div
         {...attributes}
@@ -101,7 +101,7 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
               size="sm"
               onClick={(e) => {
                 e.stopPropagation();
-                navigate(`/products/edit/${product.id}`);
+                navigate.push(`/products/edit/${product.id}`);
               }}
             >
               <Edit className="h-4 w-4" />
@@ -133,7 +133,7 @@ interface DraggableProductGridProps {
   categoryFilter: string | null;
   categories: Category[];
   handleAddProduct: () => void;
-  navigate: NavigateFunction;
+  navigate: { push: (url: string) => void };
   onProductsReorder: (reorderedProducts: ProductWithCategory[]) => void;
   onProductDelete: (productId: string) => void;
   isAdmin: boolean;

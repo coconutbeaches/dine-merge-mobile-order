@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,8 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client'; // To be used in the next step
 
 const ResetPassword = () => {
-  const navigate = useNavigate();
-  // const location = useLocation(); // No longer needed for access token
+  const router = useRouter();
+  // const searchParams = useSearchParams(); // Can be used for access token if needed
   const { toast } = useToast();
 
   const [password, setPassword] = useState('');
@@ -85,7 +85,7 @@ const ResetPassword = () => {
               </CardHeader>
               <CardContent className="text-center">
                 <Button 
-                  onClick={() => navigate('/login')} 
+                  onClick={() => router.push('/login')} 
                   className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
                 >
                   Back to Login

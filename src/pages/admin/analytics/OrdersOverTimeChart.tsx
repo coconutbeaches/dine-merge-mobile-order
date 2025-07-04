@@ -11,7 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { useOrdersByDate } from "@/hooks/useOrdersByDate";
 import { addDays, format, subDays } from "date-fns";
 import { DateRange } from "react-day-picker";
@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/table";
 import { useTopProductsByQuantity } from "@/hooks/useTopProductsByQuantity";
 import { formatThaiCurrency, formatThaiCurrencyWithComma } from "@/lib/utils";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 
 import type { TooltipProps } from "recharts";
 
@@ -99,11 +99,11 @@ const OrdersOverTimeChart = () => {
   };
 
   // allow clicking bars to navigate to orders dashboard filtered by date
-  const navigate = useNavigate();
+  const router = useRouter();
   const handleBarClick = (entry: any) => {
     if (entry?.date) {
       const dateStr = entry.date;
-      navigate(`/orders-dashboard?startDate=${dateStr}&endDate=${dateStr}`);
+      router.push(`/orders-dashboard?startDate=${dateStr}&endDate=${dateStr}`);
     }
   };
 
@@ -376,7 +376,7 @@ const OrdersOverTimeChart = () => {
                         <TableCell className="text-right">
                           {product.hotel_guest_quantity > 0 ? (
                             <Link
-                              to={`/admin/product-orders/${product.product_id}?customerType=guest&startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                              href={`/admin/product-orders/${product.product_id}?customerType=guest&startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
                               className="hover:underline"
                             >
                               {product.hotel_guest_quantity.toLocaleString()}
@@ -388,7 +388,7 @@ const OrdersOverTimeChart = () => {
                         <TableCell className="text-right">
                           {product.non_guest_quantity > 0 ? (
                             <Link
-                              to={`/admin/product-orders/${product.product_id}?customerType=non-guest&startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                              href={`/admin/product-orders/${product.product_id}?customerType=non-guest&startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
                               className="hover:underline"
                             >
                               {product.non_guest_quantity.toLocaleString()}
@@ -400,7 +400,7 @@ const OrdersOverTimeChart = () => {
                         <TableCell className="text-right font-medium">
                           {product.total_quantity > 0 ? (
                             <Link
-                              to={`/admin/product-orders/${product.product_id}?startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                              href={`/admin/product-orders/${product.product_id}?startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
                               className="hover:underline"
                             >
                               {product.total_quantity.toLocaleString()}
