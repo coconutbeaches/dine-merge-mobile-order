@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import {
 import { calculateTotalPrice } from '@/utils/productUtils';
 
 const Checkout = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const {
     cart,
     cartTotal,
@@ -76,7 +76,7 @@ const Checkout = () => {
         if (setAdminCustomerContext) {
           setAdminCustomerContext(null);
         }
-        router.push('/order-confirmation');
+        navigate(`/order-confirmation/${placedOrder.id}`);
       } else {
         toast.error('Failed to place order. Please try again.');
       }
@@ -118,8 +118,8 @@ const Checkout = () => {
                 <p className="text-lg font-semibold">Your cart is empty.</p>
                 <p className="text-muted-foreground">Add items to your cart to proceed to checkout.</p>
                 <Button 
-                  className="mt-4" 
-                  onClick={() => router.push('/menu')}
+                  className="mt-4 bg-black text-white hover:bg-gray-800" 
+                  onClick={() => navigate('/')}
                 >
                   Browse Menu
                 </Button>

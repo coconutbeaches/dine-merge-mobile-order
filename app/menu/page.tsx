@@ -84,8 +84,9 @@ export default function MenuIndexPage() {
   if (catLoading || prodLoading) {
     return (
       <Layout title="Menu" showBackButton>
-        <div className="page-container py-8">
-          Loading menu... (Categories: {catLoading ? 'loading' : 'loaded'}, Products: {prodLoading ? 'loading' : 'loaded'})
+        <div className="page-container text-center py-10">
+          <h2 className="text-xl font-bold mb-2">Hi! 👋 Welcome to Coconut Beach 🌴</h2>
+          <p className="text-muted-foreground mb-6">Let's find you some yummy stuff to eat...</p>
         </div>
       </Layout>
     );

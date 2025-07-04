@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Separator } from '@/components/ui/separator';
 import { formatThaiCurrency } from '@/lib/utils';
 import { useAppContext } from '@/context/AppContext';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { ShoppingBag, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Select,
@@ -88,10 +88,10 @@ export default function CheckoutPage() {
     return (
       <Layout title="" showBackButton>
         <div className="page-container text-center py-10">
-          <AlertTriangle className="inline-block h-10 w-10 text-yellow-500 mb-2" />
+          <ShoppingBag className="inline-block h-10 w-10 text-muted-foreground mb-2" />
           <h2 className="text-xl font-bold mb-2">Your cart is empty.</h2>
           <p className="text-muted-foreground mb-6">Add items to your cart to proceed.</p>
-          <Button onClick={() => router.push('/')}>Browse Menu</Button>
+          <Button className="bg-black text-white hover:bg-gray-800" onClick={() => router.push('/')}>Browse Menu</Button>
         </div>
       </Layout>
     );
