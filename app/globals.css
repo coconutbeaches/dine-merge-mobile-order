@@ -1,3 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ----- Restaurant App Custom Styles (from src/index.css) ----- */
+.food-card {
+  @apply rounded-md transition-all duration-300;
+}
+
+.page-container {
+  @apply max-w-lg mx-auto px-4 pb-20 pt-4;
+}
+
+.category-header {
+  @apply bg-black text-white font-bold text-2xl p-3 mb-4 w-full;
+}
+
+.menu-grid {
+  @apply grid grid-cols-2 gap-3;
+}
+
+.menu-item {
+  @apply flex flex-col;
+}
+
+.menu-item-image {
+  @apply w-full aspect-square object-cover mb-2;
+}
+
+.menu-item-name {
+  @apply font-medium text-sm;
+}
+
+.menu-item-price {
+  @apply font-bold text-sm;
+}
+
+.popular-badge {
+  @apply absolute top-2 right-2 bg-black text-white text-xs px-2 py-1 rounded-sm;
+}

@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 export default function Page() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get('returnTo') || '/';
+  const returnTo = searchParams?.get('returnTo') || '/';
   const { loginOrSignup } = useAppContext();
   const { toast } = useToast();
 

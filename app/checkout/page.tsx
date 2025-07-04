@@ -1,0 +1,159 @@
+"use client";
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Layout from '@/components/layout/Layout';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { formatThaiCurrency } from '@/lib/utils';
+import { useAppContext } from '@/context/AppContext';
+import { AlertTriangle, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { calculateTotalPrice } from '@/utils/productUtils';
+
+export default function CheckoutPage() {
+  const router = useRouter();
+  const {
+    cart,
+    cartTotal,
+    clearCart,
+    currentUser,
+    placeOrder,
+    adminCustomerContext,
+    setAdminCustomerContext,
+  } = useAppContext();
+  const [tableNumber, setTableNumber] = useState('Take Away');
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string,string>>({});
+
+  const validateOrder = () => {
+    const errors: Record<string,string> = {};
+    if (!currentUser) {
+      errors.user = 'You must be logged in to place an order.';
+    }
+    if (cart.length === 0) {
+      errors.cart = 'Your cart is empty.';
+    }
+    return errors;
+  };
+
+  const handlePlaceOrder = async () => {
+    const errors = validateOrder();
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      Object.values(errors).forEach(msg => toast.error(msg));
+      return;
+    }
+
+    setIsPlacingOrder(true);
+    setFormErrors({});
+    try {
+      const placedOrder = await placeOrder(
+        null,
+        'Cash on Delivery',
+        tableNumber
+      );
+      if (placedOrder) {
+        toast.success('Order placed successfully!');
+        clearCart();
+        setAdminCustomerContext?.(null);
+        router.push(`/order-confirmation?orderId=${placedOrder.id}`);
+      } else {
+        toast.error('Failed to place order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error placing order:', error);
+      toast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
+  const generateTableNumbers = () => {
+    const nums = ['Take Away'];
+    for (let i = 1; i <= 40; i++) nums.push(i.toString());
+    return nums;
+  };
+  const tableNumbers = generateTableNumbers();
+
+  if (cart.length === 0) {
+    return (
+      <Layout title="" showBackButton>
+        <div className="page-container text-center py-10">
+          <AlertTriangle className="inline-block h-10 w-10 text-yellow-500 mb-2" />
+          <h2 className="text-xl font-bold mb-2">Your cart is empty.</h2>
+          <p className="text-muted-foreground mb-6">Add items to your cart to proceed.</p>
+          <Button onClick={() => router.push('/')}>Browse Menu</Button>
+        </div>
+      </Layout>
+    );
+  }
+
+  const grandTotal = cartTotal;
+  return (
+    <Layout title="Checkout" showBackButton>
+      <div className="container py-12">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="text-2xl font-bold">Checkout</CardTitle>
+            {adminCustomerContext && (
+              <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-3 mt-2 rounded">
+                <p className="font-bold">
+                  Placing order for: {adminCustomerContext.customerName}
+                </p>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {cart.map(item => {
+              const itemTotal = calculateTotalPrice(item.menuItem, item.selectedOptions||{});
+              const lineTotal = itemTotal * item.quantity;
+              return (
+                <div key={item.id} className="flex justify-between items-start">
+                  <div className="flex-1 space-y-1">
+                    <span className="font-medium">{item.quantity} ×</span>
+                    <span className="font-semibold">{item.menuItem.name}</span>
+                  </div>
+                  <span className="font-semibold">{formatThaiCurrency(lineTotal)}</span>
+                </div>
+              );
+            })}
+            <Separator />
+            <div className="flex justify-between font-bold text-lg">
+              <span>Total:</span>
+              <span>{formatThaiCurrency(grandTotal)}</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Table Number</h2>
+              <Select value={tableNumber} onValueChange={setTableNumber}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select table number" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tableNumbers.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              className="w-full"
+              onClick={handlePlaceOrder}
+              disabled={isPlacingOrder || !currentUser || cart.length===0}
+            >
+              {isPlacingOrder ? <><Loader2 className="animate-spin mr-2"/>Processing...</> : <>Place Order {formatThaiCurrency(grandTotal)}</>}
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    </Layout>
+  );
+}

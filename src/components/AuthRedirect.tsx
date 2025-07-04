@@ -1,5 +1,7 @@
+ 'use client';
+
 import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { useUserContext } from '@/context/UserContext';
 
 interface AuthRedirectProps {
@@ -7,16 +9,17 @@ interface AuthRedirectProps {
 }
 
 const AuthRedirect: React.FC<AuthRedirectProps> = ({ children }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isLoggedIn, isLoading } = useUserContext();
 
   useEffect(() => {
-    if (!isLoading && isLoggedIn && location.pathname === '/login') {
-      const returnTo = new URLSearchParams(location.search).get('returnTo') || '/';
-      navigate(returnTo, { replace: true });
+    if (!isLoading && isLoggedIn && pathname === '/login') {
+  const returnTo = searchParams?.get('returnTo') || '/';
+      router.replace(returnTo);
     }
-  }, [isLoading, isLoggedIn, navigate, location.pathname, location.search]);
+  }, [isLoading, isLoggedIn, pathname, searchParams, router]);
 
   // Render children only after authentication state is determined
   if (isLoading) {

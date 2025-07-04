@@ -6,22 +6,14 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Only use this config for testing, not for building
   test: {
     globals: true,
     environment: "jsdom",
     setupFiles: ['./src/test-setup.ts'],
     css: true,
   },
-  server: {
-    // bind to all IPv4 addresses so headless scripts can connect via localhost
-    host: '0.0.0.0',
-    port: 8080,
-  },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+  // Remove server and plugins config that conflict with Next.js
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

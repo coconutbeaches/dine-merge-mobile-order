@@ -1,18 +1,19 @@
 'use client';
 
-import Link from 'next/link';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function Home() {
+export default function HomePage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to menu page
+    router.push('/menu');
+  }, [router]);
+
   return (
     <main className="p-8 text-center space-y-6">
-      <h1 className="text-2xl font-semibold">Welcome to the new App Router</h1>
-
-      <div className="flex justify-center gap-6 text-blue-600 underline">
-        <Link href="/cart">Cart</Link>
-        <Link href="/login">Login</Link>
-        <Link href="/profile">Profile</Link>
-        <Link href="/admin">Admin</Link>
-      </div>
+      <h1 className="text-2xl font-semibold">Redirecting to menu...</h1>
     </main>
   );
 }

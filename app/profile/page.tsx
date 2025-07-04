@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
-import { useUserContext } from '@/context/UserContext';
+import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import { updateUserProfile } from '@/services/userProfileService';
 
 export default function Page() {
   const router = useRouter();
-  const { currentUser, isLoggedIn, isLoading: isLoadingUserContext, logout } = useUserContext();
+  const { currentUser, isLoggedIn, isLoading: isLoadingUserContext, logout } = useAppContext();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');

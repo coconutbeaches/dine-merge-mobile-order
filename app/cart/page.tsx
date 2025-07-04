@@ -53,7 +53,7 @@ export default function Page() {
           <p className="text-muted-foreground mb-6">
             Add items from the menu to get started
           </p>
-          <Button onClick={() => router.push('/')}>Browse Menu</Button>
+          <Button onClick={() => router.push('/menu')}>Browse Menu</Button>
         </div>
       </Layout>
     );

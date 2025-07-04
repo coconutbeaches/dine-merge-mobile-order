@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
@@ -17,8 +17,9 @@ interface Category {
 }
 
 const ProductsByCategory = () => {
-  const { categoryId } = useParams<{ categoryId: string }>();
-  const navigate = useNavigate();
+  const params = useParams();
+  const router = useRouter();
+  const categoryId = params.categoryId as string;
   const queryClient = useQueryClient();
 
   // Fetch category
@@ -135,7 +136,7 @@ const ProductsByCategory = () => {
               <p className="text-muted-foreground mt-1">{category.description}</p>
             )}
           </div>
-          <Button onClick={() => navigate('/products/new')}>
+          <Button onClick={() => router.push('/products/new')}>
             <Plus className="mr-2 h-4 w-4" /> Add New Product
           </Button>
         </div>
@@ -173,7 +174,7 @@ const ProductsByCategory = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/products/edit/${product.id}`)}
+                          onClick={() => router.push(`/products/edit/${product.id}`)}
                         >
                           Edit
                         </Button>
@@ -230,7 +231,7 @@ const ProductsByCategory = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/products/edit/${product.id}`)}
+                          onClick={() => router.push(`/products/edit/${product.id}`)}
                         >
                           Edit
                         </Button>
@@ -257,7 +258,7 @@ const ProductsByCategory = () => {
         <div className="mt-6">
           <Button
             variant="outline"
-            onClick={() => navigate('/categories-manager')}
+            onClick={() => router.push('/categories-manager')}
           >
             Back to Categories
           </Button>

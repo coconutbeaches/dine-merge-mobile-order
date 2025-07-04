@@ -234,6 +234,37 @@ export type CompositeTypes<
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type Order = Database['public']['Tables']['orders']['Row'];
 
+// Product-related types (custom interfaces based on usage in the codebase)
+export interface Product {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  image_url: string | null;
+  category_id: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface ProductOptionChoice {
+  id: string;
+  option_id: string;
+  name: string;
+  price_adjustment: number;
+  sort_order: number;
+}
+
+export interface ProductOption {
+  id: string;
+  product_id: string;
+  name: string;
+  required: boolean;
+  selection_type: 'single' | 'multiple';
+  max_selections: number | null;
+  sort_order: number;
+  choices: ProductOptionChoice[];
+}
+
 export const Constants = {
   graphql_public: {
     Enums: {},

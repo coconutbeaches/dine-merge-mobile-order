@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
 import { useUserContext } from '@/context/UserContext';
 import { Button } from '@/components/ui/button';
@@ -12,7 +13,7 @@ import { toast } from 'sonner';
 import { updateUserProfile } from '@/services/userProfileService';
 
 const Profile = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { currentUser, isLoggedIn, isLoading: isLoadingUserContext, logout } = useUserContext(); 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,14 +23,14 @@ const Profile = () => {
 
   useEffect(() => {
     if (!isLoadingUserContext && !isLoggedIn) {
-      navigate('/login', { state: { returnTo: '/profile' } });
+      router.push('/login');
     }
     if (currentUser) {
       setName(currentUser.name || '');
       setEmail(currentUser.email || '');
       setPhone(currentUser.phone || ''); 
     }
-  }, [currentUser, isLoggedIn, isLoadingUserContext, navigate]);
+  }, [currentUser, isLoggedIn, isLoadingUserContext, router]);
 
   const fetchProfileDetails = async () => {
     if (!currentUser) return;
@@ -75,7 +76,7 @@ const Profile = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    router.push('/');
   };
 
   if (isLoadingUserContext) {
@@ -166,10 +167,10 @@ const Profile = () => {
 
         {/* Suggested placement for "My Orders" button */}
         <div className="mt-6 text-center space-y-3"> {/* Added space-y-3 for button spacing */}
-          <Button onClick={() => navigate('/order-history')} className="w-full sm:w-auto">My Orders</Button>
+          <Button onClick={() => router.push('/order-history')} className="w-full sm:w-auto">My Orders</Button>
           
           {currentUser?.role === 'admin' && (
-            <Link to="/admin" className="block sm:inline-block sm:ml-3">
+            <Link href="/admin" className="block sm:inline-block sm:ml-3">
               <Button variant="outline" className="w-full sm:w-auto">Admin Dashboard</Button>
             </Link>
           )}

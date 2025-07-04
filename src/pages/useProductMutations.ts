@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/navigation";
 import type { ProductOption } from "@/types/supabaseTypes";
 
 interface FormValues {
@@ -22,7 +22,7 @@ interface MutationProps {
 
 export function useProductMutations({ id, isEditMode, options }: MutationProps) {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   // Util: upload image to Supabase
   const uploadImage = async (file: File) => {
@@ -97,7 +97,7 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["menu-products"] });
       toast.success("Product created successfully");
-      navigate("/products-dashboard");
+      router.push("/products-dashboard");
     },
     onError: (error) => {
       toast.error("Failed to create product");
@@ -170,7 +170,7 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["menu-products"] });
       toast.success("Product updated successfully");
-      navigate("/products-dashboard");
+      router.push("/products-dashboard");
     },
     onError: (error) => {
       toast.error("Failed to update product");
@@ -181,6 +181,6 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
   return {
     createProductMutation,
     updateProductMutation,
-    navigate,
+    router,
   };
 }

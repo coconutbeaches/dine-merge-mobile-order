@@ -1,5 +1,6 @@
+'use client';
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingCart, User, Settings } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';
@@ -14,18 +15,23 @@ const Header: React.FC<HeaderProps> = ({
   title = restaurantInfo.name,
   showBackButton = false 
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
   const { cart, isLoggedIn, currentUser } = useAppContext(); // Include currentUser to check admin role
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
   
   const goBack = () => {
-    // Keep existing goBack logic, or adjust if subtask implies changes here
-    if (location.pathname === '/menu' || location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/cart' || location.pathname === '/profile') {
-      navigate('/');
+    if (
+      pathname === '/menu' ||
+      pathname === '/login' ||
+      pathname === '/signup' ||
+      pathname === '/cart' ||
+      pathname === '/profile'
+    ) {
+      router.push('/');
     } else {
-      navigate(-1);
+      router.back();
     }
   };
   
@@ -39,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <div onClick={() => navigate('/')} className="cursor-pointer">
+          <div onClick={() => router.push('/menu')} className="cursor-pointer">
             <img src="/lovable-uploads/c739d1da-89bf-4732-a560-e0d9fcaf13ac.png" alt="Coconut Beach Logo" className="h-[1.8rem]" />
           </div>
         </div>
@@ -50,13 +56,13 @@ const Header: React.FC<HeaderProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/admin')}
+              onClick={() => router.push('/admin')}
               className="flex items-center"
             >
               <Settings className="h-[2.18rem] w-[2.18rem]" />
             </Button>
           )}
-          <Button variant="ghost" size="sm" onClick={() => navigate('/cart')} className="relative flex items-center">
+          <Button variant="ghost" size="sm" onClick={() => router.push('/cart')} className="relative flex items-center">
             <ShoppingCart className="h-[2.18rem] w-[2.18rem]" />
             {totalItems > 0 && (
               <span className="absolute -top-1 -right-1 bg-restaurant-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
@@ -64,7 +70,7 @@ const Header: React.FC<HeaderProps> = ({
               </span>
             )}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => navigate(isLoggedIn ? '/profile' : '/login')} className="flex items-center">
+          <Button variant="ghost" size="sm" onClick={() => router.push(isLoggedIn ? '/profile' : '/login')} className="flex items-center">
             <User className="h-[2.38rem] w-[2.38rem]" />
           </Button>
         </div>

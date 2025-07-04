@@ -1,5 +1,5 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
@@ -12,11 +12,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import EditableOrderCard from '@/components/admin/EditableOrderCard';
 
 const AdminOrderDetail = () => {
-    const navigate = useNavigate();
+    const router = useRouter();
 
     return (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Dialog open={true} onOpenChange={(isOpen) => !isOpen && navigate('/orders-dashboard')}>
+            <Dialog open={true} onOpenChange={(isOpen) => !isOpen && router.push('/orders-dashboard')}>
                 <DialogContent className="max-w-md">
                     <AdminOrderDetailContent />
                 </DialogContent>
@@ -26,9 +26,10 @@ const AdminOrderDetail = () => {
 };
 
 const AdminOrderDetailContent = () => {
-  const { orderId } = useParams<{ orderId: string }>();
+  const params = useParams();
+  const router = useRouter();
+  const orderId = params.orderId as string;
   const { order, isLoading, error } = useFetchOrderById(orderId);
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { updateOrder, updateMultipleOrderStatuses } = useOrderActions(undefined);
 
@@ -60,7 +61,7 @@ const AdminOrderDetailContent = () => {
           </DialogDescription>
         </DialogHeader>
         <div className="mt-4">
-            <Button variant="outline" onClick={() => navigate('/orders-dashboard')}>
+            <Button variant="outline" onClick={() => router.push('/orders-dashboard')}>
                 Back to Dashboard
             </Button>
         </div>
@@ -73,7 +74,7 @@ const AdminOrderDetailContent = () => {
       order={order} 
       onOrderSave={handleOrderSave} 
       onStatusClick={handleStatusClick} 
-      onClose={() => navigate('/orders-dashboard')}
+      onClose={() => router.push('/orders-dashboard')}
     />
   );
 };

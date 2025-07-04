@@ -3,7 +3,7 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 interface ProductImageHeaderProps {
   isLoading: boolean;
@@ -18,7 +18,7 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
   productDescription,
   imageUrl
 }) => {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   if (isLoading) {
     return (
@@ -34,7 +34,7 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
         <AlertTriangle className="h-12 w-12 mx-auto text-black mb-4" />
         <h2 className="text-xl font-bold mb-2">Menu Item Not Found</h2>
         <p className="text-gray-600 mb-6">The item you're looking for doesn't exist.</p>
-        <Button onClick={() => navigate('/menu')} className="bg-black hover:bg-black/90 text-white">
+        <Button onClick={() => router.push('/menu')} className="bg-black hover:bg-black/90 text-white">
           Back to Menu
         </Button>
       </div>

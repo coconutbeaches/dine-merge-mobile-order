@@ -1,4 +1,4 @@
-
+'use client';
 import React from 'react';
 import { formatThaiCurrency } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';

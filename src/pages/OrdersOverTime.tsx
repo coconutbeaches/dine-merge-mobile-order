@@ -19,7 +19,7 @@ import {
 import { useOrdersByDate } from '@/hooks/useOrdersByDate';
 import { format, subDays, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Order {
   id: string;

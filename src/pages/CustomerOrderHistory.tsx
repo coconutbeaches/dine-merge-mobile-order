@@ -1,5 +1,6 @@
 import React from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, DollarSign } from 'lucide-react';
@@ -11,8 +12,9 @@ import { toast } from 'sonner';
 import { OrderStatus } from '@/types/supabaseTypes';
 
 const CustomerOrderHistory = () => {
-  const { customerId } = useParams<{ customerId: string }>();
-  const navigate = useNavigate();
+  const params = useParams();
+  const router = useRouter();
+  const customerId = params.customerId as string;
   const { orders, setOrders, customer, isLoading } = useCustomerOrders(customerId);
   const { updateMultipleOrderStatuses, updateOrder } = useOrderActions(setOrders);
 
@@ -20,12 +22,7 @@ const CustomerOrderHistory = () => {
 
   const handleCreateNewOrder = () => {
     // Navigate to menu with customer context
-    navigate('/', { 
-      state: { 
-        adminCustomerId: customerId,
-        adminCustomerName: customer?.name || customer?.email 
-      } 
-    });
+    router.push('/');
   };
 
   const handleMarkAllPaid = () => {

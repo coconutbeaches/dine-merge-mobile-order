@@ -28,3 +28,10 @@ dist-ssr
 .env*.local
 !.env.example
 .vercel
+
+# Next.js
+.next/
+out/
+
+# TypeScript
+tsconfig.tsbuildinfo

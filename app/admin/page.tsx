@@ -17,7 +17,7 @@ export default function Page() {
     <Layout title="Admin Dashboard">
       <div className="p-4 max-w-lg mx-auto">
         <div className="grid gap-4 mt-6 mb-8">
-          <Link href="/orders-dashboard">
+          <Link href="/admin/orders">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">
@@ -28,7 +28,7 @@ export default function Page() {
             </Card>
           </Link>
 
-          <Link href="/products-dashboard">
+          <Link href="/admin/products">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">
@@ -39,7 +39,7 @@ export default function Page() {
             </Card>
           </Link>
 
-          <Link href="/categories-manager">
+          <Link href="/admin/categories">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">
@@ -50,7 +50,7 @@ export default function Page() {
             </Card>
           </Link>
 
-          <Link href="/customers-dashboard">
+          <Link href="/admin/customers">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">
@@ -61,7 +61,7 @@ export default function Page() {
             </Card>
           </Link>
 
-          <Link href="/admin/analytics/orders-over-time">
+          <Link href="/admin/analytics">
             <Card className="hover:shadow-md transition-shadow">
               <CardHeader className="p-4">
                 <CardTitle className="flex items-center gap-2">

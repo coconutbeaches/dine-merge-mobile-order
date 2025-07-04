@@ -1,7 +1,6 @@
 import './globals.css';
 import { ReactNode } from 'react';
-import { AppProvider } from '../src/contexts/AppContext';
-import { Toaster } from '../src/components/ui/toaster';
+import { Providers } from './provider';
 
 export const metadata = {
   title: 'Dine Merge Mobile Order',
@@ -10,12 +9,11 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        <AppProvider>
-          <Toaster />
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-white text-black">
+        <Providers>
           {children}
-        </AppProvider>
+        </Providers>
       </body>
     </html>
   );

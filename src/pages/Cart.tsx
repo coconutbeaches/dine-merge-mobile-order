@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { formatThaiCurrency } from '@/lib/utils';
 import { calculateTotalPrice } from '@/utils/productUtils'; // For accurate item total
 
 const Cart = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { cart, removeFromCart, updateCartItemQuantity, cartTotal, isLoggedIn } = useAppContext();
   const { toast } = useToast();
   
@@ -31,11 +31,11 @@ const Cart = () => {
         description: "Please sign in or create an account to checkout",
         variant: "destructive"
       });
-      navigate('/login', { state: { returnTo: '/cart' } }); // Redirect to login, then back to cart
+      router.push('/login'); // Redirect to login
       return;
     }
     
-    navigate('/checkout');
+    router.push('/checkout');
   };
   
   const grandTotal = cartTotal; // Simplified total
@@ -47,7 +47,7 @@ const Cart = () => {
           <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h2 className="text-xl font-bold mb-2">Your cart is empty</h2>
           <p className="text-muted-foreground mb-6">Add items from the menu to get started</p>
-          <Button onClick={() => navigate('/')}>Browse Menu</Button>
+          <Button onClick={() => router.push('/')}>Browse Menu</Button>
         </div>
       </Layout>
     );

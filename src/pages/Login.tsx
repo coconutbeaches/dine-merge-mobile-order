@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,7 @@ interface LocationState {
 }
 
 const Login = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
   const { loginOrSignup } = useAppContext();
   const { toast } = useToast();
   
@@ -24,8 +24,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  const locationState = location.state as LocationState | null;
-  const returnTo = locationState?.returnTo || '/';
+  const returnTo = '/';
   
   const handleLoginOrSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +49,7 @@ const Login = () => {
             description: "Your account has been created successfully.",
           });
         }
-        navigate(returnTo);
+        router.push(returnTo);
       } else {
         toast({
           title: "Error",
@@ -133,7 +132,7 @@ const Login = () => {
 
                 <div className="text-right">
                   <Link 
-                    to="/forgot-password" 
+                    href="/forgot-password" 
                     className="text-sm text-restaurant-primary hover:underline"
                   >
                     Forgot Password?

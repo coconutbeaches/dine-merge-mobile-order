@@ -1,5 +1,5 @@
 
-import { useParams } from "react-router-dom";
+import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Product, ProductOption, ProductOptionChoice } from "@/types/supabaseTypes";
@@ -13,9 +13,7 @@ interface Category {
 export function useProductLoader() {
   const params = useParams();
   // Support both 'id' and 'productId' param keys
-  const idParam = typeof params.id === "string" ? params.id 
-               : typeof params.productId === "string" ? params.productId 
-               : undefined;
+  const idParam = params.id as string || params.productId as string || undefined;
   const id = idParam;
   const isEditMode = Boolean(id) && id !== "new";
 
