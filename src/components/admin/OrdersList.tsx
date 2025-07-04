@@ -102,7 +102,7 @@ const OrdersList = ({
                 <Link 
                   href={`/admin/customer-orders/${order.user_id}`} 
                   className="font-medium text-primary hover:underline truncate block"
-                  title={`${customerDisplayName} (${order.customer_email_from_profile || 'No Email'})`}
+                  title={`View all orders for ${customerDisplayName} (${order.customer_email_from_profile || 'No Email'})`}
                 >
                   {customerDisplayName}
                 </Link>

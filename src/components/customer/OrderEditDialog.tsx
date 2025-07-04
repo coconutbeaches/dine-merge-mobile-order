@@ -95,7 +95,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-4">
+      <DialogContent className="sm:max-w-[425px] bg-white">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-lg">Edit Order #{order.id.toString().padStart(4, '0')}</DialogTitle>
         </DialogHeader>
@@ -164,7 +164,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
         </div>
         <DialogFooter className="grid grid-cols-2 gap-2 pt-4 border-t">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={handleSave} className="bg-black text-white hover:bg-gray-800">Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

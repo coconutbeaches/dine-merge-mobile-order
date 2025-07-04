@@ -5,7 +5,7 @@ import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
 
 export const useOrderActions = (
-  setOrders: React.Dispatch<React.SetStateAction<Order[]>>
+  setOrders?: React.Dispatch<React.SetStateAction<Order[]>>
 ) => {
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
@@ -33,7 +33,7 @@ export const useOrderActions = (
         return;
       }
 
-      setOrders(prevOrders =>
+      setOrders?.(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId
             ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() }
@@ -70,7 +70,7 @@ export const useOrderActions = (
         return;
       }
 
-      setOrders(prev =>
+      setOrders?.(prev =>
         prev.map(order =>
           orderIds.includes(order.id)
             ? { ...order, order_status: newStatus, updated_at: new Date().toISOString() }
@@ -97,7 +97,7 @@ export const useOrderActions = (
         
       if (error) throw error;
       
-      setOrders(prevOrders => 
+      setOrders?.(prevOrders => 
         prevOrders.filter(order => !selectedOrders.includes(order.id))
       );
       setSelectedOrders([]);
@@ -130,7 +130,7 @@ export const useOrderActions = (
         return;
       }
 
-      setOrders(prevOrders =>
+      setOrders?.(prevOrders =>
         prevOrders.map(order =>
           order.id === id ? { ...updatedOrder } : order
         )

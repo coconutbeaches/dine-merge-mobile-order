@@ -79,7 +79,7 @@ export default function Page() {
       <div className="page-container">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-restaurant-primary text-2xl">
+            <CardTitle className="text-black text-2xl">
               Login or Sign Up
             </CardTitle>
           </CardHeader>
@@ -121,14 +121,14 @@ export default function Page() {
                 <div className="text-right">
                   <Link
                     href="/forgot-password"
-                    className="text-sm text-restaurant-primary hover:underline"
+                    className="text-sm text-black hover:underline"
                   >
                     Forgot Password?
                   </Link>
                 </div>
                 <Button
                   type="submit"
-                  className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
+                  className="w-full bg-black text-white hover:bg-gray-800"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Processing...' : 'Continue with Email'}

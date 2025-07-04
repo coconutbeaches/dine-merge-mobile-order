@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,7 +32,18 @@ export default function OrdersDashboardPage() {
   const searchParams = useSearchParams();
   const startDateParam = searchParams.get('startDate');
   const endDateParam = searchParams.get('endDate');
+  const customerParam = searchParams.get('customer');
   const [activeStatus, setActiveStatus] = useState<string>(ALL_TAB);
+  
+  // Set initial search if customer parameter is present
+  const [initialSearchSet, setInitialSearchSet] = useState(false);
+
+  useEffect(() => {
+    if (customerParam && !initialSearchSet) {
+      setSearch(customerParam);
+      setInitialSearchSet(true);
+    }
+  }, [customerParam, initialSearchSet]);
 
   const handleBulkStatusChange = (value: OrderStatus) => {
     setBulkStatus(value);

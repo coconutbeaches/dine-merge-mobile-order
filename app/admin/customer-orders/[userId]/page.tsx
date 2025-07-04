@@ -1,6 +1,7 @@
+"use client";
+
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
+import { useParams, useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Plus, DollarSign } from 'lucide-react';
@@ -13,16 +14,16 @@ import { OrderStatus, Order } from '@/types/supabaseTypes';
 
 const CustomerOrderHistory = () => {
   const params = useParams();
-  const navigate = useNavigate();
-  const customerId = params.customerId as string;
-  const { orders, setOrders, customer, isLoading } = useCustomerOrders(customerId);
+  const router = useRouter();
+  const userId = params.userId as string;
+  const { orders, setOrders, customer, isLoading } = useCustomerOrders(userId);
   const { updateMultipleOrderStatuses, updateOrder } = useOrderActions(setOrders);
 
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
 
   const handleCreateNewOrder = () => {
     // Navigate to menu with customer context
-    navigate('/');
+    router.push('/');
   };
 
   const handleMarkAllPaid = () => {
@@ -62,11 +63,9 @@ const CustomerOrderHistory = () => {
       <div className="page-container p-4 md:p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <Link href="/orders-dashboard">
-              <Button variant="outline" size="icon">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
+            <Button variant="outline" size="icon" onClick={() => router.push('/admin/orders')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
           </div>
           <div className="flex items-center gap-2">
             <Button

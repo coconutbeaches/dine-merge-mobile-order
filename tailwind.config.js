@@ -4,7 +4,11 @@ module.exports = {
     './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        'restaurant-primary': '#ff6b35', // Orange/red color for restaurant theme
+      },
+    },
   },
   plugins: [],
 };

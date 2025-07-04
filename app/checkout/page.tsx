@@ -65,7 +65,7 @@ export default function CheckoutPage() {
         toast.success('Order placed successfully!');
         clearCart();
         setAdminCustomerContext?.(null);
-        router.push(`/order-confirmation?orderId=${placedOrder.id}`);
+        router.push(`/order/${placedOrder.id}/confirmation`);
       } else {
         toast.error('Failed to place order. Please try again.');
       }
@@ -137,15 +137,29 @@ export default function CheckoutPage() {
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select table number" />
                 </SelectTrigger>
-                <SelectContent>
-                  {tableNumbers.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                <SelectContent 
+                  side="top" 
+                  align="center" 
+                  position="popper"
+                  className="z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-h-[300px] overflow-auto" 
+                  sideOffset={8}
+                >
+                  {tableNumbers.map(n => (
+                    <SelectItem 
+                      key={n} 
+                      value={n} 
+                      className="pl-8 pr-3 py-2 text-sm hover:bg-gray-100 rounded-md cursor-pointer transition-colors relative"
+                    >
+                      {n}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </CardContent>
           <CardFooter>
             <Button
-              className="w-full"
+              className="w-full bg-black text-white hover:bg-gray-800"
               onClick={handlePlaceOrder}
               disabled={isPlacingOrder || !currentUser || cart.length===0}
             >
