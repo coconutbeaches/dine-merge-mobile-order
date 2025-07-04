@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-export default function Page() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams?.get('returnTo') || '/';
@@ -148,5 +148,24 @@ export default function Page() {
         </Card>
       </div>
     </Layout>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <Layout title="" showBackButton>
+        <div className="page-container">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mb-4"></div>
+              <p className="text-lg text-muted-foreground">Loading...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

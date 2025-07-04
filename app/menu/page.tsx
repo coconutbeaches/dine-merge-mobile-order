@@ -1,7 +1,7 @@
 "use client";
 // @ts-nocheck
 
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,7 +27,7 @@ interface Product {
   category_id?: string | null;
 }
 
-export default function MenuIndexPage() {
+function MenuIndexContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isLoggedIn, currentUser, setAdminCustomerContext, adminCustomerContext } = useAppContext();
@@ -155,5 +155,20 @@ export default function MenuIndexPage() {
         })}
       </div>
     </Layout>
+  );
+}
+
+export default function MenuIndexPage() {
+  return (
+    <Suspense fallback={
+      <Layout title="Menu" showBackButton>
+        <div className="page-container text-center py-10">
+          <h2 className="text-xl font-bold mb-2">Hi! 👋 Welcome to Coconut Beach 🌴</h2>
+          <p className="text-muted-foreground mb-6">Let's find you some yummy stuff to eat...</p>
+        </div>
+      </Layout>
+    }>
+      <MenuIndexContent />
+    </Suspense>
   );
 }

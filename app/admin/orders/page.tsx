@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import StatusTabs from '@/components/admin/StatusTabs';
 
 const ALL_TAB = "all";
 
-export default function OrdersDashboardPage() {
+function OrdersDashboardContent() {
   const { 
     orders, 
     selectedOrders, 
@@ -160,5 +160,24 @@ export default function OrdersDashboardPage() {
         </Card>
       </div>
     </Layout>
+  );
+}
+
+export default function OrdersDashboardPage() {
+  return (
+    <Suspense fallback={
+      <Layout title="Orders Dashboard" showBackButton={false}>
+        <div className="page-container p-4 md:p-6">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mb-4"></div>
+              <p className="text-lg text-muted-foreground">Loading orders...</p>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    }>
+      <OrdersDashboardContent />
+    </Suspense>
   );
 }
