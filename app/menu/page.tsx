@@ -85,8 +85,11 @@ function MenuIndexContent() {
     return (
       <Layout title="Menu" showBackButton>
         <div className="page-container text-center py-10">
-          <h2 className="text-xl font-bold mb-2">Hi! 👋 Welcome to Coconut Beach 🌴</h2>
-          <p className="text-muted-foreground mb-6">Let's find you some yummy stuff to eat...</p>
+          <div className="text-lg leading-relaxed">
+            <div className="mb-2">Hi! 👋 Welcome to Coconut Beach 🌴</div>
+            <div className="mb-2">Let's find you some yummy stuff to eat...</div>
+            <div className="mb-6">Menu will load here shortly 🙏🏼</div>
+          </div>
         </div>
       </Layout>
     );
@@ -163,8 +166,11 @@ export default function MenuIndexPage() {
     <Suspense fallback={
       <Layout title="Menu" showBackButton>
         <div className="page-container text-center py-10">
-          <h2 className="text-xl font-bold mb-2">Hi! 👋 Welcome to Coconut Beach 🌴</h2>
-          <p className="text-muted-foreground mb-6">Let's find you some yummy stuff to eat...</p>
+          <div className="text-lg leading-relaxed">
+            <div className="mb-2">Hi! 👋 Welcome to Coconut Beach 🌴</div>
+            <div className="mb-2">Let's find you some yummy stuff to eat...</div>
+            <div className="mb-6">Menu will load here shortly 🙏🏼</div>
+          </div>
         </div>
       </Layout>
     }>
