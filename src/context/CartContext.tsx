@@ -12,6 +12,7 @@ interface CartContextType {
   updateCartItemQuantity: (cartItemId: string, quantity: number) => void;
   clearCart: () => void;
   cartTotal: number;
+  isLoading: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -30,22 +31,29 @@ interface CartProviderProps {
 
 export const CartProvider = ({ children }: CartProviderProps) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { isLoading: userIsLoading } = useUserContext();
 
   // Load cart from localStorage on mount
   useEffect(() => {
     const storedCart = localStorage.getItem('cart');
     if (storedCart) {
-      setCart(JSON.parse(storedCart));
+      try {
+        setCart(JSON.parse(storedCart));
+      } catch (error) {
+        console.error('Error parsing cart from localStorage:', error);
+        localStorage.removeItem('cart');
+      }
     }
+    setIsLoading(false);
   }, []);
   
   // Save cart to localStorage when it changes
   useEffect(() => {
-    if (!userIsLoading) {
+    if (!userIsLoading && !isLoading) {
       localStorage.setItem('cart', JSON.stringify(cart));
     }
-  }, [cart, userIsLoading]);
+  }, [cart, userIsLoading, isLoading]);
   
   // Calculate cart total
   const cartTotal = cart.reduce((total, item) => {
@@ -104,7 +112,8 @@ export const CartProvider = ({ children }: CartProviderProps) => {
     removeFromCart,
     updateCartItemQuantity,
     clearCart,
-    cartTotal
+    cartTotal,
+    isLoading
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

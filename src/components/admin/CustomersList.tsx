@@ -13,7 +13,7 @@ import { Profile } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Edit, User, Mail, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { ProfilePictureUploader } from './ProfilePictureUploader';
@@ -117,10 +117,10 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 </div>
               </TableHead>
               <TableHead 
-                className="hidden md:table-cell cursor-pointer hover:text-primary transition-colors"
+                className="hidden md:table-cell cursor-pointer hover:text-primary transition-colors text-left"
                 onClick={() => handleSort('customer_type')}
               >
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 justify-start">
                   Status
                   {sortKey === 'customer_type' && (
                     sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
@@ -178,39 +178,33 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   />
                 </TableCell>
                 <TableCell className="font-medium">
-                  <div className="flex items-center space-x-3">
-                    <ProfilePictureUploader
-                      userId={customer.id}
-                      currentAvatarUrl={customer.avatar_url || null}
-                      currentAvatarPath={customer.avatar_path || null}
-                      onUpdate={handleAvatarUpdate(customer.id)}
-                      size="sm"
-                      className="shrink-0"
-                    />
-                    <div>
-                      <Link 
-                        to={`/admin/customer-orders/${customer.id}`} 
-                        className="font-medium hover:underline"
-                      >
-                        {customer.name || 'Unnamed Customer'}
-                      </Link>
-                      <div className="text-xs text-muted-foreground md:hidden">
-                        {customer.email}
-                      </div>
+                  <div>
+                    <Link 
+                      href={`/admin/customer-orders/${customer.id}`} 
+                      className="font-medium hover:underline"
+                    >
+                      {customer.name || 'Unnamed Customer'}
+                    </Link>
+                    <div className="text-xs text-muted-foreground md:hidden">
+                      {customer.email}
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
-                  <Badge 
-                    variant={customer.customer_type === 'hotel_guest' ? 'default' : 'outline'}
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => toggleCustomerType && toggleCustomerType(
-                      customer.id,
-                      customer.customer_type === 'hotel_guest'
-                    )}
-                  >
-                    {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Walk-in'}
-                  </Badge>
+                <TableCell className="hidden md:table-cell text-left">
+                  <div className="flex justify-start">
+                    <Badge 
+                      variant={customer.customer_type === 'hotel_guest' ? 'default' : 'outline'}
+                      className={`cursor-pointer hover:opacity-80 transition-opacity ${
+                        customer.customer_type === 'hotel_guest' ? '-ml-2' : 'ml-0'
+                      }`}
+                      onClick={() => toggleCustomerType && toggleCustomerType(
+                        customer.id,
+                        customer.customer_type === 'hotel_guest'
+                      )}
+                    >
+                      {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Out'}
+                    </Badge>
+                  </div>
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   {customer.email}

@@ -9,25 +9,65 @@ type SortDirection = 'asc' | 'desc';
 export const useCustomersDashboard = () => {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const { 
-    customers, 
-    setCustomers, 
-    isLoading, 
-    error,
-    fetchCustomers 
-  } = useFetchCustomers();
+  
+  // Defensive hook calls with error handling
+  let fetchCustomersResult;
+  try {
+    fetchCustomersResult = useFetchCustomers();
+  } catch (error) {
+    console.error('Error in useFetchCustomers:', error);
+    fetchCustomersResult = {
+      customers: [],
+      setCustomers: () => {},
+      isLoading: false,
+      error: new Error('Failed to initialize customers hook'),
+      fetchCustomers: () => Promise.resolve()
+    };
+  }
   
   const { 
-    selectedCustomers, 
-    setSelectedCustomers, 
-    toggleSelectCustomer, 
-    selectAllCustomers, 
-    clearSelection 
-  } = useCustomerSelection(customers);
+    customers = [], 
+    setCustomers = () => {}, 
+    isLoading = false, 
+    error = null,
+    fetchCustomers = () => Promise.resolve()
+  } = fetchCustomersResult || {};
+  
+  let customerSelectionResult;
+  try {
+    customerSelectionResult = useCustomerSelection(customers || []);
+  } catch (error) {
+    console.error('Error in useCustomerSelection:', error);
+    customerSelectionResult = {
+      selectedCustomers: [],
+      setSelectedCustomers: () => {},
+      toggleSelectCustomer: () => {},
+      selectAllCustomers: () => {},
+      clearSelection: () => {}
+    };
+  }
   
   const { 
-    deleteSelectedCustomers: deleteCustomersAction 
-  } = useCustomerActions(setCustomers);
+    selectedCustomers = [], 
+    setSelectedCustomers = () => {}, 
+    toggleSelectCustomer = () => {}, 
+    selectAllCustomers = () => {}, 
+    clearSelection = () => {}
+  } = customerSelectionResult || {};
+  
+  let customerActionsResult;
+  try {
+    customerActionsResult = useCustomerActions(setCustomers);
+  } catch (error) {
+    console.error('Error in useCustomerActions:', error);
+    customerActionsResult = {
+      deleteSelectedCustomers: () => Promise.resolve()
+    };
+  }
+  
+  const { 
+    deleteSelectedCustomers: deleteCustomersAction = () => Promise.resolve()
+  } = customerActionsResult || {};
 
   const deleteSelectedCustomers = () => {
     deleteCustomersAction(selectedCustomers, setSelectedCustomers);

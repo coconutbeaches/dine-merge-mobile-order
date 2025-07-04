@@ -175,7 +175,7 @@ export default function Page() {
           <div className="max-w-lg mx-auto">
             <Button
               onClick={handleCheckout}
-              className="w-full bg-restaurant-primary hover:bg-restaurant-primary/90"
+              className="w-full bg-black hover:bg-gray-800 text-white"
               disabled={cart.length === 0}
             >
               Proceed to checkout {formatThaiCurrency(grandTotal)}

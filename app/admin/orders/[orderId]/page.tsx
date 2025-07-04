@@ -36,34 +36,103 @@ const AdminOrderDetailContent = () => {
   };
 
   if (isLoading) {
-    return <OrderDetailsSkeleton />;
+    return (
+      <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <div className="relative max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+          <button
+            onClick={() => router.push('/admin/orders')}
+            className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-60"
+            aria-label="Close"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <OrderDetailsSkeleton />
+        </div>
+      </div>
+    );
   }
 
   if (error || !order) {
     return (
-      <div>
-        <DialogHeader>
-          <DialogTitle>Error</DialogTitle>
-          <DialogDescription>
-            {error ? `Failed to load order: ${error.message}` : "The requested order could not be found."}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="mt-4">
-            <Button variant="outline" onClick={() => router.push('/orders-dashboard')}>
-                Back to Dashboard
-            </Button>
+      <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <div className="relative max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+          <button
+            onClick={() => router.push('/admin/orders')}
+            className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-60"
+            aria-label="Close"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+          <DialogHeader>
+            <DialogTitle>Error</DialogTitle>
+            <DialogDescription>
+              {error ? `Failed to load order: ${error.message}` : "The requested order could not be found."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+              <Button variant="outline" onClick={() => router.push('/admin/orders')}>
+                  Back to Dashboard
+              </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <EditableOrderCard 
-      order={order} 
-      onOrderSave={handleOrderSave} 
-      onStatusClick={handleStatusClick} 
-      onClose={() => router.push('/orders-dashboard')}
-    />
+    <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+      {/* Modal content with white background */}
+      <div className="relative max-w-md w-full bg-white rounded-lg shadow-lg">
+        {/* Close button */}
+        <button
+          onClick={() => router.push('/admin/orders')}
+          className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-60"
+          aria-label="Close"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <EditableOrderCard 
+          order={order} 
+          onOrderSave={handleOrderSave} 
+          onStatusClick={handleStatusClick} 
+          onClose={() => router.push('/admin/orders')}
+        />
+      </div>
+    </div>
   );
 };
 

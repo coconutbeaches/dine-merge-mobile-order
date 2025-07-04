@@ -123,9 +123,6 @@ export default function Page() {
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" value={email} disabled />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Email address cannot be changed here.
-                </p>
               </div>
               <div>
                 <Label htmlFor="phone">Phone</Label>
@@ -158,7 +155,7 @@ export default function Page() {
         </Card>
 
         <div className="mt-6 text-center space-y-3">
-          <Button onClick={() => router.push('/order-history')} className="w-full sm:w-auto">
+          <Button onClick={() => router.push('/order-history')} className="w-full sm:w-auto bg-black text-white hover:bg-gray-800">
             My Orders
           </Button>
           {currentUser?.role === 'admin' && (

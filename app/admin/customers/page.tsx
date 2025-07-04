@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCustomersDashboard } from '@/hooks/useCustomersDashboard';
 import CustomersList from '@/components/admin/CustomersList';
 import { Profile } from '@/types/supabaseTypes';
 import EditCustomerDialog from '@/components/admin/EditCustomerDialog';
@@ -16,21 +15,115 @@ import { Button } from '@/components/ui/button';
 import { Search, RefreshCw, Trash2, Merge } from 'lucide-react';
 
 export default function CustomersDashboardPage() {
-  const {
-    customers,
-    setCustomers,
-    selectedCustomers,
-    isLoading,
-    error,
-    fetchCustomers,
-    deleteSelectedCustomers,
-    toggleSelectCustomer,
-    selectAllCustomers,
-    clearSelection,
-    sortKey,
-    sortDirection,
-    handleSort,
-  } = useCustomersDashboard();
+  // Simplified implementation without complex hooks
+  const [customers, setCustomers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedCustomers, setSelectedCustomers] = useState([]);
+  const [sortKey, setSortKey] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc');
+  
+  const fetchCustomers = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      // Try to use the RPC function first (like in the Vite version)
+      const { data, error: supabaseError } = await supabase
+        .rpc('get_customers_with_total_spent');
+
+      if (supabaseError) {
+        console.error('Supabase RPC error in get_customers_with_total_spent:', supabaseError);
+        // If the function doesn't exist, fall back to basic query
+        if (supabaseError.message?.includes('could not find') || supabaseError.code === 'PGRST202') {
+          console.log('RPC function not found, using fallback query...');
+          const { data: fallbackData, error: fallbackError } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('name');
+          
+          if (fallbackError) {
+            throw new Error(fallbackError.message || 'Failed to fetch customers');
+          }
+          
+          // Add dummy data for total_spent and last_order_date when using fallback
+          const customersWithDummyData = (fallbackData || []).map(customer => ({
+            ...customer,
+            total_spent: 0,
+            last_order_date: null
+          }));
+          
+          setCustomers(customersWithDummyData);
+          console.log('Successfully fetched', customersWithDummyData.length, 'customers (fallback)');
+          return;
+        }
+        throw new Error(supabaseError.message || 'Failed to fetch customers');
+      }
+
+      if (!data) {
+        setCustomers([]);
+        return;
+      }
+
+      // Use the real data from the RPC function (includes total_spent and last_order_date)
+      setCustomers(data);
+      console.log('Successfully fetched', data.length, 'customers with real totals');
+      console.log('Sample customer data:', data[0]);
+    } catch (err) {
+      setError(err);
+      toast.error(`Failed to fetch customers: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const toggleSelectCustomer = (customerId) => {
+    setSelectedCustomers(prev => 
+      prev.includes(customerId) 
+        ? prev.filter(id => id !== customerId)
+        : [...prev, customerId]
+    );
+  };
+  
+  const selectAllCustomers = () => {
+    setSelectedCustomers(customers.map(c => c.id));
+  };
+  
+  const clearSelection = () => {
+    setSelectedCustomers([]);
+  };
+  
+  const deleteSelectedCustomers = async () => {
+    if (selectedCustomers.length === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .in('id', selectedCustomers);
+        
+      if (error) throw error;
+      
+      setCustomers(prev => prev.filter(customer => !selectedCustomers.includes(customer.id)));
+      setSelectedCustomers([]);
+      
+      toast.success(`Deleted ${selectedCustomers.length} customer(s)`);
+    } catch (error) {
+      toast.error(`Failed to delete customers: ${error.message}`);
+    }
+  };
+  
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const handleSort = (key) => {
+    if (sortKey === key) {
+      setSortDirection(prevDir => (prevDir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
 
   const [search, setSearch] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<Profile | null>(null);
@@ -38,25 +131,73 @@ export default function CustomersDashboardPage() {
   const [recentlyUpdatedId, setRecentlyUpdatedId] = useState<string | null>(null);
   
   const filteredCustomers = useMemo(() => {
-    if (!search.trim()) return customers;
-    const s = search.trim().toLowerCase();
-    return customers.filter(customer => {
-      const name = (customer.name || "").toLowerCase();
-      const email = (customer.email || "").toLowerCase();
-      const phone = (customer.phone || "").toLowerCase();
-      return name.includes(s) || email.includes(s) || phone.includes(s);
+    if (!customers || !Array.isArray(customers)) return [];
+    
+    // First filter by search
+    let filtered = customers;
+    if (search.trim()) {
+      const s = search.trim().toLowerCase();
+      filtered = customers.filter(customer => {
+        const name = (customer?.name || "").toLowerCase();
+        const email = (customer?.email || "").toLowerCase();
+        const phone = (customer?.phone || "").toLowerCase();
+        return name.includes(s) || email.includes(s) || phone.includes(s);
+      });
+    }
+    
+    // Then sort the filtered results
+    const sorted = [...filtered].sort((a, b) => {
+      let valA, valB;
+      
+      switch (sortKey) {
+        case 'name':
+          valA = a.name || '';
+          valB = b.name || '';
+          break;
+        case 'total_spent':
+          valA = a.total_spent || 0;
+          valB = b.total_spent || 0;
+          break;
+        case 'last_order_date':
+          valA = a.last_order_date ? new Date(a.last_order_date).getTime() : 0;
+          valB = b.last_order_date ? new Date(b.last_order_date).getTime() : 0;
+          break;
+        case 'created_at':
+          valA = new Date(a.created_at).getTime();
+          valB = new Date(b.created_at).getTime();
+          break;
+        case 'customer_type':
+          valA = a.customer_type || '';
+          valB = b.customer_type || '';
+          break;
+        default:
+          return 0;
+      }
+      
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      } else {
+        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      }
     });
-  }, [customers, search]);
+    
+    return sorted;
+  }, [customers, search, sortKey, sortDirection]);
 
-  const stats = useMemo(() => ({
-    totalCustomers: customers.length,
-    activeCustomers: customers.filter(c => c.customer_type === 'hotel_guest').length,
-    totalSpent: customers.reduce((sum, c) => sum + (c.total_spent || 0), 0)
-  }), [customers]);
+  const stats = useMemo(() => {
+    if (!customers || !Array.isArray(customers)) {
+      return { totalCustomers: 0, activeCustomers: 0, totalSpent: 0 };
+    }
+    return {
+      totalCustomers: customers.length,
+      activeCustomers: customers.filter(c => c?.customer_type === 'hotel_guest').length,
+      totalSpent: customers.reduce((sum, c) => sum + (c?.total_spent || 0), 0)
+    };
+  }, [customers]);
 
   const customersToMerge = useMemo(() => {
-    if (selectedCustomers.length !== 2) return [];
-    return customers.filter(c => selectedCustomers.includes(c.id));
+    if (!customers || !Array.isArray(customers) || selectedCustomers.length !== 2) return [];
+    return customers.filter(c => selectedCustomers.includes(c?.id));
   }, [customers, selectedCustomers]);
 
   const handleMergeClick = () => {
@@ -274,12 +415,22 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
           <CardContent className="p-0">
             {isLoading ? (
               <div className="p-6 text-center text-muted-foreground">Loading customers...</div>
+            ) : error ? (
+              <div className="p-6 text-center text-red-600">
+                <p>Error: {error.message}</p>
+                <Button onClick={fetchCustomers} className="mt-2">Retry</Button>
+              </div>
+            ) : customers.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">
+                <p>No customers found</p>
+                <Button onClick={fetchCustomers} className="mt-2">Refresh</Button>
+              </div>
             ) : (
               <CustomersList
                 customers={filteredCustomers}
                 selectedCustomers={selectedCustomers}
                 toggleSelectCustomer={toggleSelectCustomer}
-                selectAllCustomers={() => selectAllCustomers(filteredCustomers.map(c => c.id))}
+                selectAllCustomers={() => selectAllCustomers()}
                 clearSelection={clearSelection}
                 onEditCustomer={handleEditCustomer}
                 onUpdateCustomer={handleUpdateCustomer}

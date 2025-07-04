@@ -19,25 +19,41 @@ interface EnrichedOrder extends Omit<Order, 'order_items'> {
 }
 
 export const useFetchOrderById = (orderId: string | undefined) => {
-  const { data: order, isLoading, error } = useQuery<EnrichedOrder | null, Error>({
+  const { data: order, isLoading, error, refetch } = useQuery<EnrichedOrder | null, Error>({
     queryKey: ['order', orderId],
     queryFn: async () => {
-      if (!orderId) return null;
-
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', parseInt(orderId, 10))
-        .maybeSingle();
-
-      if (orderError) {
-        console.error('Error fetching order:', orderError);
-        throw orderError;
+      if (!orderId) {
+        throw new Error('No order ID provided');
       }
 
-      if (!orderData) {
-        return null;
+      // Validate order ID format
+      const parsedOrderId = parseInt(orderId, 10);
+      if (isNaN(parsedOrderId) || parsedOrderId <= 0) {
+        throw new Error('Invalid order ID format');
       }
+
+      try {
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('id', parsedOrderId)
+          .maybeSingle();
+
+        if (orderError) {
+          console.error('Database error fetching order:', orderError);
+          // Create more descriptive error messages
+          if (orderError.code === 'PGRST116') {
+            throw new Error('Order not found');
+          }
+          if (orderError.message?.includes('connection')) {
+            throw new Error('Network connection error. Please check your internet connection.');
+          }
+          throw new Error(`Database error: ${orderError.message}`);
+        }
+
+        if (!orderData) {
+          throw new Error('Order not found');
+        }
       
       const items = (Array.isArray(orderData.order_items) ? orderData.order_items : []) as unknown as CartItem[];
       
@@ -82,16 +98,22 @@ export const useFetchOrderById = (orderId: string | undefined) => {
 
       let profileData = null;
       if (orderData.user_id) {
-        const { data: pData, error: profileError } = await supabase
-          .from('profiles')
-          .select('name, email')
-          .eq('id', orderData.user_id)
-          .single();
+        try {
+          const { data: pData, error: profileError } = await supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', orderData.user_id)
+            .single();
 
-        if (profileError) {
-          console.error(`Error fetching profile for user ${orderData.user_id}:`, profileError);
-        } else {
-          profileData = pData;
+          if (profileError) {
+            console.warn(`Profile not found for user ${orderData.user_id}:`, profileError);
+            // Don't throw here - missing profile is not critical
+          } else {
+            profileData = pData;
+          }
+        } catch (profileFetchError) {
+          console.warn('Non-critical error fetching user profile:', profileFetchError);
+          // Continue without profile data
         }
       }
 
@@ -110,9 +132,36 @@ export const useFetchOrderById = (orderId: string | undefined) => {
       };
       
       return enrichedData;
+      } catch (fetchError) {
+        console.error('Error in order fetch operation:', fetchError);
+        // Re-throw with appropriate error type
+        if (fetchError instanceof Error) {
+          throw fetchError;
+        }
+        throw new Error('An unexpected error occurred while fetching the order');
+      }
     },
     enabled: !!orderId,
+    retry: (failureCount, error) => {
+      // Don't retry for certain types of errors
+      if (error?.message?.includes('not found') || 
+          error?.message?.includes('Invalid order ID') ||
+          error?.message?.includes('No order ID provided')) {
+        return false;
+      }
+      // Retry up to 2 times for network errors
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    cacheTime: 1000 * 60 * 10, // 10 minutes
   });
 
-  return { order, isLoading, error };
+  return { 
+    order, 
+    isLoading, 
+    error, 
+    refetch,
+    retry: () => refetch()
+  };
 };

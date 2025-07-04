@@ -17,9 +17,10 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { cart, isLoggedIn, currentUser } = useAppContext(); // Include currentUser to check admin role
+  const { cart, isLoggedIn, currentUser, cartIsLoading } = useAppContext(); // Include currentUser to check admin role
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+  const shouldShowBadge = !cartIsLoading && totalItems > 0;
   
   const goBack = () => {
     if (
@@ -64,8 +65,8 @@ const Header: React.FC<HeaderProps> = ({
           )}
           <Button variant="ghost" size="sm" onClick={() => router.push('/cart')} className="relative flex items-center">
             <ShoppingCart className="h-[2.18rem] w-[2.18rem]" />
-            {totalItems > 0 && (
-              <span className="absolute -top-1 -right-1 bg-restaurant-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            {shouldShowBadge && (
+              <span className="absolute -top-1 -right-1 bg-black text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                 {totalItems}
               </span>
             )}

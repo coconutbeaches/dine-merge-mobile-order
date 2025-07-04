@@ -17,6 +17,7 @@ function useAppContextValue() {
     updateCartItemQuantity,
     clearCart,
     cartTotal,
+    isLoading: cartIsLoading,
   } = useCartContext();
   const {
     currentUser,
@@ -45,6 +46,7 @@ function useAppContextValue() {
     updateCartItemQuantity,
     clearCart,
     cartTotal,
+    cartIsLoading,
     // User operations
     currentUser,
     isLoggedIn,
