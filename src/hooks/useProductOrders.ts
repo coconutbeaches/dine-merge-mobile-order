@@ -58,6 +58,8 @@ export const useProductOrders = (
           .order('created_at', { ascending: false });
 
         if (ordersError) throw ordersError;
+        
+        console.log('Raw orders data:', ordersData?.slice(0, 3)); // Debug log
 
         // Filter orders by date range if provided
         let filteredOrders = ordersData || [];
@@ -71,14 +73,19 @@ export const useProductOrders = (
         }
 
         // Transform the data to match expected format
-        const transformedOrders: ProductOrder[] = filteredOrders.map((order: any) => ({
-          id: order.id,
-          created_at: order.created_at,
-          order_status: 'new', // Default since status column doesn't exist
-          total_amount: order.total_amount || 0,
-          customer_name: order.profiles?.name || 'Unknown Customer',
-          customer_type: order.profiles?.customer_type || 'hotel_guest'
-        }));
+        const transformedOrders: ProductOrder[] = filteredOrders
+          .filter(order => order && order.id) // Filter out null/undefined orders
+          .map((order: any) => {
+            console.log('Processing order:', { id: order.id, type: typeof order.id }); // Debug log
+            return {
+              id: String(order.id || ''), // Ensure ID is a string with fallback
+              created_at: order.created_at || new Date().toISOString(),
+              order_status: 'new', // Default since status column doesn't exist
+              total_amount: order.total_amount || 0,
+              customer_name: order.profiles?.name || 'Unknown Customer',
+              customer_type: order.profiles?.customer_type || 'hotel_guest'
+            };
+          });
 
         // Filter by customer type if specified
         if (customerType) {
