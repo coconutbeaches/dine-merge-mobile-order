@@ -24,7 +24,7 @@ interface ProductWithCategory extends Product {
 
 interface DraggableProductItemProps {
   product: ProductWithCategory;
-  navigate: { push: (url: string) => void };
+  navigate: (path: string) => void;
   onDelete: (productId: string) => void;
   isAdmin: boolean;
 }
@@ -52,7 +52,7 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
       className={`cursor-pointer hover:shadow-lg transition-shadow flex flex-col relative ${
         isDragging ? 'z-50' : ''
       }`}
-      onClick={() => navigate.push(`/products/edit/${product.id}`)}
+      onClick={() => navigate(`/admin/products/edit/${product.id}`)}
     >
       <div
         {...attributes}
@@ -89,7 +89,7 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              navigate.push(`/products/edit/${product.id}`);
+              navigate(`/admin/products/edit/${product.id}`);
             }}
             className="bg-white/90 hover:bg-white shadow-sm"
           >
@@ -135,7 +135,7 @@ interface DraggableProductGridProps {
   categoryFilter: string | null;
   categories: Category[];
   handleAddProduct: () => void;
-  navigate: { push: (url: string) => void };
+  navigate: (path: string) => void;
   onProductsReorder: (reorderedProducts: ProductWithCategory[]) => void;
   onProductDelete: (productId: string) => void;
   isAdmin: boolean;

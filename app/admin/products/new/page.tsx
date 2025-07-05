@@ -2,9 +2,9 @@
 import Layout from '@/components/layout/Layout';
 import ProductFormMain from '@/components/admin/products/ProductFormMain';
 
-export default function EditProductPage() {
+export default function NewProductPage() {
   return (
-    <Layout title="Edit Product" showBackButton={true}>
+    <Layout title="Add New Product" showBackButton={true}>
       <ProductFormMain />
     </Layout>
   );

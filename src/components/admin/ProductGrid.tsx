@@ -76,7 +76,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         <Card 
           key={product.id} 
           className="cursor-pointer hover:shadow-lg transition-shadow flex flex-col"
-          onClick={() => navigate.push(`/products/edit/${product.id}`)}
+          onClick={() => navigate.push(`/admin/products/edit/${product.id}`)}
         >
           <div className="relative aspect-square bg-gray-100 w-full">
             {product.image_url ? (
@@ -110,7 +110,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate.push(`/products/edit/${product.id}`);
+                  navigate.push(`/admin/products/edit/${product.id}`);
                 }}
               >
                 Edit

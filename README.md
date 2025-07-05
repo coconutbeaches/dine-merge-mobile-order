@@ -52,7 +52,7 @@ npm run dev
 
 ### 🛠 Dev Setup
 
-This repo ships with a `.devcontainer` folder for a consistent Node.js 20 environment. The container automatically runs `npm install` on creation and forwards port **5173** for the Vite dev server.
+This repo ships with a `.devcontainer` folder for a consistent Node.js 20 environment. The container automatically runs `npm install` on creation and is configured for Next.js development.
 
 If Codespaces or Codex fails to start, open the Command Palette and choose **"Codespaces: Rebuild Container"**. Logs from the build will appear in the terminal if something goes wrong.
 
@@ -60,24 +60,24 @@ The setup also recommends installing the `dbaeumer.vscode-eslint` extension so l
 
 ### Automated console‑error capture
 
-Scrape browser console messages (errors, warnings, logs) via a headless Chromium.  Note the app now runs on port **8080**, bound to all interfaces for scriptable access:
+Scrape browser console messages (errors, warnings, logs) via a headless Chromium.  Note the app now runs with Next.js (typically on port 3000):
 
 ```bash
 # install Puppeteer (if you haven’t already)
 npm install --save-dev puppeteer
 
-# 1) start Vite in one pane (defaults to port 8080, but may fall back if occupied)
-npm run dev        # e.g. http://localhost:8080 or http://localhost:8081
+# 1) start Next.js in one pane (defaults to port 3000)
+npm run dev        # e.g. http://localhost:3000
 
-# 2) in a second pane, set VITE_PORT to your actual port and capture console logs:
-VITE_PORT=8081 npm run collect-logs
+# 2) in a second pane, capture console logs:
+npm run collect-logs
 ```
 
 ## What technologies are used for this project?
 
 This project is built with:
 
-- Vite
+- Next.js
 - TypeScript
 - React
 - shadcn-ui
