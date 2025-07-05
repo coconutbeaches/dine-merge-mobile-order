@@ -81,6 +81,36 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
             {product.categories.name}
           </span>
         )}
+        
+        {/* Edit and Delete buttons positioned at bottom right */}
+        <div className="absolute bottom-2 right-2 flex gap-2 z-20">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate.push(`/products/edit/${product.id}`);
+            }}
+            className="bg-white/90 hover:bg-white shadow-sm"
+          >
+            <Edit className="h-4 w-4" />
+          </Button>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (confirm('Are you sure you want to delete this product?')) {
+                  onDelete(product.id);
+                }
+              }}
+              className="bg-white/90 hover:bg-white shadow-sm"
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
       <div className="flex flex-col flex-grow p-4">
         <CardHeader className="p-0 pb-2">
@@ -91,36 +121,8 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
         <CardContent className="p-0 flex-grow">
           {/* Optional: Add description or other details here */}
         </CardContent>
-        <CardFooter className="p-0 pt-3 flex justify-between items-center">
-          {/* <span className="font-semibold text-primary text-md">
-            {formatThaiCurrency(product.price)}
-          </span> */}
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate.push(`/products/edit/${product.id}`);
-              }}
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-            {isAdmin && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (confirm('Are you sure you want to delete this product?')) {
-                    onDelete(product.id);
-                  }
-                }}
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+        <CardFooter className="p-0 pt-3">
+          {/* Price removed as requested */}
         </CardFooter>
       </div>
     </Card>

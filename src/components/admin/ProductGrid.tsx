@@ -104,10 +104,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             <CardContent className="p-0 flex-grow">
               {/* Optional: Add description or other details here */}
             </CardContent>
-            <CardFooter className="p-0 pt-3 flex justify-between items-center">
-              <span className="font-semibold text-primary text-md">
-                {formatThaiCurrency(product.price)}
-              </span>
+            <CardFooter className="p-0 pt-3 flex justify-end items-center">
               <Button 
                 variant="outline" 
                 size="sm"
