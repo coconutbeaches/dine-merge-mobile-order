@@ -31,6 +31,7 @@ const useProductForm = () => {
   const {
     createProductMutation,
     updateProductMutation,
+    deleteProductMutation,
     router
   } = useProductMutations({
     id,
@@ -63,6 +64,7 @@ const useProductForm = () => {
     error,
     createProductMutation,
     updateProductMutation,
+    deleteProductMutation,
     router,
     id,
     categories,

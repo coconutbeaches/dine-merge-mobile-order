@@ -1,5 +1,6 @@
 import { useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Product, ProductOption, ProductOptionChoice } from "@/types/supabaseTypes";
 
@@ -11,10 +12,15 @@ interface Category {
 
 export function useProductLoader() {
   const params = useParams();
-  // Support both 'id' and 'productId' param keys
-  const idParam = params.id as string || params.productId as string || undefined;
-  const id = idParam;
-  const isEditMode = Boolean(id) && id !== "new";
+  
+  // Memoize the id and isEditMode to prevent unnecessary re-renders
+  const { id, isEditMode } = useMemo(() => {
+    const idParam = params.id as string || params.productId as string || undefined;
+    return {
+      id: idParam,
+      isEditMode: Boolean(idParam) && idParam !== "new"
+    };
+  }, [params.id, params.productId]);
 
   // Debug log params and id
   console.log("[useProductLoader] useParams:", params, "resolved id:", id, "isEditMode:", isEditMode);

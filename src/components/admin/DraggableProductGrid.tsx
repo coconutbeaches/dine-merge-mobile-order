@@ -2,7 +2,7 @@
 import React from 'react';
 import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
-import { Trash, GripVertical, Plus, Edit } from 'lucide-react';
+import { Trash, GripVertical, Plus } from 'lucide-react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Button } from '@/components/ui/button';
@@ -81,36 +81,6 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
             {product.categories.name}
           </span>
         )}
-        
-        {/* Edit and Delete buttons positioned at bottom right */}
-        <div className="absolute bottom-2 right-2 flex gap-2 z-20">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/admin/products/edit/${product.id}`);
-            }}
-            className="bg-white/90 hover:bg-white shadow-sm"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm('Are you sure you want to delete this product?')) {
-                  onDelete(product.id);
-                }
-              }}
-              className="bg-white/90 hover:bg-white shadow-sm"
-            >
-              <Trash className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
       </div>
       <div className="flex flex-col flex-grow p-4">
         <CardHeader className="p-0 pb-2">

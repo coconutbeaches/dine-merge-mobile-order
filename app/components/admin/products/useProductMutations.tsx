@@ -177,9 +177,34 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
     }
   });
 
+  // Delete product mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async () => {
+      if (!id) throw new Error('Product ID is required');
+      
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['menu-products'] });
+      toast.success('Product deleted successfully');
+      router.push('/admin/products');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete product');
+      console.error(error);
+    }
+  });
+
   return {
     createProductMutation,
     updateProductMutation,
+    deleteProductMutation,
     router,
   };
 }

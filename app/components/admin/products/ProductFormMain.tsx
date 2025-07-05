@@ -1,7 +1,7 @@
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Trash2 } from "lucide-react";
 import useProductForm from "./useProductForm";
 import { ProductFormFields } from "./ProductFormFields";
 import { ProductImageUpload } from "./ProductImageUpload";
@@ -26,6 +26,7 @@ export function ProductFormMain() {
     error,
     createProductMutation,
     updateProductMutation,
+    deleteProductMutation,
     categories,
   } = useProductForm();
 
@@ -53,6 +54,13 @@ export function ProductFormMain() {
   }
 
   const isSubmitting = createProductMutation.isPending || updateProductMutation.isPending;
+  const isDeleting = deleteProductMutation?.isPending || false;
+
+  const handleDelete = () => {
+    if (confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+      deleteProductMutation?.mutate();
+    }
+  };
 
   return (
     <div className="container mx-auto py-6 px-4">
@@ -65,25 +73,19 @@ export function ProductFormMain() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <ProductFormFields
-                    form={form}
-                    categories={categories || []}
-                  />
-                </div>
-                
-                <div className="space-y-6">
-                  <ProductImageUpload
-                    imagePreview={imagePreview}
-                    setImagePreview={setImagePreview}
-                    fileInputRef={fileInputRef}
-                    handleImageChange={handleImageChange}
-                    isDragging={isDragging}
-                    setIsDragging={setIsDragging}
-                  />
-                </div>
-              </div>
+              <ProductFormFields
+                form={form}
+                categories={categories || []}
+              />
+              
+              <ProductImageUpload
+                imagePreview={imagePreview}
+                setImagePreview={setImagePreview}
+                fileInputRef={fileInputRef}
+                handleImageChange={handleImageChange}
+                isDragging={isDragging}
+                setIsDragging={setIsDragging}
+              />
 
               <ProductOptionsSection
                 options={options}
@@ -92,23 +94,45 @@ export function ProductFormMain() {
                 onDeleteOption={handleDeleteOption}
               />
 
-              <div className="flex justify-end space-x-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => window.history.back()}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isEditMode ? "Update Product" : "Create Product"}
-                </Button>
+              <div className="flex justify-between items-center">
+                {/* Delete button - only show in edit mode */}
+                {isEditMode && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={isDeleting || isSubmitting}
+                    className="flex items-center"
+                  >
+                    {isDeleting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {!isDeleting && (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
+                    {isDeleting ? "Deleting..." : "Delete Product"}
+                  </Button>
+                )}
+                
+                {/* Right side buttons */}
+                <div className="flex space-x-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => window.history.back()}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || isDeleting}
+                  >
+                    {isSubmitting && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {isEditMode ? "Update Product" : "Create Product"}
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>
