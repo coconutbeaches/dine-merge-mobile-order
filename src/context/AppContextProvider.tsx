@@ -4,6 +4,7 @@ import { AppProvider } from './AppContext';
 import { CartProvider } from './CartContext';
 import { UserProvider } from './UserContext';
 import { OrderProvider } from './OrderContext';
+import { GuestProvider } from './GuestContext';
 
 interface AppContextProviderProps {
   children: ReactNode;
@@ -14,7 +15,9 @@ const AppContextProvider = ({ children }: AppContextProviderProps) => {
     <UserProvider>
       <CartProvider>
         <OrderProvider>
-          <AppProvider>{children}</AppProvider>
+          <GuestProvider>
+            <AppProvider>{children}</AppProvider>
+          </GuestProvider>
         </OrderProvider>
       </CartProvider>
     </UserProvider>
