@@ -38,3 +38,27 @@
 .popular-badge {
   @apply absolute top-2 right-2 bg-black text-white text-xs px-2 py-1 rounded-sm;
 }
+
+/* Performance optimizations */
+.menu-item-image img {
+  content-visibility: auto;
+  contain-intrinsic-size: 200px 200px;
+}
+
+/* Reduce layout shifts */
+.food-card {
+  contain: layout style;
+}
+
+/* Optimize for mobile scrolling */
+body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Improve font rendering */
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

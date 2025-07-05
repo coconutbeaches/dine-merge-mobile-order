@@ -34,8 +34,9 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const { isLoading: userIsLoading } = useUserContext();
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
+// Load cart from localStorage once on mount, delayed to avoid blocking main thread
+useEffect(() => {
+  setTimeout(() => {
     const storedCart = localStorage.getItem('cart');
     if (storedCart) {
       try {
@@ -46,14 +47,18 @@ export const CartProvider = ({ children }: CartProviderProps) => {
       }
     }
     setIsLoading(false);
-  }, []);
-  
-  // Save cart to localStorage when it changes
-  useEffect(() => {
-    if (!userIsLoading && !isLoading) {
-      localStorage.setItem('cart', JSON.stringify(cart));
+  }, 0);
+}, []);
+
+// Save cart to localStorage only when necessary
+useEffect(() => {
+  if (!userIsLoading && !isLoading) {
+    const currentCartString = JSON.stringify(cart);
+    if (currentCartString !== localStorage.getItem('cart')) {
+      localStorage.setItem('cart', currentCartString);
     }
-  }, [cart, userIsLoading, isLoading]);
+  }
+}, [cart, userIsLoading, isLoading]);
   
   // Calculate cart total
   const cartTotal = cart.reduce((total, item) => {

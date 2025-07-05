@@ -40,10 +40,23 @@ export const useFetchOrders = () => {
   const fetchOrders = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            user_id,
+            customer_name,
+            customer_email,
+            order_status,
+            total_amount,
+            order_items,
+            created_at,
+            updated_at,
+            customer_type,
+            special_instructions
+          `)
+          .order('created_at', { ascending: false })
+          .limit(1000); // Limit to prevent large data transfers
 
       if (ordersError) throw ordersError;
 

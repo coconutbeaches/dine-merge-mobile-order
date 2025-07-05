@@ -15,7 +15,9 @@
     "ai:analyze": "./scripts/ai-workflow.sh",
     "lighthouse": "lighthouse http://localhost:8080 --output=html --chrome-flags='--headless'",
     "playwright:test": "npx playwright test",
-    "puppeteer:perf": "node scripts/puppeteer-performance.js"
+    "puppeteer:perf": "node scripts/puppeteer-performance.js",
+    "analyze": "cross-env ANALYZE=true next build",
+    "build:profile": "next build --profile"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

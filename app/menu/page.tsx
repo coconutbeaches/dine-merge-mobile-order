@@ -1,7 +1,7 @@
 "use client";
 // @ts-nocheck
 
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +12,8 @@ import { useAppContext } from '@/context/AppContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
 import CustomOrderSection from '@/components/admin/CustomOrderSection';
+import CategorySection from '@/components/menu/CategorySection';
+import { CategorySkeleton } from '@/components/ui/skeleton';
 
 interface Category {
   id: string;
@@ -42,32 +44,56 @@ function MenuIndexContent() {
     }
   }, [searchParams, adminCustomerContext, setAdminCustomerContext]);
 
+  // Optimized queries with better caching and stale time
   const { data: categories, isLoading: catLoading, error: catError } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      console.log('Fetching categories...');
-      const { data, error } = await supabase.from('categories').select('*').order('sort_order', { ascending: true });
-      console.log('Categories result:', { data, error });
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true });
       if (error) throw error;
       return data as Category[];
     },
+    staleTime: 10 * 60 * 1000, // 10 minutes - categories rarely change
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
 
   const { data: products, isLoading: prodLoading, error: prodError } = useQuery({
-    queryKey: ['index-products'],
+    queryKey: ['menu-products'],
     queryFn: async () => {
-      console.log('Fetching products...');
-      const { data, error } = await supabase.from('products').select('*').order('sort_order', { ascending: true });
-      console.log('Products result:', { data, error });
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, image_url, price, category_id')
+        .order('sort_order', { ascending: true });
       if (error) throw error;
       return data as Product[];
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
   });
 
   const { toast } = useToast();
 
-  console.log('Loading states:', { catLoading, prodLoading, catError, prodError });
-  console.log('Data:', { categories, products });
+  // Memoized categories with products for better performance
+  const categoriesWithProducts = useMemo(() => {
+    if (!categories || !products) return [];
+    
+    return categories
+      .map((cat) => {
+        const items = products.filter((p) => p.category_id === cat.id);
+        return {
+          ...cat,
+          items,
+        };
+      })
+      .filter((cat) => cat.items.length > 0);
+  }, [categories, products]);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Loading states:', { catLoading, prodLoading, catError, prodError });
+    console.log('Data:', { categories, products });
+  }
 
   if (catError || prodError) {
     return (
@@ -84,12 +110,17 @@ function MenuIndexContent() {
   if (catLoading || prodLoading) {
     return (
       <Layout title="Menu" showBackButton>
-        <div className="page-container text-center py-10">
-          <div className="text-lg leading-relaxed">
-            <div className="mb-2">Hi! 👋 Welcome to Coconut Beach 🌴</div>
-            <div className="mb-2">Let's find you some yummy stuff to eat...</div>
-            <div className="mb-6">Menu will load here shortly 🙏🏼</div>
+        <div className="page-container">
+          <div className="text-center py-4">
+            <div className="text-lg leading-relaxed">
+              <div className="mb-2">Hi! 👋 Welcome to Coconut Beach 🌴</div>
+              <div className="mb-6">Loading menu...</div>
+            </div>
           </div>
+          {/* Show skeleton while loading */}
+          {[...Array(3)].map((_, i) => (
+            <CategorySkeleton key={i} />
+          ))}
         </div>
       </Layout>
     );
@@ -126,36 +157,9 @@ function MenuIndexContent() {
           <CustomOrderSection customerId={adminCustomerContext.customerId} customerName={adminCustomerContext.customerName} />
         )}
 
-        {categories?.map((cat) => {
-          const items = products.filter((p) => p.category_id === cat.id);
-          if (!items.length) return null;
-          return (
-            <div key={cat.id} className="mb-8">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2 category-header">
-                  {cat.name}
-                </div>
-                {items.map((p) => (
-                  <div
-                    key={p.id}
-                    className="food-card cursor-pointer"
-                    onClick={() => router.push(`/menu/item/${p.id}`)}
-                  >
-                    <div className="menu-item-image">
-                      <img 
-                        src={p.image_url || '/placeholder.svg'} 
-                        alt={p.name} 
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                    <h3 className="menu-item-name">{p.name}</h3>
-                  </div>
-                ))}
-              </div>
-              {cat.description && <p className="text-muted-foreground mt-1">{cat.description}</p>}
-            </div>
-          );
-        })}
+        {categoriesWithProducts.map((category) => (
+          <CategorySection key={category.id} category={category} />
+        ))}
       </div>
     </Layout>
   );
