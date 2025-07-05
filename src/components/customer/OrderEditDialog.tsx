@@ -68,8 +68,8 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
 
   const handleAddItem = () => {
     setItems(prevItems => [
-      ...prevItems,
       { product: '', quantity: 1, price: 0, selectedOptions: {} },
+      ...prevItems,
     ]);
   };
 

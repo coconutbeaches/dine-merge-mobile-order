@@ -41,7 +41,7 @@ const AdminOrderDetailContent = () => {
         <div className="relative max-w-md w-full bg-white rounded-lg shadow-lg p-6">
           <button
             onClick={() => router.push('/admin/orders')}
-            className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-60"
+            className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-[9999]"
             aria-label="Close"
           >
             <svg
@@ -69,7 +69,7 @@ const AdminOrderDetailContent = () => {
         <div className="relative max-w-md w-full bg-white rounded-lg shadow-lg p-6">
           <button
             onClick={() => router.push('/admin/orders')}
-            className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-60"
+            className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-[9999]"
             aria-label="Close"
           >
             <svg
@@ -108,7 +108,7 @@ const AdminOrderDetailContent = () => {
         {/* Close button */}
         <button
           onClick={() => router.push('/admin/orders')}
-          className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-60"
+          className="absolute -top-4 -left-4 w-10 h-10 bg-black rounded-full flex items-center justify-center text-white hover:bg-gray-800 transition-colors z-[9999]"
           aria-label="Close"
         >
           <svg
