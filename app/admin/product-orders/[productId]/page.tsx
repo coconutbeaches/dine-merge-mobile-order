@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { formatThaiCurrency } from '@/lib/utils';
+import { getStatusBadgeClasses } from '@/src/utils/orderDashboardUtils';
 import Link from 'next/link';
 
 const ProductOrdersPage = () => {
@@ -44,20 +45,6 @@ const ProductOrdersPage = () => {
     return title;
   };
 
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'new':
-        return 'bg-blue-100 text-blue-800';
-      case 'preparing':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'ready':
-        return 'bg-green-100 text-green-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   return (
     <Layout title={getTitle()} showBackButton>
@@ -84,7 +71,7 @@ const ProductOrdersPage = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Order ID</TableHead>
+                    <TableHead>Order#</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
@@ -95,16 +82,16 @@ const ProductOrdersPage = () => {
                   {orders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell>
-                        <Link href={`/admin/orders/${order.id}`} className="underline hover:no-underline">
+                        <Link href={`/admin/orders/${order.id}`} className="hover:underline">
                           {String(order.id).slice(0, 8)}...
                         </Link>
                       </TableCell>
                       <TableCell>{order.customer_name}</TableCell>
                       <TableCell>
-                        {format(new Date(order.created_at), 'dd MMM yyyy, HH:mm')}
+                        {format(new Date(order.created_at), 'MMM d, HH:mm')}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusBadgeClass(order.order_status)}>
+                        <Badge className={getStatusBadgeClasses(order.order_status)}>
                           {order.order_status}
                         </Badge>
                       </TableCell>
