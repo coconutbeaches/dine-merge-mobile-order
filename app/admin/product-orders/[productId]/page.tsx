@@ -83,7 +83,7 @@ const ProductOrdersPage = () => {
                     <TableRow key={order.id}>
                       <TableCell>
                         <Link href={`/admin/orders/${order.id}`} className="hover:underline">
-                          {String(order.id).slice(0, 8)}...
+                          {String(order.id).slice(0, 8)}
                         </Link>
                       </TableCell>
                       <TableCell>{order.customer_name}</TableCell>
