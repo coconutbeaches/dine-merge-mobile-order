@@ -438,7 +438,7 @@ export default function EditProductPage() {
                       <FormItem>
                         <FormLabel>Category</FormLabel>
                         <Select
-                          value={field.value || undefined}
+                          value={field.value || "none"}
                           onValueChange={value => field.onChange(value === 'none' ? null : value)}
                         >
                           <FormControl>

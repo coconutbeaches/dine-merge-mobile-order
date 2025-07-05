@@ -337,8 +337,8 @@ export default function NewProductPage() {
                       <FormItem>
                         <FormLabel>Category</FormLabel>
                         <Select
-                          value={field.value || undefined}
-                          onValueChange={value => field.onChange(value || null)}
+                          value={field.value || "none"}
+                          onValueChange={value => field.onChange(value === 'none' ? null : value)}
                         >
                           <FormControl>
                             <SelectTrigger>
