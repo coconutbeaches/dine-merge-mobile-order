@@ -63,33 +63,42 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   };
 
   const loginOrSignup = async (email: string, password: string, name?: string): Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }> => {
-    // Try to sign up first
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        // The handle_new_user trigger in the DB will use the email as name if not provided.
-        data: { name: name && name.trim().length > 0 ? name.trim() : undefined },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-
-    if (signUpError) {
-      if (signUpError.message.toLowerCase().includes('user already registered')) {
-        // User exists, so let's try to sign them in.
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        if (signInError) {
-          return { success: false, error: signInError.message, a_new_user_was_created: false };
-        }
-        // Sign in was successful.
-        return { success: true, error: null, a_new_user_was_created: false };
-      }
-      // Another sign up error occurred.
-      return { success: false, error: signUpError.message, a_new_user_was_created: false };
+    // OPTIMIZATION: Try signin first (most common case for returning users)
+    // This avoids the unnecessary signup attempt for existing users
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    
+    if (!signInError) {
+      // Sign in was successful - user already exists
+      return { success: true, error: null, a_new_user_was_created: false };
     }
     
-    // Sign up was successful, a new user was created.
-    return { success: true, error: null, a_new_user_was_created: true };
+    // Sign in failed - check if it's because user doesn't exist
+    if (signInError.message.toLowerCase().includes('invalid login credentials') || 
+        signInError.message.toLowerCase().includes('email not confirmed') ||
+        signInError.message.toLowerCase().includes('invalid user')){
+      
+      // User doesn't exist, try to create a new account
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          // The handle_new_user trigger in the DB will use the email as name if not provided.
+          data: { name: name && name.trim().length > 0 ? name.trim() : undefined },
+          emailRedirectTo: window.location.origin,
+        },
+      });
+      
+      if (signUpError) {
+        // Signup also failed
+        return { success: false, error: signUpError.message, a_new_user_was_created: false };
+      }
+      
+      // Sign up was successful, a new user was created.
+      return { success: true, error: null, a_new_user_was_created: true };
+    }
+    
+    // Sign in failed for other reasons (wrong password, etc.)
+    return { success: false, error: signInError.message, a_new_user_was_created: false };
   };
 
   const value = {
