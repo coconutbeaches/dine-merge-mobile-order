@@ -51,6 +51,7 @@ export const useProductOrders = (
             user_id,
             total_amount,
             created_at,
+            order_items,
             profiles!inner (
               name,
               customer_type
@@ -61,9 +62,12 @@ export const useProductOrders = (
         if (ordersError) throw ordersError;
         
         console.log('Raw orders data:', ordersData?.slice(0, 3)); // Debug log
+        console.log('Filtering for product ID:', productId);
 
-        // Filter orders by date range if provided
+        // Filter orders by date range and product ID if provided
         let filteredOrders = ordersData || [];
+
+        // Filter by date range
         if (startDate && endDate) {
           filteredOrders = filteredOrders.filter(order => {
             const orderDate = new Date(order.created_at);
@@ -72,6 +76,26 @@ export const useProductOrders = (
             return orderDate >= start && orderDate <= end;
           });
         }
+
+        console.log('Orders after date filtering:', filteredOrders.length);
+
+        // Filter orders that contain specific product ID
+        filteredOrders = filteredOrders.filter(order => {
+          // Ensure order_items exists and is an array
+          if (!order.order_items || !Array.isArray(order.order_items)) {
+            console.log('Order', order.id, 'has no order_items or not an array');
+            return false;
+          }
+          // Check if any item in the order has the matching product ID
+          const hasProduct = order.order_items.some((item: any) => {
+            console.log('Checking item ID:', item.id, 'against product ID:', productId);
+            return item.id === productId;
+          });
+          console.log('Order', order.id, 'has matching product:', hasProduct);
+          return hasProduct;
+        });
+
+        console.log('Orders after product filtering:', filteredOrders.length);
 
         // Transform the data to match expected format
         const transformedOrders: ProductOrder[] = filteredOrders
