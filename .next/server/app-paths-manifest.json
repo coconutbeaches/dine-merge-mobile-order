@@ -1,7 +1,10 @@
 {
-  "/admin/products/page": "app/admin/products/page.js",
-  "/admin/products/edit/[id]/page": "app/admin/products/edit/[id]/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/cart/page": "app/cart/page.js",
   "/menu/page": "app/menu/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/products/page": "app/admin/products/page.js",
   "/menu/item/[id]/page": "app/menu/item/[id]/page.js",
-  "/cart/page": "app/cart/page.js"
+  "/admin/analytics/page": "app/admin/analytics/page.js",
+  "/admin/products/edit/[id]/page": "app/admin/products/edit/[id]/page.js"
 }

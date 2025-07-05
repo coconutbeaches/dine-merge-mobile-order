@@ -181,7 +181,7 @@ export default function EditProductPage() {
         name: data.name,
         description: data.description,
         price: parseFloat(data.price),
-        category_id: data.category_id
+        category_id: data.category_id || null
       };
       if (imageUrl !== product?.image_url) {
         updateData.image_url = imageUrl;
