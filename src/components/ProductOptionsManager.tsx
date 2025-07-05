@@ -112,7 +112,7 @@ const ProductOptionsManager: React.FC<ProductOptionsManagerProps> = ({
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 <SelectItem value="single">Single selection</SelectItem>
                 <SelectItem value="multiple">Multiple selection</SelectItem>
               </SelectContent>

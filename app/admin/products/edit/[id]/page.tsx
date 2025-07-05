@@ -69,7 +69,7 @@ export default function EditProductPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select('*, categories(id, name)')
         .eq('id', productId)
         .single();
       if (error) throw error;
