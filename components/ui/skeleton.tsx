@@ -13,7 +13,7 @@ function Skeleton({
 }
 
 // Specific skeleton components for better performance
-function MenuItemSkeleton() {
+export function MenuItemSkeleton() {
   return (
     <div className="food-card">
       <Skeleton className="aspect-square w-full mb-2" />
@@ -22,7 +22,7 @@ function MenuItemSkeleton() {
   )
 }
 
-function CategorySkeleton() {
+export function CategorySkeleton() {
   return (
     <div className="mb-8">
       <div className="grid grid-cols-2 gap-3">
@@ -35,4 +35,4 @@ function CategorySkeleton() {
   )
 }
 
-export { Skeleton, MenuItemSkeleton, CategorySkeleton }
+export { Skeleton }

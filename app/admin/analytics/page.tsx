@@ -122,13 +122,13 @@ export default function AnalyticsPage() {
     ? format(productsRange.from, "yyyy-MM-dd")
     : productsEndDate;
 
-  const { data, isLoading, error } = useOrdersByDate(
+  const { data = [], isLoading, error } = useOrdersByDate(
     chartStartDate,
     chartEndDate,
     metric,
   );
   const {
-    data: topProducts,
+    data: topProducts = [],
     isLoading: isLoadingProducts,
     error: errorProducts,
   } = useTopProductsByQuantity(productsStartDate, productsEndDate);

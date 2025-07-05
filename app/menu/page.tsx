@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
 import CustomOrderSection from '@/components/admin/CustomOrderSection';
 import CategorySection from '@/components/menu/CategorySection';
-import { CategorySkeleton } from '@/components/ui/skeleton';
+import { CategorySkeleton } from '@/components/ui/skeleton/index';
 
 interface Category {
   id: string;
