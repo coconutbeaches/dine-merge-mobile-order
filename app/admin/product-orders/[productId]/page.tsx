@@ -1,9 +1,10 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useProductOrders } from '@/src/hooks/useProductOrders';
+import { useOrderActions } from '@/src/hooks/useOrderActions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -17,7 +18,28 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { getStatusBadgeClasses } from '@/src/utils/orderDashboardUtils';
+import { OrderStatus } from '@/types/supabaseTypes';
 import Link from 'next/link';
+
+// Status progression function
+const getNextStatus = (currentStatus: OrderStatus): OrderStatus => {
+  switch (currentStatus) {
+    case 'new':
+      return 'preparing';
+    case 'preparing':
+      return 'ready';
+    case 'ready':
+      return 'delivery';
+    case 'delivery':
+      return 'completed';
+    case 'completed':
+      return 'paid';
+    case 'paid':
+    case 'cancelled':
+    default:
+      return currentStatus; // Do not change if already paid or cancelled, or unknown
+  }
+};
 
 const ProductOrdersPage = () => {
   const params = useParams();
@@ -28,12 +50,21 @@ const ProductOrdersPage = () => {
   const startDate = searchParams?.get('startDate');
   const endDate = searchParams?.get('endDate');
 
-  const { orders, isLoading, productName } = useProductOrders(
+  const { orders: initialOrders, isLoading, productName } = useProductOrders(
     productId,
     customerType,
     startDate,
     endDate
   );
+
+  // Local state for orders to handle updates
+  const [orders, setOrders] = useState(initialOrders);
+  const { updateOrderStatus } = useOrderActions(setOrders);
+
+  // Update local state when initial orders change
+  React.useEffect(() => {
+    setOrders(initialOrders);
+  }, [initialOrders]);
 
   const getTitle = () => {
     let title = `Orders for ${productName}`;
@@ -43,6 +74,13 @@ const ProductOrdersPage = () => {
       title += ' (Non-Guests)';
     }
     return title;
+  };
+
+  const handleStatusClick = (orderId: string, currentStatus: OrderStatus) => {
+    const nextStatus = getNextStatus(currentStatus);
+    if (nextStatus !== currentStatus) {
+      updateOrderStatus(orderId, nextStatus);
+    }
   };
 
 
@@ -102,8 +140,11 @@ const ProductOrdersPage = () => {
                         {format(new Date(order.created_at), 'MMM d HH:mm')}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusBadgeClasses(order.order_status)}>
-                          {order.order_status}
+                        <Badge 
+                          className={`${getStatusBadgeClasses(order.order_status)} cursor-pointer hover:opacity-80 transition-opacity`}
+                          onClick={() => handleStatusClick(order.id, order.order_status as OrderStatus)}
+                        >
+                          {order.order_status === 'delivery' ? 'Delivery' : order.order_status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
