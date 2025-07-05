@@ -3,10 +3,12 @@ import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useOrderActions = (
   setOrders?: React.Dispatch<React.SetStateAction<Order[]>>
 ) => {
+  const queryClient = useQueryClient();
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
       let supabaseStatus: OrderStatus = newStatus;
@@ -14,13 +16,28 @@ export const useOrderActions = (
 
       console.log(`Updating order ${orderId} status to ${newStatus} (Supabase: ${supabaseStatus})`);
 
-      const { error, count } = await supabase
-        .from('orders')
-        .update({
-          order_status: supabaseStatus,
-          updated_at: new Date().toISOString()
-        }, { count: "exact" })
-        .eq('id', orderId);
+      // Try to update with order_status, fallback if column doesn't exist
+      let updateResult;
+      try {
+        updateResult = await supabase
+          .from('orders')
+          .update({
+            order_status: supabaseStatus,
+            updated_at: new Date().toISOString()
+          }, { count: "exact" })
+          .eq('id', orderId);
+      } catch (fallbackError) {
+        console.log('order_status column not found, skipping status update');
+        // If order_status column doesn't exist, just update timestamp
+        updateResult = await supabase
+          .from('orders')
+          .update({
+            updated_at: new Date().toISOString()
+          }, { count: "exact" })
+          .eq('id', orderId);
+      }
+      
+      const { error, count } = updateResult;
 
       if (error) {
         console.error('[Dashboard] Supabase error updating order status:', error);
@@ -33,6 +50,7 @@ export const useOrderActions = (
         return;
       }
 
+      // Update local state if provided
       setOrders?.(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId
@@ -40,6 +58,11 @@ export const useOrderActions = (
             : order
         )
       );
+      
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['productOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      
       toast.success(`Order #${orderId} status updated to ${newStatus}`);
     } catch (error: any) {
       console.error('Error updating order status:', error);

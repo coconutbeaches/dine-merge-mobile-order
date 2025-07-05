@@ -36,6 +36,7 @@ import {
 import { useTopProductsByQuantity } from "@/src/hooks/useTopProductsByQuantity";
 import { formatThaiCurrency, formatThaiCurrencyWithComma } from "@/lib/utils";
 import Link from "next/link";
+import { useRouter } from 'next/navigation';
 
 import type { TooltipProps } from "recharts";
 
@@ -80,6 +81,7 @@ const OrdersTooltip = (props: TooltipProps<number, string>) => {
 };
 
 export default function AnalyticsPage() {
+  const router = useRouter();
   const [metric, setMetric] = useState<"revenue" | "count">("revenue");
   const [chartRange, setChartRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
@@ -164,6 +166,12 @@ export default function AnalyticsPage() {
   );
   const guestTotal = chartData.reduce((sum, row) => sum + row.hotel_guest, 0);
   const outTotal = chartData.reduce((sum, row) => sum + row.non_guest, 0);
+
+  const handleBarClick = (date: string) => {
+    // Navigate to orders page with the specific date as both start and end date
+    const formattedDate = format(new Date(date), 'yyyy-MM-dd');
+    router.push(`/admin/orders?startDate=${formattedDate}&endDate=${formattedDate}`);
+  };
 
   return (
     <Layout title="Orders Over Time" showBackButton>
@@ -337,8 +345,9 @@ export default function AnalyticsPage() {
                         return (
                           <div 
                             key={index} 
-                            className="relative group cursor-pointer hover:opacity-80"
+                            className="relative group cursor-pointer hover:opacity-80 transition-all duration-200 hover:scale-105"
                             style={{ height: `${height}px`, minWidth: '8px', width: `${Math.max(8, (100 - chartData.length) / chartData.length)}%` }}
+                            onClick={() => handleBarClick(item.date)}
                           >
                             {/* Non-guest (black) bar - bottom */}
                             <div 
@@ -432,7 +441,7 @@ export default function AnalyticsPage() {
                           <TableCell className="text-right">
                             {product.hotel_guest_quantity > 0 ? (
                               <Link
-                                href={`/admin/product-orders/${product.product_id}?customerType=guest&startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                                href={`/admin/product-orders/${product.product_id}?customerType=guest&startDate=${productsStartDate}&endDate=${productsEndDate}`}
                                 className="hover:underline"
                               >
                                 {product.hotel_guest_quantity.toLocaleString()}
@@ -444,7 +453,7 @@ export default function AnalyticsPage() {
                           <TableCell className="text-right">
                             {product.non_guest_quantity > 0 ? (
                               <Link
-                                href={`/admin/product-orders/${product.product_id}?customerType=non-guest&startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                                href={`/admin/product-orders/${product.product_id}?customerType=non-guest&startDate=${productsStartDate}&endDate=${productsEndDate}`}
                                 className="hover:underline"
                               >
                                 {product.non_guest_quantity.toLocaleString()}
@@ -456,7 +465,7 @@ export default function AnalyticsPage() {
                           <TableCell className="text-right font-medium">
                             {product.total_quantity > 0 ? (
                               <Link
-                                href={`/admin/product-orders/${product.product_id}?startDate=${productsStartDate}&endDate=${format(addDays(productsRange.to ?? new Date(), 1), 'yyyy-MM-dd')}`}
+                                href={`/admin/product-orders/${product.product_id}?startDate=${productsStartDate}&endDate=${productsEndDate}`}
                                 className="hover:underline"
                               >
                                 {product.total_quantity.toLocaleString()}

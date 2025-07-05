@@ -41,23 +41,47 @@ export const useProductOrders = (
           setProductName(productData.name);
         }
 
-        // Since the current database has a limited orders table, 
-        // we'll create a simplified query that works with available data
-        // Get all orders first, then filter by date range
-        const { data: ordersData, error: ordersError } = await supabase
-          .from('orders')
-          .select(`
-            id,
-            user_id,
-            total_amount,
-            created_at,
-            order_items,
-            profiles!inner (
-              name,
-              customer_type
-            )
-          `)
-          .order('created_at', { ascending: false });
+        // Get all orders with available columns, with fallback for missing columns
+        let ordersData, ordersError;
+        try {
+          const result = await supabase
+            .from('orders')
+            .select(`
+              id,
+              user_id,
+              total_amount,
+              created_at,
+              order_status,
+              order_items,
+              updated_at,
+              table_number,
+              profiles!inner (
+                name,
+                customer_type
+              )
+            `)
+            .order('created_at', { ascending: false });
+          ordersData = result.data;
+          ordersError = result.error;
+        } catch (fallbackError) {
+          console.log('Falling back to basic query due to missing columns');
+          // Fallback to basic query if new columns don't exist
+          const result = await supabase
+            .from('orders')
+            .select(`
+              id,
+              user_id,
+              total_amount,
+              created_at,
+              profiles!inner (
+                name,
+                customer_type
+              )
+            `)
+            .order('created_at', { ascending: false });
+          ordersData = result.data;
+          ordersError = result.error;
+        }
 
         if (ordersError) throw ordersError;
         
@@ -72,8 +96,10 @@ export const useProductOrders = (
           filteredOrders = filteredOrders.filter(order => {
             const orderDate = new Date(order.created_at);
             const start = new Date(startDate);
+            // Add 1 day to end date to make it inclusive of the entire end date
             const end = new Date(endDate);
-            return orderDate >= start && orderDate <= end;
+            end.setDate(end.getDate() + 1);
+            return orderDate >= start && orderDate < end;
           });
         }
 
@@ -88,8 +114,10 @@ export const useProductOrders = (
           }
           // Check if any item in the order has the matching product ID
           const hasProduct = order.order_items.some((item: any) => {
-            console.log('Checking item ID:', item.id, 'against product ID:', productId);
-            return item.id === productId;
+            // The order_items structure is: { id: cartItemId, menuItem: { id: productId, ... }, quantity, ... }
+            const itemProductId = item.menuItem?.id || item.id; // Try menuItem.id first, fallback to item.id
+            console.log('Checking item:', item, 'product ID:', itemProductId, 'against target product ID:', productId);
+            return itemProductId === productId;
           });
           console.log('Order', order.id, 'has matching product:', hasProduct);
           return hasProduct;
@@ -106,7 +134,7 @@ export const useProductOrders = (
               id: String(order.id || ''), // Ensure ID is a string with fallback
               user_id: order.user_id || null,
               created_at: order.created_at || new Date().toISOString(),
-              order_status: 'new', // Default since status column doesn't exist
+              order_status: order.order_status || 'new', // Use actual status or default
               total_amount: order.total_amount || 0,
               customer_name: order.profiles?.name || 'Unknown Customer',
               customer_type: order.profiles?.customer_type || 'hotel_guest'
@@ -135,5 +163,10 @@ export const useProductOrders = (
     enabled: !!productId,
   });
 
-  return { orders: orders || [], isLoading, productName };
+  return { 
+    orders: orders || [], 
+    isLoading, 
+    error,
+    productName 
+  };
 };

@@ -50,21 +50,14 @@ const ProductOrdersPage = () => {
   const startDate = searchParams?.get('startDate');
   const endDate = searchParams?.get('endDate');
 
-  const { orders: initialOrders, isLoading, productName } = useProductOrders(
+  const { orders, isLoading, productName } = useProductOrders(
     productId,
     customerType,
     startDate,
     endDate
   );
 
-  // Local state for orders to handle updates
-  const [orders, setOrders] = useState(initialOrders);
-  const { updateOrderStatus } = useOrderActions(setOrders);
-
-  // Update local state when initial orders change
-  React.useEffect(() => {
-    setOrders(initialOrders);
-  }, [initialOrders]);
+  const { updateOrderStatus } = useOrderActions();
 
   const getTitle = () => {
     let title = `Orders for ${productName}`;

@@ -93,9 +93,9 @@ const CustomersList: React.FC<CustomersListProps> = ({
   }
 
   return (
-    <div className="relative w-full">
+<div className="relative w-full">
       <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-[700px]">
+        <Table className="min-w-[800px]">
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead className="w-[50px]">
@@ -117,7 +117,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:text-primary transition-colors text-left min-w-[80px]"
+                className="cursor-pointer hover:text-primary transition-colors text-left min-w-[80px] w-[80px]"
                 onClick={() => handleSort('customer_type')}
               >
                 <div className="flex items-center gap-1 justify-start">
@@ -140,7 +140,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:text-primary transition-colors min-w-[100px]"
+                className="cursor-pointer hover:text-primary transition-colors min-w-[100px] w-[100px]"
                 onClick={() => handleSort('last_order_date')}
               >
                 <div className="flex items-center gap-1">
@@ -190,7 +190,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-left">
+                <TableCell className="text-left w-[80px]">
                   <div className="flex justify-start">
                     <Badge 
                       variant={customer.customer_type === 'hotel_guest' ? 'default' : 'outline'}
@@ -212,7 +212,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 <TableCell className="text-right">
                   {formatThaiCurrencyWithComma(customer.total_spent)}
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">
+                <TableCell className="text-sm text-muted-foreground w-[100px]">
                   {formatLastOrderDate(customer?.last_order_date)}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
