@@ -72,14 +72,20 @@ export default function EditProductPage() {
         .select('*, categories(id, name)')
         .eq('id', productId)
         .single();
+      
       if (error) throw error;
       return data as Product;
     },
     enabled: !!currentUser && !!productId,
   });
 
+  // Monitor product and form state
+  useEffect(() => {
+    // Form initialization happens in separate useEffect below
+  }, [product, productLoading, productError, currentUser, formInitialized]);
+
   // Fetch categories
-  const { data: categories } = useQuery({
+  const { data: categories, isLoading: categoriesLoading } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -91,7 +97,6 @@ export default function EditProductPage() {
     },
     enabled: !!currentUser,
   });
-
   // Fetch product options
   const { data: productOptions } = useQuery({
     queryKey: ['productOptions', productId],
@@ -125,14 +130,21 @@ export default function EditProductPage() {
 
   // Initialize form with product data
   useEffect(() => {
-    if (product && !formInitialized) {
+    if (product && categories && !formInitialized) {
+      const categoryId = product.category_id || null;
+      
       form.reset({
         name: product.name || '',
         price: product.price ? String(product.price) : '',
         description: product.description || '',
-        category_id: product.category_id || null,
+        category_id: categoryId,
         image: null,
       });
+      
+      // Force update the category field specifically to ensure it's set
+      setTimeout(() => {
+        form.setValue('category_id', categoryId);
+      }, 0);
       
       if (product.image_url) {
         setImagePreview(product.image_url);
@@ -140,7 +152,7 @@ export default function EditProductPage() {
       
       setFormInitialized(true);
     }
-  }, [product, form, formInitialized]);
+  }, [product, categories, form, formInitialized]);
 
   // Initialize options
   useEffect(() => {
@@ -309,7 +321,13 @@ export default function EditProductPage() {
       selection_type: 'single',
       max_selections: 1,
       sort_order: options.length,
-      choices: []
+      choices: [{
+        id: nanoid(),
+        option_id: '',
+        name: '',
+        price_adjustment: 0,
+        sort_order: 0
+      }]
     };
     setOptions([...options, newOption]);
   };
@@ -469,7 +487,8 @@ export default function EditProductPage() {
                         <FormControl>
                           <Textarea
                             placeholder="Product description"
-                            className="min-h-[120px]"
+                            className="min-h-[40px] resize-none"
+                            rows={1}
                             {...field}
                           />
                         </FormControl>
@@ -548,7 +567,7 @@ export default function EditProductPage() {
                 {/* Options Section */}
                 <div className="mt-6">
                   <h3 className="text-lg font-medium mb-4">Options</h3>
-                  {options.length > 0 ? (
+                  {options.length > 0 && (
                     <div className="space-y-6">
                       {options.map((option, index) => (
                         <ProductOptionsManager
@@ -558,10 +577,6 @@ export default function EditProductPage() {
                           onDelete={() => handleDeleteOption(index)}
                         />
                       ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 border rounded-lg border-dashed">
-                      <p className="text-gray-500 mb-4">No options defined yet</p>
                     </div>
                   )}
                   <div className="mt-4">
@@ -577,43 +592,43 @@ export default function EditProductPage() {
                 </div>
 
                 {/* Submit Buttons */}
-                <div className="flex justify-between items-center">
-                  {/* Delete button */}
+                <div className="flex justify-end items-center space-x-4">
+                  {/* Delete button - just icon */}
                   <Button
                     type="button"
                     variant="destructive"
+                    size="icon"
                     onClick={handleDelete}
                     disabled={deleteMutation.isPending || updateMutation.isPending}
-                    className="flex items-center"
+                    className="h-10 w-10"
                   >
-                    {deleteMutation.isPending && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {deleteMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
                     )}
-                    {!deleteMutation.isPending && (
-                      <Trash2 className="mr-2 h-4 w-4" />
-                    )}
-                    {deleteMutation.isPending ? 'Deleting...' : 'Delete Product'}
                   </Button>
                   
-                  {/* Right side buttons */}
-                  <div className="flex space-x-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => router.push('/admin/products')}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={updateMutation.isPending || deleteMutation.isPending}
-                    >
-                      {updateMutation.isPending && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      Update Product
-                    </Button>
-                  </div>
+                  {/* Cancel button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => router.push('/admin/products')}
+                  >
+                    Cancel
+                  </Button>
+                  
+                  {/* Save button - black */}
+                  <Button
+                    type="submit"
+                    disabled={updateMutation.isPending || deleteMutation.isPending}
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
+                    {updateMutation.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Save
+                  </Button>
                 </div>
               </form>
             </Form>

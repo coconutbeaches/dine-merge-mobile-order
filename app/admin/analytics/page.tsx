@@ -145,9 +145,9 @@ export default function AnalyticsPage() {
           : row.outside_guest_orders,
     }));
 
-  const maxValue = Math.max(
+  const maxValue = chartData.length > 0 ? Math.max(
     ...chartData.map((d) => d.hotel_guest + d.non_guest),
-  );
+  ) : 0;
 
   const ticks = React.useMemo(() => {
     if (metric === "count") {
@@ -244,57 +244,41 @@ export default function AnalyticsPage() {
             {isLoading ? (
               <div className="p-6 text-center text-gray-500">Loading analytics...</div>
             ) : error ? (
-              <div className="p-6 text-center text-red-500">Failed to load data</div>
+              <div className="p-6 text-center text-red-500">
+                Failed to load data: {error}
+                <br />
+                <small>Start: {chartStartDate}, End: {chartEndDate}</small>
+              </div>
+            ) : data.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                No data available for the selected date range
+                <br />
+                <small>Start: {chartStartDate}, End: {chartEndDate}</small>
+              </div>
             ) : (
-              <ChartContainer
-                config={{
-                  hotel_guest: { label: "Guest", color: "#ffffff" },
-                  non_guest: { label: "Out", color: "#000000" },
-                }}
-              >
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={chartData} barGap={2}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="#e5e5e5"
-                      vertical={false}
-                    />
-                    <XAxis dataKey="date" hide />
-                    <YAxis
-                      ticks={ticks}
-                      tickFormatter={(v) => v.toLocaleString()}
-                      stroke="#000"
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      content={
-                        <OrdersTooltip
-                          labelFormatter={(value) =>
-                            format(new Date(value as string), "MMM d")
-                          }
-                        />
-                      }
-                    />
-                    <Bar
-                      dataKey="non_guest"
-                      stackId="orders"
-                      fill="var(--color-non_guest)"
-                      stroke="#000"
-                      strokeWidth={1}
-                      cursor="pointer"
-                    />
-                    <Bar
-                      dataKey="hotel_guest"
-                      stackId="orders"
-                      fill="var(--color-hotel_guest)"
-                      stroke="#000"
-                      strokeWidth={1}
-                      cursor="pointer"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <div className="p-6 bg-gray-50 border rounded">
+                <div className="mb-4">
+                  <strong>Chart Debug Info:</strong>
+                  <br />Records: {data.length}
+                  <br />Chart data: {chartData.length}
+                  <br />Max value: {maxValue}
+                  <br />Loading: {isLoading.toString()}
+                  <br />Error: {error || 'none'}
+                </div>
+                
+                {chartData.length > 0 && (
+                  <div className="mb-4">
+                    <strong>Sample data:</strong>
+                    <pre className="text-xs bg-white p-2 rounded overflow-auto">
+                      {JSON.stringify(chartData.slice(0, 3), null, 2)}
+                    </pre>
+                  </div>
+                )}
+                
+                <div className="h-64 bg-white border rounded flex items-center justify-center">
+                  <span className="text-gray-500">Chart would render here</span>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
