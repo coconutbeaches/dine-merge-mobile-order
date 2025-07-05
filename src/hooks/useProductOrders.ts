@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Simplified order type that works with current database structure
 interface ProductOrder {
   id: string;
+  user_id: string | null;
   created_at: string;
   order_status: string;
   total_amount: number;
@@ -79,6 +80,7 @@ export const useProductOrders = (
             console.log('Processing order:', { id: order.id, type: typeof order.id }); // Debug log
             return {
               id: String(order.id || ''), // Ensure ID is a string with fallback
+              user_id: order.user_id || null,
               created_at: order.created_at || new Date().toISOString(),
               order_status: 'new', // Default since status column doesn't exist
               total_amount: order.total_amount || 0,

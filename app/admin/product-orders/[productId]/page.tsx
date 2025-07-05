@@ -86,7 +86,18 @@ const ProductOrdersPage = () => {
                           {String(order.id).slice(0, 8)}
                         </Link>
                       </TableCell>
-                      <TableCell>{order.customer_name}</TableCell>
+                      <TableCell>
+                        {order.user_id ? (
+                          <Link 
+                            href={`/admin/customer-orders/${order.user_id}`} 
+                            className="hover:underline text-primary"
+                          >
+                            {order.customer_name}
+                          </Link>
+                        ) : (
+                          <span>{order.customer_name}</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {format(new Date(order.created_at), 'MMM d HH:mm')}
                       </TableCell>
