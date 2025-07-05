@@ -92,9 +92,9 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
           {/* Optional: Add description or other details here */}
         </CardContent>
         <CardFooter className="p-0 pt-3 flex justify-between items-center">
-          <span className="font-semibold text-primary text-md">
+          {/* <span className="font-semibold text-primary text-md">
             {formatThaiCurrency(product.price)}
-          </span>
+          </span> */}
           <div className="flex gap-2">
             <Button
               variant="ghost"
