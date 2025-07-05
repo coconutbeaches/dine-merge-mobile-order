@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { formatThaiCurrency } from '@/lib/utils';
+import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { getStatusBadgeClasses } from '@/src/utils/orderDashboardUtils';
 import Link from 'next/link';
 
@@ -96,7 +96,7 @@ const ProductOrdersPage = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatThaiCurrency(order.total_amount)}
+                        {formatThaiCurrencyWithComma(order.total_amount)}
                       </TableCell>
                     </TableRow>
                   ))}
