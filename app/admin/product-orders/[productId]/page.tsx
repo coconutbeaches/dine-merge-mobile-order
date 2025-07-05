@@ -88,7 +88,7 @@ const ProductOrdersPage = () => {
                       </TableCell>
                       <TableCell>{order.customer_name}</TableCell>
                       <TableCell>
-                        {format(new Date(order.created_at), 'MMM d, HH:mm')}
+                        {format(new Date(order.created_at), 'MMM d HH:mm')}
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusBadgeClasses(order.order_status)}>
