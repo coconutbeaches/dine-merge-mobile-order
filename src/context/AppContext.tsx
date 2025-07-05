@@ -27,6 +27,8 @@ function useAppContextValue() {
     logout,
     updateUser,
     loginOrSignup,
+    loginAsGuest,
+    convertGuestToUser,
   } = useUserContext();
   const {
     adminCustomerContext,
@@ -55,6 +57,8 @@ function useAppContextValue() {
     logout,
     updateUser,
     loginOrSignup,
+    loginAsGuest,
+    convertGuestToUser,
     // Admin customer context
     adminCustomerContext,
     setAdminCustomerContext,

@@ -12,6 +12,8 @@ interface UserContextType {
   logout: () => void;
   updateUser: (updatedUser: User) => void;
   loginOrSignup: (email: string, password: string, name?: string) => Promise<{ success: boolean; error: string | null; a_new_user_was_created: boolean; }>;
+  loginAsGuest: () => Promise<{ success: boolean; error: string | null; }>;
+  convertGuestToUser: (email: string, password: string, name?: string) => Promise<{ success: boolean; error: string | null; }>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -101,6 +103,40 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     return { success: false, error: signInError.message, a_new_user_was_created: false };
   };
 
+  const loginAsGuest = async (): Promise<{ success: boolean; error: string | null; }> => {
+    const { error } = await supabase.auth.signInAnonymously();
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, error: null };
+  };
+
+  const convertGuestToUser = async (email: string, password: string, name?: string): Promise<{ success: boolean; error: string | null; }> => {
+    try {
+      const { data, error } = await supabase.auth.updateUser({
+        email: email,
+        password: password,
+        data: { name: name && name.trim().length > 0 ? name.trim() : undefined },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      // If the user was successfully updated, their profile in the 'profiles' table
+      // should also be updated by the 'handle_new_user' trigger or a similar mechanism.
+      // We can re-fetch the profile to ensure the context is up-to-date.
+      if (data.user?.id) {
+        await fetchProfileAndSet(data.user.id);
+      }
+
+      return { success: true, error: null };
+    } catch (err) {
+      console.error('[UserContext] convertGuestToUser try/catch error:', err);
+      return { success: false, error: err instanceof Error ? err.message : 'An unknown error occurred during guest conversion.' };
+    }
+  };
+
   const value = {
     currentUser,
     isLoggedIn: !!currentUser && !!supabaseSession,
@@ -108,7 +144,9 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     login,
     logout,
     updateUser,
-    loginOrSignup
+    loginOrSignup,
+    loginAsGuest,
+    convertGuestToUser
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

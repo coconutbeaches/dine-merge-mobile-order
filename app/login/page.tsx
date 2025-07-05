@@ -74,6 +74,22 @@ function LoginContent() {
     }
   };
 
+  const handleGuestLogin = async () => {
+    setIsLoading(true);
+    const result = await loginAsGuest();
+    setIsLoading(false);
+    if (result.success) {
+      router.push(returnTo);
+    } else {
+      toast({
+        title: 'Error',
+        description:
+          result.error || 'An unknown error occurred. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <Layout title="" showBackButton>
       <div className="page-container">
@@ -140,6 +156,15 @@ function LoginContent() {
                   disabled={isLoading}
                 >
                   Sign in with Google
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={handleGuestLogin}
+                  disabled={isLoading}
+                >
+                  Continue as Guest
                 </Button>
               </div>
             </form>

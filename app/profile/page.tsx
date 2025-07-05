@@ -22,6 +22,9 @@ export default function Page() {
   const [phone, setPhone] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   useEffect(() => {
     if (!isLoadingUserContext && !isLoggedIn) {
@@ -78,6 +81,23 @@ export default function Page() {
   const handleLogout = async () => {
     await logout();
     router.push('/');
+  };
+
+  const handleConvertAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail || !newPassword) {
+      toast.error('Please enter both email and password to convert your account.');
+      return;
+    }
+    setIsConverting(true);
+    const result = await convertGuestToUser(newEmail, newPassword, name);
+    setIsConverting(false);
+    if (result.success) {
+      toast.success('Account converted successfully! You can now log in with your email and password.');
+      // Optionally redirect or update UI to reflect non-guest status
+    } else {
+      toast.error(`Failed to convert account: ${result.error || 'Unknown error'}`);
+    }
   };
 
   if (isLoadingUserContext) {
@@ -153,6 +173,56 @@ export default function Page() {
             )}
           </form>
         </Card>
+
+        {currentUser && !currentUser.email && (
+          <Card className="mt-6">
+            <CardHeader className="text-center">
+              <CardTitle className="text-black text-2xl">
+                Convert Guest Account
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleConvertAccount}>
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600 text-center">
+                    You are currently logged in as a guest. Convert your account to a full user account by setting an email and password.
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="newEmail">New Email</Label>
+                    <Input
+                      id="newEmail"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      required
+                      disabled={isConverting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      disabled={isConverting}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-black text-white hover:bg-gray-800"
+                    disabled={isConverting}
+                  >
+                    {isConverting ? 'Converting...' : 'Convert Account'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="mt-6 text-center space-y-3">
           <Button onClick={() => router.push('/order-history')} className="w-full sm:w-auto bg-black text-white hover:bg-gray-800">
