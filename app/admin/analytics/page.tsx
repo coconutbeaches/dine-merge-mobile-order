@@ -260,8 +260,19 @@ export default function AnalyticsPage() {
                   {/* Y-axis labels */}
                   <div className="absolute left-0 top-0 h-80 flex flex-col justify-between text-xs text-gray-600 pt-4 pb-8">
                     {Array.from({ length: 4 }, (_, i) => {
-                      const rawValue = (maxValue * (3 - i)) / 3;
-                      const value = Math.ceil(rawValue / 1000) * 1000;
+                      let value;
+                      
+                      if (metric === 'revenue') {
+                        // For revenue: evenly spaced ticks rounded to nearest 1000
+                        const maxTick = Math.ceil(maxValue / 1000) * 1000;
+                        value = (maxTick * (3 - i)) / 3;
+                        value = Math.ceil(value / 1000) * 1000;
+                      } else {
+                        // For order count: use Vite version logic - step = Math.ceil(maxValue / 3 / 10) * 10
+                        const step = Math.ceil(maxValue / 3 / 10) * 10;
+                        value = (3 - i) * step;
+                      }
+                      
                       return (
                         <div key={i} className="text-right pr-2">
                           {metric === 'revenue' ? `฿${value.toLocaleString()}` : value.toLocaleString()}
@@ -275,16 +286,25 @@ export default function AnalyticsPage() {
                     {/* Horizontal grid lines - only at Y-axis label positions */}
                     <div className="absolute inset-0">
                       {Array.from({ length: 4 }, (_, i) => {
-                        const rawValue = (maxValue * (3 - i)) / 3;
-                        const yAxisValue = Math.ceil(rawValue / 1000) * 1000;
-                        const maxRoundedValue = Math.ceil(maxValue / 1000) * 1000;
+                        let yAxisValue, maxRoundedValue;
                         
-                        // Only show grid line if this Y-axis value is not zero and is a round thousand
-                        if (yAxisValue === 0 || yAxisValue % 1000 !== 0) {
+                        if (metric === 'revenue') {
+                          const maxTick = Math.ceil(maxValue / 1000) * 1000;
+                          yAxisValue = (maxTick * (3 - i)) / 3;
+                          yAxisValue = Math.ceil(yAxisValue / 1000) * 1000;
+                          maxRoundedValue = maxTick;
+                        } else {
+                          const step = Math.ceil(maxValue / 3 / 10) * 10;
+                          yAxisValue = (3 - i) * step;
+                          maxRoundedValue = 3 * step;
+                        }
+                        
+                        // Only show grid line if this Y-axis value is not zero
+                        if (yAxisValue === 0) {
                           return null;
                         }
                         
-                        // Position based on the rounded Y-axis value
+                        // Position based on the Y-axis value
                         const position = ((maxRoundedValue - yAxisValue) / maxRoundedValue) * 100;
                         
                         return (
@@ -301,7 +321,15 @@ export default function AnalyticsPage() {
                     <div className="absolute bottom-0 left-0 right-0 h-72 flex items-end justify-start gap-1 px-2">
                       {chartData.map((item, index) => {
                         const total = item.hotel_guest + item.non_guest;
-                        const maxRoundedValue = Math.ceil(maxValue / 1000) * 1000;
+                        
+                        let maxRoundedValue;
+                        if (metric === 'revenue') {
+                          maxRoundedValue = Math.ceil(maxValue / 1000) * 1000;
+                        } else {
+                          const step = Math.ceil(maxValue / 3 / 10) * 10;
+                          maxRoundedValue = 3 * step;
+                        }
+                        
                         const height = Math.max(2, (total / maxRoundedValue) * 270);
                         const guestHeight = total > 0 ? (item.hotel_guest / total) * height : 0;
                         const nonGuestHeight = total > 0 ? (item.non_guest / total) * height : 0;
