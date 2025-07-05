@@ -256,29 +256,86 @@ export default function AnalyticsPage() {
                 <small>Start: {chartStartDate}, End: {chartEndDate}</small>
               </div>
             ) : (
-              <div className="p-6 bg-gray-50 border rounded">
-                <div className="mb-4">
-                  <strong>Chart Debug Info:</strong>
-                  <br />Records: {data.length}
-                  <br />Chart data: {chartData.length}
-                  <br />Max value: {maxValue}
-                  <br />Loading: {isLoading.toString()}
-                  <br />Error: {error || 'none'}
-                </div>
-                
-                {chartData.length > 0 && (
-                  <div className="mb-4">
-                    <strong>Sample data:</strong>
-                    <pre className="text-xs bg-white p-2 rounded overflow-auto">
-                      {JSON.stringify(chartData.slice(0, 3), null, 2)}
-                    </pre>
+              <div className="relative">
+                  {/* Y-axis labels */}
+                  <div className="absolute left-0 top-0 h-80 flex flex-col justify-between text-xs text-gray-600 pt-4 pb-8">
+                    {Array.from({ length: 4 }, (_, i) => {
+                      const rawValue = (maxValue * (3 - i)) / 3;
+                      const value = Math.ceil(rawValue / 1000) * 1000;
+                      return (
+                        <div key={i} className="text-right pr-2">
+                          {metric === 'revenue' ? `฿${value.toLocaleString()}` : value.toLocaleString()}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-                
-                <div className="h-64 bg-white border rounded flex items-center justify-center">
-                  <span className="text-gray-500">Chart would render here</span>
+                  
+                  {/* Chart area */}
+                  <div className="ml-16 h-80 bg-white border-b border-gray-300 relative">
+                    {/* Horizontal grid lines - only at Y-axis label positions */}
+                    <div className="absolute inset-0">
+                      {Array.from({ length: 4 }, (_, i) => {
+                        const rawValue = (maxValue * (3 - i)) / 3;
+                        const yAxisValue = Math.ceil(rawValue / 1000) * 1000;
+                        const maxRoundedValue = Math.ceil(maxValue / 1000) * 1000;
+                        
+                        // Only show grid line if this Y-axis value is not zero and is a round thousand
+                        if (yAxisValue === 0 || yAxisValue % 1000 !== 0) {
+                          return null;
+                        }
+                        
+                        // Position based on the rounded Y-axis value
+                        const position = ((maxRoundedValue - yAxisValue) / maxRoundedValue) * 100;
+                        
+                        return (
+                          <div 
+                            key={i} 
+                            className="absolute w-full border-t border-gray-200 border-dashed"
+                            style={{ top: `${position}%` }}
+                          />
+                        );
+                      }).filter(Boolean)}
+                    </div>
+                    
+                    {/* Bars */}
+                    <div className="absolute bottom-0 left-0 right-0 h-72 flex items-end justify-start gap-1 px-2">
+                      {chartData.map((item, index) => {
+                        const total = item.hotel_guest + item.non_guest;
+                        const maxRoundedValue = Math.ceil(maxValue / 1000) * 1000;
+                        const height = Math.max(2, (total / maxRoundedValue) * 270);
+                        const guestHeight = total > 0 ? (item.hotel_guest / total) * height : 0;
+                        const nonGuestHeight = total > 0 ? (item.non_guest / total) * height : 0;
+                        
+                        return (
+                          <div 
+                            key={index} 
+                            className="relative group cursor-pointer hover:opacity-80"
+                            style={{ height: `${height}px`, minWidth: '8px', width: `${Math.max(8, (100 - chartData.length) / chartData.length)}%` }}
+                          >
+                            {/* Non-guest (black) bar - bottom */}
+                            <div 
+                              className="bg-black absolute bottom-0 w-full border-r border-black"
+                              style={{ height: `${nonGuestHeight}px` }}
+                            />
+                            {/* Guest (white) bar - top */}
+                            <div 
+                              className="bg-white border border-black absolute bottom-0 w-full"
+                              style={{ height: `${guestHeight}px`, bottom: `${nonGuestHeight}px` }}
+                            />
+                            
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+                              <div className="font-medium">{format(new Date(item.date), 'MMM d')}</div>
+                              <div>Total: {metric === 'revenue' ? `฿${total.toLocaleString()}` : total.toLocaleString()}</div>
+                              <div>Guest: {metric === 'revenue' ? `฿${item.hotel_guest.toLocaleString()}` : item.hotel_guest.toLocaleString()}</div>
+                              <div>Out: {metric === 'revenue' ? `฿${item.non_guest.toLocaleString()}` : item.non_guest.toLocaleString()}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
             )}
           </CardContent>
         </Card>
