@@ -1,3 +1,9 @@
 {
-  "/admin/orders/[orderId]/page": "app/admin/orders/[orderId]/page.js"
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/analytics/page": "app/admin/analytics/page.js",
+  "/admin/customers/page": "app/admin/customers/page.js",
+  "/menu/page": "app/menu/page.js",
+  "/_not-found/page": "app/_not-found/page.js"
 }

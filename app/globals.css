@@ -62,3 +62,45 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Hide all development indicators and overlays */
+#__next-dev-overlay-container,
+#__next-dev-overlay,
+#__REACT_DEVTOOLS_GLOBAL_HOOK__,
+.__next-dev-overlay,
+[data-nextjs-dialog],
+[data-nextjs-dialog-overlay],
+.__vercel-feedback,
+.__vercel-toolbar,
+.__next-build-watcher,
+#vercel-live-feedback,
+#vercel-toolbar {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Hide any floating development buttons/circles */
+[class*="dev-indicator"],
+[class*="development"],
+[id*="dev-tools"],
+[id*="devtools"],
+.__react-inspector__,
+.__next,
+button[aria-label*="dev"],
+button[aria-label*="debug"],
+div[style*="position: fixed"][style*="bottom: "][style*="right: "],
+div[style*="position: fixed"][style*="bottom: "][style*="left: "] {
+  display: none !important;
+}
+
+/* Specifically target common development overlay patterns */
+@media (max-width: 768px) {
+  div[style*="position: fixed"][style*="z-index"][style*="border-radius: 50%"],
+  div[style*="position: fixed"][style*="background"][style*="#000"],
+  div[style*="position: fixed"][style*="background: black"],
+  div[style*="position: fixed"][style*="background-color: black"] {
+    display: none !important;
+  }
+}
