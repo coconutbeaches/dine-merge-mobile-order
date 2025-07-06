@@ -23,15 +23,17 @@ export function usePlaceOrder(
     let finalUserId = adminContext?.customerId || userId;
     let customerName = adminContext?.customerName;
     
-    // Introduce guestUserId/guestFirstName variables when hasGuestSession() is true and adminContext not provided
+    // Introduce guestUserId/guestFirstName/stayId variables when hasGuestSession() is true and adminContext not provided
     let guestUserId = null;
     let guestFirstName = null;
+    let stayId = null;
     
     if (hasGuestSession() && !adminContext) {
       const guestSession = getGuestSession();
       if (guestSession) {
         guestUserId = guestSession.guest_user_id;
         guestFirstName = guestSession.guest_first_name;
+        stayId = guestSession.guest_stay_id;
         // For guests, we DON'T set finalUserId - it should remain null
         // The guest info goes in separate guest fields
         
@@ -90,6 +92,7 @@ export function usePlaceOrder(
         userId: guestUserId ? null : finalUserId, // null for guests, actual userId for regular users
         guestUserId,
         guestFirstName,
+        stayId,
         customerName: finalCustomerName,
         cartItems: cart as CartItem[],
         total: cartTotal,
@@ -109,6 +112,7 @@ export function usePlaceOrder(
         user_id: insertedOrderData.user_id,
         guest_user_id: insertedOrderData.guest_user_id,
         guest_first_name: insertedOrderData.guest_first_name,
+        stay_id: insertedOrderData.stay_id,
         total_amount: insertedOrderData.total_amount,
         order_status: 'new' as OrderStatus,
         created_at: insertedOrderData.created_at,

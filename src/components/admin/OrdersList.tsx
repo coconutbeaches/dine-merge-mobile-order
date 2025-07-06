@@ -84,7 +84,8 @@ const OrdersList = ({
           // Authenticated user with profile
           customerDisplayName = order.customer_name_from_profile || order.customer_name;
         } else if (order.guest_user_id) {
-          // Guest user - prefer stay_id (family name) over individual guest name
+          // Guest user - for hotel guests (have stay_id), show stay_id as main name
+          // For non-hotel guests, use guest_first_name
           customerDisplayName = order.stay_id || order.guest_first_name || `Guest Order #${order.id}`;
         } else {
           // Fallback
@@ -121,25 +122,33 @@ const OrdersList = ({
             {/* Customer name, table number below */}
             <div className="col-span-4 min-w-0">
               {(order.user_id || (order.guest_user_id && order.stay_id)) ? (
-                <Link 
-                  href={`/admin/customer-orders/${order.user_id || order.stay_id}`} 
-                  className="font-medium text-primary hover:underline truncate block"
-                  title={`View all orders for ${customerDisplayName} ${order.user_id ? `(${order.customer_email_from_profile || 'No Email'})` : '(Guest Family)'}`}
-                >
-                  <div className="flex items-center gap-1">
-                    {order.guest_user_id && <span className="text-orange-600">🛖</span>}
-                    {customerDisplayName}
-                  </div>
-                </Link>
+                <div>
+                  <Link 
+                    href={`/admin/customer-orders/${order.user_id || order.stay_id}`} 
+                    className="text-sm font-semibold hover:underline block"
+                    title={`View all orders for ${customerDisplayName} ${order.user_id ? `(${order.customer_email_from_profile || 'No Email'})` : '(Guest Family)'}`}
+                  >
+                    <div className="flex items-center gap-1">
+                      {customerDisplayName}
+                    </div>
+                  </Link>
+                  {order.guest_user_id && order.guest_first_name && order.stay_id && (
+                    <div className="text-xs text-muted-foreground">{order.guest_first_name}</div>
+                  )}
+                </div>
               ) : (
-                <div 
-                  className="font-medium truncate" 
-                  title={`${customerDisplayName} ${order.user_id ? `(${order.customer_email_from_profile || 'No Email'})` : '(Guest)'}`}
-                >
-                  <div className="flex items-center gap-1">
-                    {order.guest_user_id && <span className="text-orange-600">🛖</span>}
-                    {customerDisplayName}
+                <div>
+                  <div 
+                    className="text-sm font-semibold truncate" 
+                    title={`${customerDisplayName} ${order.user_id ? `(${order.customer_email_from_profile || 'No Email'})` : '(Guest)'}`}
+                  >
+                    <div className="flex items-center gap-1">
+                      {customerDisplayName}
+                    </div>
                   </div>
+                  {order.guest_user_id && order.guest_first_name && order.stay_id && (
+                    <div className="text-xs text-muted-foreground">{order.guest_first_name}</div>
+                  )}
                 </div>
               )}
               {order.table_number && (

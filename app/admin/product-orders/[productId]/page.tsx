@@ -121,12 +121,12 @@ const ProductOrdersPage = () => {
                         {order.user_id ? (
                           <Link 
                             href={`/admin/customer-orders/${order.user_id}`} 
-                            className="hover:underline text-primary"
+                            className="text-base sm:text-lg font-semibold hover:underline"
                           >
                             {order.customer_name || order.guest_first_name || 'Guest'}
                           </Link>
                         ) : (
-                          <span>{order.customer_name || order.guest_first_name || 'Guest'}</span>
+                          <span className="text-base sm:text-lg font-semibold">{order.customer_name || order.guest_first_name || 'Guest'}</span>
                         )}
                       </TableCell>
                       <TableCell>

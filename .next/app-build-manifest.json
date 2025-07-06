@@ -6,6 +6,11 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+    "/admin/customers/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/customers/page.js"
+    ],
     "/register/[stay_id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -46,20 +51,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/order/[id]/confirmation/page.js"
     ],
-    "/login/page": [
+    "/admin/customer-orders/[userId]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/login/page.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
-    "/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/profile/page.js"
+      "static/chunks/app/admin/customer-orders/[userId]/page.js"
     ],
     "/admin/page": [
       "static/chunks/webpack.js",
@@ -71,15 +66,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/admin/orders/page.js"
     ],
-    "/admin/customers/page": [
+    "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/customers/page.js"
+      "static/chunks/app/login/page.js"
     ],
-    "/admin/customer-orders/[userId]/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/customer-orders/[userId]/page.js"
+      "static/chunks/app/page.js"
+    ],
+    "/admin/orders/[orderId]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/orders/[orderId]/page.js"
     ]
   }
 }

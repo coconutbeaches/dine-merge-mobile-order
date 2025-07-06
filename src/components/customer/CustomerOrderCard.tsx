@@ -102,6 +102,11 @@ const CustomerOrderCard = ({ order, onStatusClick, onOrderSave }: CustomerOrderC
                 ? `Table ${order.table_number}`
                 : 'Take Away'}
             </p>
+            {order.guest_first_name && (
+              <p className="text-xs text-muted-foreground">
+                {order.guest_first_name}
+              </p>
+            )}
           </div>
           {order.order_status && (
             <Badge

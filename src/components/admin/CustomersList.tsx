@@ -33,6 +33,14 @@ interface CustomersListProps {
   handleSort: (key: 'name' | 'total_spent' | 'last_order_date' | 'joined_at' | 'customer_type') => void;
 }
 
+const parseName = (fullName: string | null) => {
+  if (!fullName) return { first: 'Unnamed', last: '' };
+  const parts = fullName.trim().split(' ');
+  const first = parts.shift() || '';
+  const last = parts.join(' ');
+  return { first, last };
+};
+
 const CustomersList: React.FC<CustomersListProps> = ({
   customers,
   selectedCustomers,
@@ -155,17 +163,39 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   />
                 </TableCell>
                 <TableCell className="font-medium">
-                  <div>
-                    <Link 
-                      href={`/admin/customer-orders/${customer.customer_id}`} 
-                      className="font-medium hover:underline"
-                    >
-                      {customer.name || 'Unnamed Customer'}
-                    </Link>
-                    {customer.customer_type === 'guest_family' && (
-                      <div className="text-xs text-muted-foreground">{customer.customer_id}</div>
-                    )}
-                  </div>
+                  {(() => {
+                    if (customer.customer_type === 'guest_family') {
+                      // For hotel guests: show stay_id on top, guest name below
+                      const { first } = parseName(customer.name);
+                      return (
+                        <div>
+                          <Link href={`/admin/customer-orders/${customer.customer_id}`} className="text-sm font-semibold hover:underline block">
+                            {customer.customer_id}
+                          </Link>
+                          <div className="text-xs text-muted-foreground">{first}</div>
+                        </div>
+                      );
+                    } else {
+                      // For regular users: parse name normally
+                      const { first, last } = parseName(customer.name);
+                      return (
+                        <div>
+                          {last ? (
+                            <>
+                              <Link href={`/admin/customer-orders/${customer.customer_id}`} className="text-sm font-semibold hover:underline block">
+                                {last}
+                              </Link>
+                              <div className="text-xs text-muted-foreground">{first}</div>
+                            </>
+                          ) : (
+                            <Link href={`/admin/customer-orders/${customer.customer_id}`} className="text-sm font-semibold hover:underline block">
+                              {first}
+                            </Link>
+                          )}
+                        </div>
+                      );
+                    }
+                  })()}
                 </TableCell>
                 <TableCell className="text-left w-[80px]">
                   <div className="flex justify-start">

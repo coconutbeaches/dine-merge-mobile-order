@@ -54,6 +54,7 @@ export const placeOrderInSupabase = async (
     userId,
     guestUserId,
     guestFirstName,
+    stayId,
     customerName,
     cartItems,
     total,
@@ -62,6 +63,7 @@ export const placeOrderInSupabase = async (
     userId?: string | null;
     guestUserId?: string | null;
     guestFirstName?: string | null;
+    stayId?: string | null;
     customerName?: string | null;
     cartItems: CartItem[];
     total: number;
@@ -75,6 +77,7 @@ export const placeOrderInSupabase = async (
         user_id: userId || null,
         guest_user_id: guestUserId || null,
         guest_first_name: guestFirstName || null,
+        stay_id: stayId || null,
         customer_name: customerName,
         order_items: cartItems as any, // Cast to Json
         total_amount: total,
