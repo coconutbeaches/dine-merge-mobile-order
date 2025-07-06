@@ -96,7 +96,7 @@ const EditableOrderCard = ({ order, onStatusClick, onOrderSave, onClose }: Edita
           <div>
             <h3 className="font-semibold cursor-pointer" onClick={handleOrderNumberClick}>Order {order.id}</h3>
             <p className="text-xs text-muted-foreground">
-              {format(new Date(order.created_at), "MMM dd yyyy  h:mm a")}
+              {format(new Date(order.created_at), "MMM dd  h:mm a")}
             </p>
             <p className="text-xs text-muted-foreground capitalize">
               {order.table_number && order.table_number !== 'Take Away'

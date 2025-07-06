@@ -71,7 +71,15 @@ const Header: React.FC<HeaderProps> = ({
               </span>
             )}
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => router.push(isLoggedIn ? '/profile' : '/login')} className="flex items-center">
+          <Button variant="ghost" size="sm" onClick={() => {
+            if (!isLoggedIn) {
+              router.push('/login');
+            } else if (currentUser?.role === 'admin') {
+              router.push('/profile');
+            } else {
+              router.push('/order-history');
+            }
+          }} className="flex items-center">
             <User className="h-[2.38rem] w-[2.38rem]" />
           </Button>
         </div>

@@ -94,8 +94,8 @@ const CustomerOrderCard = ({ order, onStatusClick, onOrderSave }: CustomerOrderC
           <div>
             <h3 className="font-semibold cursor-pointer" onClick={handleOrderNumberClick}>Order {order.id}</h3>
             <p className="text-xs text-muted-foreground">
-              {/* Format: Jun 14 2025  8:39 PM */}
-              {format(new Date(order.created_at), "MMM dd yyyy  h:mm a")}
+              {/* Format: Jun 14  8:39 PM */}
+              {format(new Date(order.created_at), "MMM dd  h:mm a")}
             </p>
             <p className="text-xs text-muted-foreground capitalize">
               {order.table_number && order.table_number !== 'Take Away'
