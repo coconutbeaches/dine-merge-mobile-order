@@ -1,4 +1,6 @@
 {
-  "/order/page": "app/order/page.js",
-  "/register/[stay_id]/page": "app/register/[stay_id]/page.js"
+  "/_not-found/page": "app/_not-found/page.js",
+  "/menu/page": "app/menu/page.js",
+  "/register/[stay_id]/page": "app/register/[stay_id]/page.js",
+  "/order/page": "app/order/page.js"
 }

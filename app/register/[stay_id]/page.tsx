@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, use } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { nanoid } from 'nanoid'
@@ -13,12 +13,13 @@ interface RegisterPageProps {
 }
 
 export default function RegisterPage({ params }: RegisterPageProps) {
+  const { stay_id } = use(params);  // <- use React.use() for Next.js 15 compatibility
   const [firstName, setFirstName] = useState('')
   const router = useRouter()
 
   useEffect(() => {
     const id = localStorage.getItem('guest_user_id')
-    if (id) router.replace('/order')
+    if (id) router.replace('/menu')
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,10 +35,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
       // 2. Generate userId
       const userId = nanoid()
       
-      // 3. Extract stay_id from params
-      const { stay_id } = React.use(params)
-      
-      // 4. Insert into database
+      // 3. Insert into database
       const { error } = await supabase
         .from('guest_users')
         .insert({ 
@@ -58,7 +56,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
       
       // 6. Success message and redirect
       toast.success(`Welcome, ${firstName.trim()}!`)
-      router.replace('/order')
+      router.replace('/menu')
       
     } catch (error) {
       console.error('Registration error:', error)
