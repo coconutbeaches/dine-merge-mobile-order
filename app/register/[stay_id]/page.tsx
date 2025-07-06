@@ -8,7 +8,6 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { saveGuestSession, hasGuestSession } from '@/utils/guestSession'
-import './safari-ios-fixes.css'
 
 // Safari iOS compatibility checks
 const isSafariIOS = () => {
@@ -215,7 +214,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
 
   return (
     <div 
-      className="w-full overflow-hidden safari-ios-viewport safari-ios-background safari-ios-no-bounce" 
+      className="w-full overflow-hidden" 
       style={{
         minHeight: '100vh',
         minHeight: '100dvh', // Dynamic viewport height for Safari iOS
@@ -224,46 +223,94 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        backgroundAttachment: 'scroll' // Avoid fixed for Safari iOS
+        backgroundAttachment: 'scroll', // Avoid fixed for Safari iOS
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain'
       }}
     >
       {/* Dark overlay for better text readability */}
       <div className="absolute inset-0 bg-black/20"></div>
       
       <div 
-        className="relative z-10 flex flex-col items-center justify-center gap-6 px-6 text-center safari-ios-safe-area safari-ios-no-highlight"
+        className="relative z-10 flex flex-col items-center justify-center gap-6 px-6 text-center"
         style={{
           minHeight: '100vh',
           minHeight: '100dvh',
-          paddingTop: 'env(safe-area-inset-top, 20px)',
-          paddingBottom: 'env(safe-area-inset-bottom, 20px)'
+          paddingTop: 'max(env(safe-area-inset-top), 20px)',
+          paddingBottom: 'max(env(safe-area-inset-bottom), 20px)',
+          WebkitTapHighlightColor: 'rgba(0, 0, 0, 0)',
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none'
         }}
       >
-        <h1 className="text-3xl md:text-4xl font-semibold text-white drop-shadow-lg safari-ios-text">Hi! 👋 Welcome to</h1>
+        <h1 
+          className="text-3xl md:text-4xl font-semibold text-white drop-shadow-lg"
+          style={{
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+            textRendering: 'optimizeLegibility'
+          }}
+        >
+          Hi! 👋 Welcome to
+        </h1>
         <Image 
           src="/CoconutBeachLogo.png" 
           alt="Coconut Beach" 
           width={320} 
           height={120} 
-          className="w-60 md:w-80 h-auto drop-shadow-lg safari-ios-no-highlight" 
+          className="w-60 md:w-80 h-auto drop-shadow-lg" 
           priority 
+          style={{
+            WebkitTapHighlightColor: 'rgba(0, 0, 0, 0)',
+            WebkitTouchCallout: 'none',
+            WebkitUserSelect: 'none',
+            userSelect: 'none'
+          }}
         />
-        <p className="text-2xl md:text-3xl text-white font-bold mt-6 drop-shadow-lg safari-ios-text">What is your first name?</p>
+        <p 
+          className="text-2xl md:text-3xl text-white font-bold mt-6 drop-shadow-lg"
+          style={{
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
+            textRendering: 'optimizeLegibility'
+          }}
+        >
+          What is your first name?
+        </p>
         
         {isLoading && !stay_id ? (
-          <div className="text-white text-lg drop-shadow-lg safari-ios-text">Loading...</div>
+          <div 
+            className="text-white text-lg drop-shadow-lg"
+            style={{
+              WebkitFontSmoothing: 'antialiased',
+              MozOsxFontSmoothing: 'grayscale',
+              textRendering: 'optimizeLegibility'
+            }}
+          >
+            Loading...
+          </div>
         ) : (
-          <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4 safari-ios-form">
+          <form 
+            onSubmit={handleSubmit} 
+            className="w-full max-w-sm flex flex-col gap-4"
+            style={{
+              WebkitTransform: 'translate3d(0, 0, 0)',
+              transform: 'translate3d(0, 0, 0)'
+            }}
+          >
             <Input
               type="text"
               placeholder="First Name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="bg-white/95 border-2 border-white/30 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center text-lg py-3 rounded-xl shadow-lg safari-ios-input"
+              className="bg-white/95 border-2 border-white/30 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center text-lg py-3 rounded-xl shadow-lg"
               style={{
                 fontSize: '16px', // Prevent zoom on iOS Safari
                 WebkitAppearance: 'none',
-                borderRadius: '12px'
+                borderRadius: '12px',
+                WebkitTransform: 'translate3d(0, 0, 0)',
+                transform: 'translate3d(0, 0, 0)'
               }}
               aria-label="First name"
               disabled={isLoading}
@@ -276,11 +323,13 @@ export default function RegisterPage({ params }: RegisterPageProps) {
             <Button 
               type="submit"
               size="lg" 
-              className="w-full bg-white/80 hover:bg-white/95 text-gray-900 rounded-xl border-2 border-white/30 font-bold disabled:opacity-50 disabled:cursor-not-allowed text-lg py-3 shadow-lg transition-all duration-200 safari-ios-button"
+              className="w-full bg-white/80 hover:bg-white/95 text-gray-900 rounded-xl border-2 border-white/30 font-bold disabled:opacity-50 disabled:cursor-not-allowed text-lg py-3 shadow-lg transition-all duration-200"
               disabled={isLoading || !stay_id}
               style={{
                 WebkitAppearance: 'none',
-                borderRadius: '12px'
+                borderRadius: '12px',
+                WebkitTransform: 'translate3d(0, 0, 0)',
+                transform: 'translate3d(0, 0, 0)'
               }}
             >
               {isLoading ? 'Saving...' : 'Save'}
