@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { saveGuestSession, hasGuestSession } from '@/utils/guestSession'
 
 interface RegisterPageProps {
   params: Promise<{ stay_id: string }>;
@@ -18,8 +19,11 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   const router = useRouter()
 
   useEffect(() => {
-    const id = localStorage.getItem('guest_user_id')
-    if (id) router.replace('/menu')
+    // Check if guest already has a session
+    if (hasGuestSession()) {
+      console.log('Guest session already exists, redirecting to menu')
+      router.replace('/menu')
+    }
   }, [])
 
   // Override global white background for registration page
@@ -63,9 +67,12 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         return
       }
       
-      // 5. Save to localStorage and redirect
-      localStorage.setItem('guest_user_id', userId)
-      localStorage.setItem('guest_first_name', firstName.trim())
+      // 5. Save guest session and redirect
+      saveGuestSession({
+        guest_user_id: userId,
+        guest_first_name: firstName.trim(),
+        guest_stay_id: stay_id
+      })
       
       // 6. Success message and redirect
       toast.success(`Welcome, ${firstName.trim()}!`)

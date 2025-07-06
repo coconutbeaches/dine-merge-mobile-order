@@ -14,6 +14,7 @@ import { formatThaiCurrency } from '@/lib/utils';
 import CustomOrderSection from '@/components/admin/CustomOrderSection';
 import CategorySection from '@/components/menu/CategorySection';
 import { CategorySkeleton } from '@/components/ui/skeleton/index';
+import { getGuestSession, getRegistrationUrl } from '@/utils/guestSession';
 
 interface Category {
   id: string;
@@ -36,20 +37,22 @@ function MenuIndexContent() {
 
   const { toast } = useToast();
 
-  // New state for guest information
-  const [guestUserId, setGuestUserId] = useState<string | null>(null);
-  const [guestFirstName, setGuestFirstName] = useState<string | null>(null);
+  // Guest session state
+  const [guestSession, setGuestSession] = useState<ReturnType<typeof getGuestSession>>(null);
 
   useEffect(() => {
-    // Read guest info from localStorage
-    const storedGuestUserId = localStorage.getItem('guest_user_id');
-    const storedGuestFirstName = localStorage.getItem('guest_first_name');
-
-    if (storedGuestUserId) {
-      setGuestUserId(storedGuestUserId);
-      setGuestFirstName(storedGuestFirstName);
+    // Read guest session from localStorage
+    const session = getGuestSession();
+    
+    if (session) {
+      setGuestSession(session);
+    } else if (!isLoggedIn) {
+      // No guest session AND not logged in - redirect to registration
+      const redirectUrl = getRegistrationUrl();
+      console.log('MenuPage: No guest session and not logged in. Redirecting to registration:', redirectUrl);
+      router.replace(redirectUrl);
     }
-  }, []); // Run once on mount
+  }, [router, isLoggedIn]); // Run once on mount and when login status changes
 
   useEffect(() => {
     const customerId = searchParams?.get('customerId');
@@ -163,14 +166,15 @@ function MenuIndexContent() {
     <Layout title="Menu">
       <div className="page-container">
         {/* Conditional Welcome Message for Guests */}
-        {guestUserId && guestFirstName && (
+        {guestSession && (
           <div className="mb-6">
             <Card className="border border-gray-200">
               <CardContent className="p-4">
                 <h2 className="text-lg font-semibold">
-                  Welcome, {guestFirstName}!
+                  Welcome, {guestSession.guest_first_name}!
                 </h2>
                 <p className="text-sm text-gray-600">Ready to order?</p>
+                <p className="text-xs text-gray-400">Room: {guestSession.guest_stay_id}</p>
               </CardContent>
             </Card>
           </div>

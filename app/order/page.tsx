@@ -3,36 +3,26 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { getGuestSession, getRegistrationUrl } from '@/utils/guestSession';
 
 export default function OrderPage() {
   const router = useRouter();
-  // Initialize state directly from localStorage
-  const [guestFirstName, setGuestFirstName] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') { // Check if window is defined (client-side)
-      return localStorage.getItem('guest_first_name');
-    }
-    return null;
-  });
-  const [guestUserId, setGuestUserId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') { // Check if window is defined (client-side)
-      return localStorage.getItem('guest_user_id');
-    }
-    return null;
-  });
+  const [guestSession, setGuestSession] = useState<ReturnType<typeof getGuestSession>>(null);
 
   useEffect(() => {
-    console.log('OrderPage: useEffect running for redirect check');
-    // If guestUserId is null after initial state, it means no session was found.
-    // In this case, redirect to register page.
-    if (!guestUserId) {
-      console.log('OrderPage: guest_user_id not found. Redirecting to /register/unknown');
+    const session = getGuestSession();
+    if (session) {
+      setGuestSession(session);
+    } else {
+      // No guest session found - redirect to registration
+      const redirectUrl = getRegistrationUrl();
+      console.log('OrderPage: No guest session found. Redirecting to:', redirectUrl);
       toast.error('Guest session not found. Please register.');
-      router.replace('/register/unknown'); // Placeholder, ideally should know stay_id
+      router.replace(redirectUrl);
     }
-  }, [guestUserId, router]); // Depend on guestUserId to trigger redirect if it becomes null
+  }, [router]);
 
-  if (!guestUserId) {
-    console.log('OrderPage: Not rendering content, guestUserId is null (initial or after redirect).');
+  if (!guestSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <p>Loading user data or redirecting...</p>
@@ -40,12 +30,13 @@ export default function OrderPage() {
     );
   }
 
-  console.log('OrderPage: Rendering content for', guestFirstName);
+  console.log('OrderPage: Rendering content for', guestSession.guest_first_name);
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
-      <h1 className="text-3xl font-bold mb-4">Welcome, {guestFirstName}!</h1>
+      <h1 className="text-3xl font-bold mb-4">Welcome, {guestSession.guest_first_name}!</h1>
       <p className="text-lg text-gray-700">You can now place your order.</p>
-      <p className="text-sm text-gray-500 mt-4">Your User ID: {guestUserId}</p>
+      <p className="text-sm text-gray-500 mt-4">Your User ID: {guestSession.guest_user_id}</p>
+      <p className="text-sm text-gray-500">Stay ID: {guestSession.guest_stay_id}</p>
     </div>
   );
 }
