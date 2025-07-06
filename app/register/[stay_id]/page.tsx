@@ -22,6 +22,19 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     if (id) router.replace('/menu')
   }, [])
 
+  // Override global white background for registration page
+  useEffect(() => {
+    // Remove white background for registration page
+    document.body.style.backgroundColor = 'transparent'
+    document.documentElement.style.backgroundColor = 'transparent'
+    
+    // Cleanup: restore white background when leaving the page
+    return () => {
+      document.body.style.backgroundColor = 'white'
+      document.documentElement.style.backgroundColor = 'white'
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
