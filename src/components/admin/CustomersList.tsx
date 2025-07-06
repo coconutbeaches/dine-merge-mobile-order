@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Profile } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Edit, User, Mail, Calendar, ChevronUp, ChevronDown } from 'lucide-react';
+import { Edit, User, Mail, Calendar, ChevronUp, ChevronDown, Archive, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
@@ -35,6 +35,7 @@ interface CustomersListProps {
   onEditCustomer: (customer: Profile) => void;
   onUpdateCustomer?: (customerId: string, updates: Partial<Profile>) => void;
   toggleCustomerType?: (id: string, isGuestNow: boolean) => void;
+  onArchiveCustomer: (customerId: string, isArchived: boolean) => void;
   recentlyUpdatedId?: string | null;
   sortKey: 'name' | 'total_spent' | 'last_order_date' | 'created_at';
   sortDirection: 'asc' | 'desc';
@@ -54,6 +55,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
   sortKey,
   sortDirection,
   handleSort,
+  onArchiveCustomer,
 }) => {
   const allOnPageSelected = customers.length > 0 && selectedCustomers.length === customers.length;
   
@@ -218,15 +220,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 <TableCell className="hidden lg:table-cell">
                   {format(new Date(customer.created_at), 'MMM d')}
                 </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEditCustomer(customer)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TableCell>
+                
               </TableRow>
             ))}
           </TableBody>

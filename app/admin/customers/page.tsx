@@ -10,30 +10,36 @@ import { updateUserProfile, mergeCustomers } from '@/services/userProfileService
 import { toast } from 'sonner';
 import MergeCustomersDialog from '@/components/admin/MergeCustomersDialog';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, RefreshCw, Trash2, Merge } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Search, RefreshCw, Trash2, Merge, Archive, Edit } from 'lucide-react';
 
 export default function CustomersDashboardPage() {
-  // Simplified implementation without complex hooks
   const [customers, setCustomers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedCustomers, setSelectedCustomers] = useState([]);
   const [sortKey, setSortKey] = useState('name');
   const [sortDirection, setSortDirection] = useState('asc');
+  const [includeArchived, setIncludeArchived] = useState(false);
   
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (shouldIncludeArchived: boolean = false) => {
     setIsLoading(true);
     setError(null);
     try {
-      // Try to use the RPC function first (like in the Vite version)
       const { data, error: supabaseError } = await supabase
-        .rpc('get_customers_with_total_spent');
+        .rpc('get_customers_with_total_spent', { include_archived: shouldIncludeArchived });
 
       if (supabaseError) {
         console.error('Supabase RPC error in get_customers_with_total_spent:', supabaseError);
-        // If the function doesn't exist, fall back to basic query
         if (supabaseError.message?.includes('could not find') || supabaseError.code === 'PGRST202') {
           console.log('RPC function not found, using fallback query...');
           const { data: fallbackData, error: fallbackError } = await supabase
@@ -45,7 +51,6 @@ export default function CustomersDashboardPage() {
             throw new Error(fallbackError.message || 'Failed to fetch customers');
           }
           
-          // Add dummy data for total_spent and last_order_date when using fallback
           const customersWithDummyData = (fallbackData || []).map(customer => ({
             ...customer,
             total_spent: 0,
@@ -64,7 +69,6 @@ export default function CustomersDashboardPage() {
         return;
       }
 
-      // Use the real data from the RPC function (includes total_spent and last_order_date)
       setCustomers(data);
       console.log('Successfully fetched', data.length, 'customers with real totals');
       console.log('Sample customer data:', data[0]);
@@ -113,8 +117,8 @@ export default function CustomersDashboardPage() {
   };
   
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    fetchCustomers(includeArchived);
+  }, [includeArchived]);
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -133,7 +137,6 @@ export default function CustomersDashboardPage() {
   const filteredCustomers = useMemo(() => {
     if (!customers || !Array.isArray(customers)) return [];
     
-    // First filter by search
     let filtered = customers;
     if (search.trim()) {
       const s = search.trim().toLowerCase();
@@ -145,7 +148,6 @@ export default function CustomersDashboardPage() {
       });
     }
     
-    // Then sort the filtered results
     const sorted = [...filtered].sort((a, b) => {
       let valA, valB;
       
@@ -229,7 +231,6 @@ export default function CustomersDashboardPage() {
   const handleSaveChanges = async (name: string, phone: string) => {
     if (!editingCustomer) return;
 
-    // --- Start Security Fix: Input Validation ---
     const trimmedName = name.trim();
     if (!trimmedName) {
       toast.error("Name cannot be empty.");
@@ -241,8 +242,6 @@ export default function CustomersDashboardPage() {
     }
 
     const trimmedPhone = phone.trim();
-    // Simple regex for Thai phone numbers (e.g., 0812345678).
-    // Allows for optional hyphens and checks for a plausible length.
     const phoneRegex = /^0\d{1,2}-?\d{3,4}-?\d{4}$/;
     if (trimmedPhone && !phoneRegex.test(trimmedPhone)) {
       toast.error("Please enter a valid phone number (e.g., 0812345678).");
@@ -252,7 +251,6 @@ export default function CustomersDashboardPage() {
         toast.error("Phone number seems too long.");
         return;
     }
-    // --- End Security Fix ---
 
     try {
       await updateUserProfile({
@@ -261,12 +259,33 @@ export default function CustomersDashboardPage() {
         phone: trimmedPhone,
       });
       toast.success('Customer updated successfully');
-      fetchCustomers();
+      fetchCustomers(includeArchived);
       handleCloseDialog();
     } catch (error: any) {
-      // Log the complete error object for better debugging
       console.error('handleSaveChanges error:', error);
       toast.error(`Failed to update customer: ${error.message}`);
+    }
+  };
+
+  const handleArchiveCustomer = async (customerId: string, isArchived: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ archived: isArchived })
+        .eq('id', customerId);
+
+      if (error) throw error;
+
+      toast.success(isArchived ? 'Customer archived successfully!' : 'Customer unarchived successfully!');
+      
+      if (isArchived && !includeArchived) {
+        setCustomers(prev => prev.filter(c => c.id !== customerId));
+      } else {
+        fetchCustomers(includeArchived);
+      }
+    } catch (error: any) {
+      console.error('Error archiving customer:', error);
+      toast.error(`Failed to archive customer: ${error.message}`);
     }
   };
 
@@ -285,7 +304,6 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
   } else {
     console.log('✅ Supabase update success');
 
-    // 🔄 Update local state
     setCustomers(prev =>
       prev.map(c =>
         c.id === id
@@ -294,7 +312,6 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
       )
     );
 
-    // ✅ Trigger animation
     setRecentlyUpdatedId(id);
     setTimeout(() => setRecentlyUpdatedId(null), 1000);
   }
@@ -311,7 +328,6 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
 
       if (error) throw error;
 
-      // Update the local state to reflect the changes
       setCustomers(prevCustomers => 
         prevCustomers.map(customer => 
           customer.id === customerId 
@@ -331,7 +347,6 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
   return (
     <Layout title="Customers" showBackButton={false}>
       <div className="container mx-auto p-4 space-y-6">
-        {/* Error Message */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
             <strong className="font-bold">Error: </strong>
@@ -345,7 +360,6 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
           </div>
         )}
         
-        {/* Stats Grid */}
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -376,7 +390,6 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
           </Card>
         </div>
 
-        {/* Search and Actions */}
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -388,8 +401,22 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="icon" onClick={fetchCustomers} disabled={isLoading}>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Switch
+                    id="show-archived"
+                    checked={includeArchived}
+                    onCheckedChange={setIncludeArchived}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  {includeArchived ? "Archived Customers Visible" : "Archived Customers Hidden"}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <Button variant="ghost" size="icon" onClick={() => fetchCustomers(includeArchived)} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="sr-only">Refresh</span>
             </Button>
@@ -399,6 +426,16 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
                 </Button>
+                <Button variant="outline" size="sm" onClick={() => selectedCustomers.forEach(id => handleArchiveCustomer(id, true))}>
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive
+                </Button>
+                {selectedCustomers.length === 1 && (
+                  <Button variant="outline" size="sm" onClick={() => handleEditCustomer(customers.find(c => c.id === selectedCustomers[0]))}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
                 {selectedCustomers.length === 2 && (
                   <Button variant="outline" size="sm" onClick={handleMergeClick}>
                     <Merge className="mr-2 h-4 w-4" />
@@ -410,7 +447,6 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
           </div>
         </div>
 
-        {/* Customers Table */}
         <Card>
           <CardContent className="p-0">
             {isLoading ? (
@@ -421,10 +457,7 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
                 <Button onClick={fetchCustomers} className="mt-2">Retry</Button>
               </div>
             ) : customers.length === 0 ? (
-              <div className="p-6 text-center text-muted-foreground">
-                <p>No customers found</p>
-                <Button onClick={fetchCustomers} className="mt-2">Refresh</Button>
-              </div>
+              <div className="p-6 text-center text-muted-foreground">No customers found</div>
             ) : (
               <CustomersList
                 customers={filteredCustomers}
@@ -439,6 +472,7 @@ async function toggleCustomerType(id: string, isGuestNow: boolean) {
                 sortKey={sortKey}
                 sortDirection={sortDirection}
                 handleSort={handleSort}
+                onArchiveCustomer={handleArchiveCustomer}
               />
             )}
           </CardContent>

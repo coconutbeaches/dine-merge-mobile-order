@@ -1,0 +1,1 @@
+Deno.serve(() => new Response("Hello from dummy function!", { headers: { "Content-Type": "text/plain" } }));
