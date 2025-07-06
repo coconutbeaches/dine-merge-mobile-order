@@ -38,7 +38,7 @@ const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder =
   return {
     ...order,
     // Provide defaults for missing columns
-    customer_name: profile?.name || order.guest_first_name || null,
+    customer_name: profile?.name || null, // Don't use guest_first_name here, let UI decide
     customer_email: profile?.email || null,
     order_status: 'new' as OrderStatus, // Default status since column doesn't exist
     order_items: [], // Default empty array since column doesn't exist

@@ -38,11 +38,21 @@ async function testFrontendLogic() {
 
     console.log(`✅ Found ${orders.length} orders`);
     
-    // Test the display name logic from OrdersList component
+    // Test the display name logic from OrdersList component (updated logic)
     orders.forEach(order => {
-      const customerDisplayName = order.customer_name || 
-                                order.guest_first_name ||
-                                `Order #${order.id}`;
+      // Use the same logic as the updated OrdersList component
+      let customerDisplayName;
+      
+      if (order.customer_name_from_profile || order.customer_name) {
+        // Authenticated user with profile
+        customerDisplayName = order.customer_name_from_profile || order.customer_name;
+      } else if (order.guest_user_id) {
+        // Guest user - prefer stay_id (family name) over individual guest name
+        customerDisplayName = order.stay_id || order.guest_first_name || `Guest Order #${order.id}`;
+      } else {
+        // Fallback
+        customerDisplayName = `Order #${order.id}`;
+      }
       
       const customerType = order.user_id ? 'Auth User' : 'Guest';
       const customerInfo = order.user_id 
@@ -53,7 +63,7 @@ async function testFrontendLogic() {
       
       // Debug guest name fallback logic
       if (order.guest_user_id) {
-        console.log(`    🔍 Guest order debug - guest_first_name: "${order.guest_first_name}", display: "${customerDisplayName}"`);
+        console.log(`    🔍 Guest order debug - stay_id: "${order.stay_id}", guest_first_name: "${order.guest_first_name}", display: "${customerDisplayName}"`);
       }
     });
 

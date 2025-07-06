@@ -77,11 +77,19 @@ const OrdersList = ({
       </div>
       {/* Orders rows */}
       {orders.map((order) => {
-        // For guest orders, show the family account name (stay_id) instead of individual guest name
-        const customerDisplayName = order.customer_name_from_profile || 
-                                  order.customer_name || 
-                                  (order.guest_user_id && order.stay_id ? order.stay_id : order.guest_first_name) ||
-                                  `Order #${order.id}`;
+        // For guest orders, prioritize family account name (stay_id) over individual guest name
+        let customerDisplayName;
+        
+        if (order.customer_name_from_profile || order.customer_name) {
+          // Authenticated user with profile
+          customerDisplayName = order.customer_name_from_profile || order.customer_name;
+        } else if (order.guest_user_id) {
+          // Guest user - prefer stay_id (family name) over individual guest name
+          customerDisplayName = order.stay_id || order.guest_first_name || `Guest Order #${order.id}`;
+        } else {
+          // Fallback
+          customerDisplayName = `Order #${order.id}`;
+        }
 
         // Debug log for guest orders
         if (order.guest_user_id || order.guest_first_name) {
