@@ -29,7 +29,7 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
     if (!showForm) {
       setShowForm(true);
     }
-    setItems(prev => [...prev, emptyItem()]);
+    setItems(prev => [emptyItem(), ...prev]);
   };
 
   const removeItem = (id: string) => setItems(prev => prev.filter(i => i.id !== id));
@@ -102,9 +102,9 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
           ))}
         </div>
         <div className="flex items-center gap-2 pt-4">
-          <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="w-36" />
+          <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="w-36 hide-calendar-icon" />
           <Input type="time" value={orderTime} onChange={e => setOrderTime(e.target.value)} className="w-24" />
-          <Button onClick={submit} disabled={items.length === 0}>Order</Button>
+          <Button onClick={submit} disabled={items.length === 0} className="bg-black text-white hover:bg-gray-800">Order</Button>
         </div>
       </div>
     </Card>

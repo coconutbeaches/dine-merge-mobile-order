@@ -34,15 +34,35 @@ function MenuIndexContent() {
   const searchParams = useSearchParams();
   const { isLoggedIn, currentUser, setAdminCustomerContext, adminCustomerContext } = useAppContext();
 
+  const { toast } = useToast();
+
   useEffect(() => {
-    const adminCustomerId = searchParams?.get('adminCustomerId');
-    const adminCustomerName = searchParams?.get('adminCustomerName');
-    if (adminCustomerId && adminCustomerName) {
-      if (!adminCustomerContext || adminCustomerContext.customerId !== adminCustomerId) {
-        setAdminCustomerContext({ customerId: adminCustomerId, customerName: adminCustomerName });
-      }
+    const customerId = searchParams?.get('customerId');
+    if (customerId) {
+      // Fetch customer details to get their name
+      const fetchCustomerDetails = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', customerId)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching customer details for admin context:', error);
+          toast.error('Failed to load customer details for order creation.');
+          return;
+        }
+
+        if (data) {
+          setAdminCustomerContext({ customerId: customerId, customerName: data.name || 'Unknown Customer' });
+        }
+      };
+      fetchCustomerDetails();
+    } else if (adminCustomerContext) {
+      // Clear adminCustomerContext if no customerId is in the URL
+      setAdminCustomerContext(null);
     }
-  }, [searchParams, adminCustomerContext, setAdminCustomerContext]);
+  }, [searchParams, setAdminCustomerContext, adminCustomerContext, toast]);
 
   // Optimized queries with better caching and stale time
   const { data: categories, isLoading: catLoading, error: catError } = useQuery({
@@ -72,8 +92,6 @@ function MenuIndexContent() {
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
   });
-
-  const { toast } = useToast();
 
   // Memoized categories with products for better performance
   const categoriesWithProducts = useMemo(() => {

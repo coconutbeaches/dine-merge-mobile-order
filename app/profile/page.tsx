@@ -228,17 +228,11 @@ export default function Page() {
           <Button onClick={() => router.push('/order-history')} className="w-full sm:w-auto bg-black text-white hover:bg-gray-800">
             My Orders
           </Button>
-          {currentUser?.role === 'admin' && (
-            <Link href="/admin" className="block sm:inline-block sm:ml-3">
-              <Button variant="outline" className="w-full sm:w-auto">
-                Admin Dashboard
-              </Button>
-            </Link>
-          )}
+          
         </div>
 
         <div className="mt-8 text-center">
-          <Button variant="link" onClick={handleLogout} className="text-destructive hover:text-destructive/80">
+          <Button variant="outline" onClick={handleLogout} className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive/80">
             Log Out
           </Button>
         </div>

@@ -22,8 +22,7 @@ const CustomerOrderHistory = () => {
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
 
   const handleCreateNewOrder = () => {
-    // Navigate to menu with customer context
-    router.push('/');
+    router.push(`/menu?customerId=${userId}`);
   };
 
   const handleMarkAllPaid = () => {
