@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, use } from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { nanoid } from 'nanoid'
@@ -10,21 +10,78 @@ import { Button } from '@/components/ui/button'
 import { saveGuestSession, hasGuestSession } from '@/utils/guestSession'
 
 interface RegisterPageProps {
-  params: Promise<{ stay_id: string }>;
+  params: { stay_id: string };
 }
 
 export default function RegisterPage({ params }: RegisterPageProps) {
-  const { stay_id } = use(params);  // <- use React.use() for Next.js 15 compatibility
+  const [stay_id, setStayId] = useState<string>('')
   const [firstName, setFirstName] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
+  // Handle params extraction with Safari compatibility
   useEffect(() => {
-    // Check if guest already has a session
-    if (hasGuestSession()) {
-      console.log('Guest session already exists, redirecting to menu')
-      router.replace('/menu')
+    const extractParams = async () => {
+      try {
+        let extractedStayId = '';
+        
+        // Try multiple methods for extracting stay_id for Safari compatibility
+        if (params && typeof params === 'object') {
+          // Method 1: Direct access (for newer browsers)
+          if ('stay_id' in params) {
+            extractedStayId = params.stay_id;
+          }
+          // Method 2: Await if it's a Promise (Next.js 15)
+          else if (typeof params.then === 'function') {
+            const resolvedParams = await params;
+            extractedStayId = resolvedParams.stay_id || '';
+          }
+        }
+        
+        // Method 3: Fallback to URL parsing
+        if (!extractedStayId) {
+          const pathParts = window.location.pathname.split('/');
+          const lastPart = pathParts[pathParts.length - 1];
+          if (lastPart && lastPart !== 'register') {
+            extractedStayId = lastPart;
+          }
+        }
+        
+        setStayId(extractedStayId || '');
+      } catch (error) {
+        console.error('Error resolving params:', error);
+        // Final fallback: try to extract from URL
+        try {
+          const pathParts = window.location.pathname.split('/');
+          const stayIdFromUrl = pathParts[pathParts.length - 1];
+          setStayId(stayIdFromUrl || '');
+        } catch (urlError) {
+          console.error('Error extracting from URL:', urlError);
+          setStayId('');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    extractParams();
+  }, [params])
+
+  useEffect(() => {
+    // Only check guest session after stay_id is loaded
+    if (!isLoading && stay_id) {
+      // Add Safari-specific localStorage check
+      try {
+        if (hasGuestSession()) {
+          console.log('Guest session already exists, redirecting to menu')
+          router.replace('/menu')
+        }
+      } catch (error) {
+        console.warn('localStorage not available:', error)
+        // Continue without guest session check if localStorage fails
+      }
     }
-  }, [])
+  }, [isLoading, stay_id, router])
 
   // Override global white background for registration page
   useEffect(() => {
@@ -48,11 +105,19 @@ export default function RegisterPage({ params }: RegisterPageProps) {
       return
     }
     
+    // 2. Check if stay_id is available
+    if (!stay_id) {
+      toast.error('Registration link is invalid. Please try again.')
+      return
+    }
+    
+    setIsLoading(true)
+    
     try {
-      // 2. Generate userId
+      // 3. Generate userId
       const userId = nanoid()
       
-      // 3. Insert into database
+      // 4. Insert into database
       const { error } = await supabase
         .from('guest_users')
         .insert({ 
@@ -67,20 +132,31 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         return
       }
       
-      // 5. Save guest session and redirect
-      saveGuestSession({
-        guest_user_id: userId,
-        guest_first_name: firstName.trim(),
-        guest_stay_id: stay_id
-      })
+      // 5. Save guest session with Safari-compatible error handling
+      try {
+        saveGuestSession({
+          guest_user_id: userId,
+          guest_first_name: firstName.trim(),
+          guest_stay_id: stay_id
+        })
+      } catch (storageError) {
+        console.warn('localStorage not available, continuing without session storage:', storageError)
+        // Continue without localStorage - user will still be registered in database
+      }
       
       // 6. Success message and redirect
       toast.success(`Welcome, ${firstName.trim()}!`)
-      router.replace('/menu')
+      
+      // Add small delay for Safari compatibility
+      setTimeout(() => {
+        router.replace('/menu')
+      }, 100)
       
     } catch (error) {
       console.error('Registration error:', error)
       toast.error('An error occurred. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -91,19 +167,35 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         <h1 className="text-3xl md:text-4xl font-semibold text-white">Hi! 👋 Welcome to</h1>
         <Image src="/CoconutBeachLogo.png" alt="Coconut Beach" width={320} height={120} className="w-60 md:w-80 h-auto" priority />
         <p className="text-2xl md:text-3xl text-white font-bold mt-6">What is your first name?</p>
-        <div className="w-full max-w-sm flex flex-col gap-4">
-          <Input
-            type="text"
-            placeholder="First Name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="bg-white/90 border-white/20 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center"
-            aria-label="First name"
-          />
-          <Button onClick={handleSubmit} size="lg" className="w-full bg-white/70 hover:bg-white/90 text-gray-900 rounded-lg border-0 font-bold">
-            Save
-          </Button>
-        </div>
+        {isLoading && !stay_id ? (
+          <div className="text-white text-lg">Loading...</div>
+        ) : (
+          <div className="w-full max-w-sm flex flex-col gap-4">
+            <Input
+              type="text"
+              placeholder="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="bg-white/90 border-white/20 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center"
+              aria-label="First name"
+              disabled={isLoading}
+              onKeyDown={(e) => {
+                // Safari-compatible enter key handling
+                if (e.key === 'Enter' && !isLoading) {
+                  handleSubmit(e)
+                }
+              }}
+            />
+            <Button 
+              onClick={handleSubmit} 
+              size="lg" 
+              className="w-full bg-white/70 hover:bg-white/90 text-gray-900 rounded-lg border-0 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading || !stay_id}
+            >
+              {isLoading ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )

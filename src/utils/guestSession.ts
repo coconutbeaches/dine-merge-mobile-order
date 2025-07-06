@@ -18,16 +18,22 @@ export interface GuestSession {
 export function getGuestSession(): GuestSession | null {
   if (typeof window === 'undefined') return null;
   
-  const guest_user_id = localStorage.getItem('guest_user_id');
-  const guest_first_name = localStorage.getItem('guest_first_name');
-  const guest_stay_id = localStorage.getItem('guest_stay_id');
-  
-  if (guest_user_id && guest_first_name && guest_stay_id) {
-    return {
-      guest_user_id,
-      guest_first_name,
-      guest_stay_id
-    };
+  try {
+    // Safari-compatible localStorage access
+    const guest_user_id = localStorage.getItem('guest_user_id');
+    const guest_first_name = localStorage.getItem('guest_first_name');
+    const guest_stay_id = localStorage.getItem('guest_stay_id');
+    
+    if (guest_user_id && guest_first_name && guest_stay_id) {
+      return {
+        guest_user_id,
+        guest_first_name,
+        guest_stay_id
+      };
+    }
+  } catch (error) {
+    console.warn('localStorage not available:', error);
+    return null;
   }
   
   return null;
@@ -39,9 +45,15 @@ export function getGuestSession(): GuestSession | null {
 export function saveGuestSession(session: GuestSession): void {
   if (typeof window === 'undefined') return;
   
-  localStorage.setItem('guest_user_id', session.guest_user_id);
-  localStorage.setItem('guest_first_name', session.guest_first_name);
-  localStorage.setItem('guest_stay_id', session.guest_stay_id);
+  try {
+    // Safari-compatible localStorage writes
+    localStorage.setItem('guest_user_id', session.guest_user_id);
+    localStorage.setItem('guest_first_name', session.guest_first_name);
+    localStorage.setItem('guest_stay_id', session.guest_stay_id);
+  } catch (error) {
+    console.warn('Failed to save guest session to localStorage:', error);
+    throw error; // Re-throw so calling code can handle it
+  }
 }
 
 /**
@@ -50,9 +62,14 @@ export function saveGuestSession(session: GuestSession): void {
 export function clearGuestSession(): void {
   if (typeof window === 'undefined') return;
   
-  localStorage.removeItem('guest_user_id');
-  localStorage.removeItem('guest_first_name');
-  localStorage.removeItem('guest_stay_id');
+  try {
+    // Safari-compatible localStorage removal
+    localStorage.removeItem('guest_user_id');
+    localStorage.removeItem('guest_first_name');
+    localStorage.removeItem('guest_stay_id');
+  } catch (error) {
+    console.warn('Failed to clear guest session from localStorage:', error);
+  }
 }
 
 /**
@@ -61,7 +78,17 @@ export function clearGuestSession(): void {
  */
 export function getRegistrationUrl(): string {
   const guestSession = getGuestSession();
-  const storedStayId = guestSession?.guest_stay_id || localStorage.getItem('guest_stay_id');
+  let storedStayId = guestSession?.guest_stay_id;
+  
+  // Fallback to direct localStorage access with error handling
+  if (!storedStayId) {
+    try {
+      storedStayId = localStorage.getItem('guest_stay_id');
+    } catch (error) {
+      console.warn('localStorage not available for getRegistrationUrl:', error);
+    }
+  }
+  
   return storedStayId ? `/register/${storedStayId}` : '/register/unknown';
 }
 

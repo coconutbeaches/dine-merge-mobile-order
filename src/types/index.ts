@@ -4,6 +4,7 @@ export interface User {
   name: string;
   phone: string;  // Changed from optional to required
   role?: string; // Add role field
+  stay_id?: string; // Optional stay ID for hotel guests
   addresses: Address[];
   orderHistory: import('./supabaseTypes').Order[];
 }
