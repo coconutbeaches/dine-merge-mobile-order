@@ -113,9 +113,8 @@ export default function OrderHistoryPage() {
     <Layout title="View Orders" showBackButton>
       <div className="page-container p-4 md:p-6">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold mb-1">View Orders</h1>
           {isHotelGuest && guestSession && (
-            <div className="text-sm text-muted-foreground mb-4">
+            <div className="text-3xl font-bold mb-4">
               {guestSession.guest_stay_id.replace(/_/g, ' ')}
             </div>
           )}

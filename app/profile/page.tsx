@@ -323,7 +323,7 @@ export default function Page() {
                           className="pr-20"
                         />
                         {hasOrders && (
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-700 bg-white border border-gray-300 px-2 py-0.5 rounded">
                             {orderCount} order{orderCount !== 1 ? 's' : ''}
                           </span>
                         )}
