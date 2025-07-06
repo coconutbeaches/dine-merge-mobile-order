@@ -106,7 +106,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 className="cursor-pointer hover:text-primary transition-colors text-left min-w-[80px] w-[80px]"
                 onClick={() => handleSort('customer_type')}
               >
-                <div className="flex items-center gap-1 justify-start">
+                <div className="flex items-center gap-1 justify-start ml-1">
                   Type
                   {sortKey === 'customer_type' && (
                     sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />

@@ -6,17 +6,18 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
-import { Edit } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { updateUserProfile } from '@/services/userProfileService';
+import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
 
 export default function Page() {
   const router = useRouter();
-  const { currentUser, isLoggedIn, isLoading: isLoadingUserContext, logout } = useAppContext();
+  const { currentUser, isLoggedIn, isLoading: isLoadingUserContext, logout, convertGuestToUser } = useAppContext();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -25,17 +26,171 @@ export default function Page() {
   const [isConverting, setIsConverting] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  
+  // Hotel guest state
+  const [isHotelGuest, setIsHotelGuest] = useState(false);
+  const [guestSession, setGuestSession] = useState(null);
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [familyMemberOrderCounts, setFamilyMemberOrderCounts] = useState(new Map());
 
   useEffect(() => {
-    if (!isLoadingUserContext && !isLoggedIn) {
-      router.push('/login?returnTo=/profile');
-    }
-    if (currentUser) {
-      setName(currentUser.name || '');
-      setEmail(currentUser.email || '');
-      setPhone(currentUser.phone || '');
-    }
+    const checkAndSetupProfile = async () => {
+      // Check for hotel guest session first
+      if (hasGuestSession()) {
+        const session = getGuestSession();
+        setIsHotelGuest(true);
+        setGuestSession(session);
+        
+        if (session) {
+          // Fetch all family members for this stay_id
+          try {
+            const { data, error } = await supabase
+              .from('guest_users')
+              .select('*')
+              .eq('stay_id', session.guest_stay_id)
+              .order('created_at', { ascending: true });
+            
+            if (error) {
+              console.error('Error fetching family members:', error);
+              toast.error('Failed to load family members');
+            } else {
+              setFamilyMembers(data || []);
+              
+              // Check which family members have orders
+              await checkFamilyMembersWithOrders(data || []);
+            }
+          } catch (error) {
+            console.error('Error fetching family members:', error);
+            toast.error('Failed to load family members');
+          }
+        }
+        return; // Don't redirect hotel guests
+      }
+      
+      // Handle regular authenticated users
+      if (!isLoadingUserContext && !isLoggedIn) {
+        router.push('/login?returnTo=/profile');
+        return;
+      }
+      
+      if (currentUser) {
+        setName(currentUser.name || '');
+        setEmail(currentUser.email || '');
+        setPhone(currentUser.phone || '');
+        setIsHotelGuest(false);
+      }
+    };
+    
+    checkAndSetupProfile();
   }, [currentUser, isLoggedIn, isLoadingUserContext, router]);
+
+  // Hotel guest functions
+  const checkFamilyMembersWithOrders = async (members) => {
+    try {
+      const memberIds = members.map(member => member.user_id);
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('guest_user_id')
+        .in('guest_user_id', memberIds);
+      
+      if (error) {
+        console.error('Error checking family member orders:', error);
+        return;
+      }
+      
+      // Count orders for each family member
+      const orderCounts = new Map();
+      memberIds.forEach(memberId => {
+        const memberOrders = orders?.filter(order => order.guest_user_id === memberId) || [];
+        orderCounts.set(memberId, memberOrders.length);
+      });
+      
+      setFamilyMemberOrderCounts(orderCounts);
+    } catch (error) {
+      console.error('Error checking family member orders:', error);
+    }
+  };
+  
+  const updateFamilyMemberName = (userId, newName) => {
+    setFamilyMembers(prev => 
+      prev.map(member => 
+        member.user_id === userId 
+          ? { ...member, first_name: newName }
+          : member
+      )
+    );
+  };
+  
+  
+  const removeFamilyMember = async (userId) => {
+    if (familyMembers.length <= 1) {
+      toast.error('Cannot remove the last family member');
+      return;
+    }
+    
+    try {
+      // Check if the family member has any orders
+      const { data: orders, error: orderError } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('guest_user_id', userId)
+        .limit(1);
+      
+      if (orderError) {
+        console.error('Error checking orders:', orderError);
+        toast.error('Failed to check for existing orders');
+        return;
+      }
+      
+      if (orders && orders.length > 0) {
+        toast.error('Cannot remove family member who has placed orders. Orders must be managed separately.');
+        return;
+      }
+      
+      // Proceed with deletion if no orders found
+      const { error } = await supabase
+        .from('guest_users')
+        .delete()
+        .eq('user_id', userId);
+      
+      if (error) {
+        toast.error('Failed to remove family member');
+        return;
+      }
+      
+      setFamilyMembers(prev => prev.filter(member => member.user_id !== userId));
+      toast.success('Family member removed');
+    } catch (error) {
+      console.error('Error removing family member:', error);
+      toast.error('Failed to remove family member');
+    }
+  };
+  
+  const saveFamilyMembers = async () => {
+    if (!familyMembers.length) return;
+    
+    setIsLoading(true);
+    try {
+      for (const member of familyMembers) {
+        const { error } = await supabase
+          .from('guest_users')
+          .update({ first_name: member.first_name })
+          .eq('user_id', member.user_id);
+        
+        if (error) {
+          throw error;
+        }
+      }
+      
+      toast.success('Family member names updated successfully!');
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating family members:', error);
+      toast.error('Failed to update family member names');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const fetchProfileDetails = async () => {
     if (!currentUser) return;
@@ -100,7 +255,7 @@ export default function Page() {
     }
   };
 
-  if (isLoadingUserContext) {
+  if (isLoadingUserContext && !isHotelGuest) {
     return (
       <Layout title="" showBackButton>
         <div className="page-container text-center py-10">Loading profile...</div>
@@ -108,7 +263,7 @@ export default function Page() {
     );
   }
 
-  if (!isLoggedIn || !currentUser) {
+  if (!isHotelGuest && (!isLoggedIn || !currentUser)) {
     return (
       <Layout title="" showBackButton>
         <div className="page-container text-center py-10">Please log in to view your profile.</div>
@@ -116,65 +271,151 @@ export default function Page() {
     );
   }
 
+  // Hotel guest logout function
+  const handleHotelGuestLogout = () => {
+    localStorage.removeItem('guest_user_id');
+    localStorage.removeItem('guest_first_name');
+    localStorage.removeItem('guest_stay_id');
+    router.push('/');
+  };
+
   return (
     <Layout title="" showBackButton>
       <div className="page-container max-w-2xl mx-auto">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Account Information</CardTitle>
-            {!isEditing && (
-              <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit className="h-4 w-4" />
-                <span className="sr-only">Edit Profile</span>
-              </Button>
-            )}
-          </CardHeader>
-          <form onSubmit={handleUpdateProfile}>
-            <CardContent className="space-y-6">
+        {isHotelGuest ? (
+          // Hotel Guest Profile
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={!isEditing || isLoading}
-                />
+                <CardTitle>Family Members</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Room: {guestSession?.guest_stay_id?.replace(/_/g, ' ')}
+                </p>
               </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={email} disabled />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  disabled={!isEditing || isLoading}
-                />
-              </div>
+              {!isEditing && (
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                  <Edit className="h-4 w-4" />
+                  <span className="sr-only">Edit Names</span>
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {familyMembers.map((member, index) => {
+                const orderCount = familyMemberOrderCounts.get(member.user_id) || 0;
+                const hasOrders = orderCount > 0;
+                const canDelete = !hasOrders && familyMembers.length > 1;
+                
+                return (
+                  <div key={member.user_id} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor={`member-${member.user_id}`} className="flex items-center gap-2">
+                        Family Member {index + 1}
+                        {hasOrders && (
+                          <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                            {orderCount} order{orderCount !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </Label>
+                      <Input
+                        id={`member-${member.user_id}`}
+                        value={member.first_name}
+                        onChange={(e) => updateFamilyMemberName(member.user_id, e.target.value)}
+                        disabled={!isEditing || isLoading}
+                        placeholder="Enter name"
+                      />
+                    </div>
+                    {isEditing && canDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFamilyMember(member.user_id)}
+                        className="text-red-500 hover:text-red-700 mt-6"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {isEditing && !canDelete && familyMembers.length > 1 && (
+                      <div className="mt-6 px-3 py-2">
+                        <Trash2 className="h-4 w-4 text-gray-300" title={hasOrders ? "Cannot delete - has orders" : "Cannot delete - last member"} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </CardContent>
             {isEditing && (
               <CardFooter className="flex justify-end gap-2">
-                <Button type="submit" disabled={isLoading}>
+                <Button onClick={saveFamilyMembers} disabled={isLoading}>
                   {isLoading ? 'Saving...' : 'Save Changes'}
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setIsEditing(false);
-                    fetchProfileDetails();
-                  }}
+                  onClick={() => setIsEditing(false)}
                 >
                   Cancel
                 </Button>
               </CardFooter>
             )}
-          </form>
-        </Card>
+          </Card>
+        ) : (
+          // Regular User Profile
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Account Information</CardTitle>
+              {!isEditing && (
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                  <Edit className="h-4 w-4" />
+                  <span className="sr-only">Edit Profile</span>
+                </Button>
+              )}
+            </CardHeader>
+            <form onSubmit={handleUpdateProfile}>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={!isEditing || isLoading}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={email} disabled />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    disabled={!isEditing || isLoading}
+                  />
+                </div>
+              </CardContent>
+              {isEditing && (
+                <CardFooter className="flex justify-end gap-2">
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditing(false);
+                      fetchProfileDetails();
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </CardFooter>
+              )}
+            </form>
+          </Card>
+        )}
 
-        {currentUser && !currentUser.email && (
+        {!isHotelGuest && currentUser && !currentUser.email && (
           <Card className="mt-6">
             <CardHeader className="text-center">
               <CardTitle className="text-black text-2xl">
@@ -228,12 +469,15 @@ export default function Page() {
           <Button onClick={() => router.push('/order-history')} className="w-full sm:w-auto bg-black text-white hover:bg-gray-800">
             My Orders
           </Button>
-          
         </div>
 
         <div className="mt-8 text-center">
-          <Button variant="outline" onClick={handleLogout} className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive/80">
-            Log Out
+          <Button 
+            variant="outline" 
+            onClick={isHotelGuest ? handleHotelGuestLogout : handleLogout} 
+            className="text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive/80"
+          >
+            {isHotelGuest ? 'End Session' : 'Log Out'}
           </Button>
         </div>
       </div>

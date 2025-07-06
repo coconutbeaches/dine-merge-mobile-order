@@ -45,12 +45,9 @@ const EditCustomerDialog: React.FC<EditCustomerDialogProps> = ({ customer, isOpe
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent className="bg-white">
         <DialogHeader>
           <DialogTitle>Edit Customer</DialogTitle>
-          <DialogDescription>
-            Make changes to the customer's profile here. Click save when you're done.
-          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-4 items-center gap-4">
@@ -83,8 +80,8 @@ const EditCustomerDialog: React.FC<EditCustomerDialogProps> = ({ customer, isOpe
               Cancel
             </Button>
           </DialogClose>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? 'Saving...' : 'Save Changes'}
+          <Button onClick={handleSave} disabled={isSaving} className="bg-black text-white hover:bg-gray-800">
+            {isSaving ? 'Saving...' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>

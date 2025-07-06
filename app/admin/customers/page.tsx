@@ -351,7 +351,7 @@ export default function CustomersDashboardPage() {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative w-full md:w-1/3">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"

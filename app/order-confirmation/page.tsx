@@ -52,7 +52,10 @@ useEffect(() => {
       return `- ${item.quantity}x ${itemName}${optionsText}`;
     }).join('\n');
 
-    const customerName = order.customer_name || order.customer_name_from_profile || order.guest_first_name || 'Guest';
+    // For hotel guests, prioritize stay_id; for others use existing logic
+    const customerName = order.stay_id 
+      ? order.stay_id.replace(/_/g, ' ') 
+      : (order.customer_name || order.customer_name_from_profile || order.guest_first_name || 'Guest');
     const tableNumber = order.table_number || 'Takeaway';
     const formattedTotal = formatThaiCurrency(order.total_amount);
 
@@ -111,7 +114,10 @@ ${itemsDetails}
     );
   }
 
-  const customerName = order.customer_name || order.customer_name_from_profile || order.guest_first_name || 'Guest';
+  // For hotel guests, prioritize stay_id; for others use existing logic
+  const customerName = order.stay_id 
+    ? order.stay_id.replace(/_/g, ' ') 
+    : (order.customer_name || order.customer_name_from_profile || order.guest_first_name || 'Guest');
   const tableNumber = order.table_number || 'Takeaway';
   const orderDate = new Date(order.created_at).toLocaleDateString('en-US', {
     year: 'numeric',
