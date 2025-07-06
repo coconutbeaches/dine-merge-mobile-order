@@ -7,8 +7,8 @@ type SortKey = 'name' | 'total_spent' | 'last_order_date' | 'created_at' | 'cust
 type SortDirection = 'asc' | 'desc';
 
 export const useCustomersDashboard = () => {
-  const [sortKey, setSortKey] = useState<SortKey>('name');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [sortKey, setSortKey] = useState<SortKey>('last_order_date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   
   // Defensive hook calls with error handling
   let fetchCustomersResult;
@@ -92,8 +92,10 @@ export const useCustomersDashboard = () => {
           valB = b.total_spent || 0;
           break;
         case 'last_order_date':
-          valA = a.last_order_date ? new Date(a.last_order_date).getTime() : 0;
-          valB = b.last_order_date ? new Date(b.last_order_date).getTime() : 0;
+          // For desc order: customers with recent orders come first, null values go to end
+          // For asc order: null values come first, then oldest to newest
+          valA = a.last_order_date ? new Date(a.last_order_date).getTime() : (sortDirection === 'desc' ? 0 : Infinity);
+          valB = b.last_order_date ? new Date(b.last_order_date).getTime() : (sortDirection === 'desc' ? 0 : Infinity);
           break;
         case 'created_at':
           valA = new Date(a.created_at).getTime();
