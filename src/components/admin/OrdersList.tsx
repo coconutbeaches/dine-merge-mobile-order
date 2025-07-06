@@ -159,7 +159,7 @@ const OrdersList = ({
                     <span className="capitalize">{statusVal === 'delivery' ? 'Delivery' : statusVal}</span>
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   {orderStatusOptions.map(statusOption => (
                     <SelectItem
                       key={statusOption}

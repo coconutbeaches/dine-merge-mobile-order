@@ -14,7 +14,6 @@ const transformSupabaseOrder = (order: any, profileData: Profile | null): Order 
   if (order.order_status) {
     appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
   } else {
-    console.warn(`Order ${order.id} - order_status from DB is null or empty. Defaulting to 'new'. DB value: `, order.order_status);
     appOrderStatus = 'new';
   }
   return {
@@ -44,7 +43,6 @@ export const useCustomerOrders = (customerId: string | undefined) => {
           'postgres_changes',
           { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${customerId}` },
           (payload) => {
-            console.log("Real-time order update:", payload);
             setOrders(prevOrders => {
               const newOrder = payload.new as Order;
               const oldOrder = payload.old as Order;
@@ -70,7 +68,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         supabase.removeChannel(channel);
       };
     }
-  }, [customerId, customer]); // Add customer to dependency array
+  }, [customerId]);
 
   const fetchCustomerDetails = async (userId: string) => {
     try {
@@ -81,7 +79,6 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         .single();
         
       if (error) throw error;
-      console.log("Customer details:", data);
       setCustomer(data);
     } catch (error) {
       console.error('Error fetching customer details:', error);
@@ -110,26 +107,11 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         console.warn('Could not fetch profile data:', profileError);
       }
       
-      console.log("Customer orders raw data:", ordersData);
-      
       if (ordersData) {
         // Transform the data to correctly handle the order_status and add customer info
         const transformedOrders = ordersData.map(order => transformSupabaseOrder(order, profileData));
         
-        // EXTRA LOGGING: show order ids & statuses from DB
-        console.log('[CustomerOrders] Raw orders from DB:', ordersData.map(order => ({
-          id: order.id,
-          db_order_status: order.order_status
-        })));
-        
-        // Log mapping result
-        console.log('[CustomerOrders] Transformed orders:', transformedOrders.map(o => ({
-          id: o.id,
-          mapped_status: o.order_status
-        })));
-        
         setOrders(transformedOrders);
-        console.log("[useCustomerOrders] fetchCustomerOrders completed. Orders set.");
       } else {
         setOrders([]);
       }

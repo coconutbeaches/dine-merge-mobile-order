@@ -143,9 +143,9 @@ const AdminOrderCreator = () => {
             <Plus className="h-4 w-4" />
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
-          <DialogTitle>Create Order For Customer</DialogTitle>
+          <DialogTitle>Create Order for Customer</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div>
@@ -165,7 +165,7 @@ const AdminOrderCreator = () => {
                     <UserPlus className="h-4 w-4" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-xs">
+                <DialogContent className="sm:max-w-xs bg-white">
                   <DialogHeader>
                     <DialogTitle>New Guest Customer</DialogTitle>
                   </DialogHeader>
@@ -224,11 +224,7 @@ const AdminOrderCreator = () => {
             )}
           </div>
         </div>
-        <div className="flex justify-end">
-          <DialogClose asChild>
-            <Button variant="secondary">Close</Button>
-          </DialogClose>
-        </div>
+        
       </DialogContent>
     </Dialog>
     </>
