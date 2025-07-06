@@ -139,31 +139,57 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    console.log('Form submission started'); // Debug logging for Safari
+    console.log('=== SAFARI REGISTRATION DEBUG START ===');
+    console.log('User Agent:', navigator.userAgent);
+    console.log('Form submission started');
+    console.log('Current URL:', window.location.href);
+    console.log('Form data:', { firstName: firstName.trim(), stay_id });
     
     // 1. Check non-empty firstName
     if (!firstName.trim()) {
+      console.error('VALIDATION ERROR: Empty firstName');
       toast.error('Please enter your first name')
       return
     }
     
     // 2. Check if stay_id is available
     if (!stay_id) {
+      console.error('VALIDATION ERROR: No stay_id available:', { 
+        stay_id, 
+        pathname: window.location.pathname,
+        href: window.location.href,
+        params: params 
+      });
       toast.error('Registration link is invalid. Please try again.')
-      console.error('No stay_id available:', { stay_id, pathname: window.location.pathname });
       return
     }
     
+    console.log('Validation passed, starting registration process...');
     setIsLoading(true)
     
     try {
       // 3. Generate userId
       const userId = nanoid()
-      console.log('Generated user ID:', userId); // Debug logging
+      console.log('Generated user ID:', userId);
       
-      // 4. Insert into database
-      console.log('Inserting into database:', { userId, firstName: firstName.trim(), stay_id });
-      const { error, data } = await supabase
+      // 4. Test Supabase connection first
+      console.log('Testing Supabase connection...');
+      try {
+        const connectionTest = await supabase.from('guest_users').select('count').limit(1);
+        console.log('Supabase connection test result:', connectionTest);
+      } catch (connError) {
+        console.error('Supabase connection test failed:', connError);
+      }
+      
+      // 5. Insert into database with detailed logging
+      console.log('Attempting database insert...');
+      console.log('Insert data:', {
+        user_id: userId,
+        first_name: firstName.trim(),
+        stay_id: stay_id
+      });
+      
+      const insertResult = await supabase
         .from('guest_users')
         .insert({ 
           user_id: userId, 
@@ -172,15 +198,35 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         })
         .select()
       
-      if (error) {
-        console.error('Database error:', error)
-        toast.error('Failed to register. Please try again.')
+      console.log('Database insert result:', insertResult);
+      console.log('Insert error:', insertResult.error);
+      console.log('Insert data:', insertResult.data);
+      
+      if (insertResult.error) {
+        console.error('=== DATABASE ERROR DETAILS ===');
+        console.error('Error object:', insertResult.error);
+        console.error('Error code:', insertResult.error.code);
+        console.error('Error message:', insertResult.error.message);
+        console.error('Error details:', insertResult.error.details);
+        console.error('Error hint:', insertResult.error.hint);
+        
+        // More specific error messages
+        if (insertResult.error.code === '23505') {
+          toast.error('Registration already exists for this stay. Please try logging in instead.')
+        } else if (insertResult.error.code === '42501') {
+          toast.error('Permission denied. Please contact support.')
+        } else if (insertResult.error.message?.includes('network')) {
+          toast.error('Network error. Please check your connection and try again.')
+        } else {
+          toast.error(`Registration failed: ${insertResult.error.message || 'Unknown error'}`)
+        }
         return
       }
       
-      console.log('Database insert successful:', data);
+      console.log('Database insert successful:', insertResult.data);
       
-      // 5. Save guest session with Safari-compatible error handling
+      // 6. Save guest session with Safari-compatible error handling
+      console.log('Attempting to save guest session...');
       let sessionSaved = false;
       try {
         saveGuestSession({
@@ -191,23 +237,33 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         sessionSaved = true;
         console.log('Session saved successfully');
       } catch (storageError) {
-        console.warn('localStorage not available, continuing without session storage:', storageError)
+        console.error('localStorage error:', storageError);
+        console.warn('localStorage not available, continuing without session storage');
         // Continue without localStorage - user will still be registered in database
       }
       
-      // 6. Success message and redirect
+      // 7. Success message and redirect
+      console.log('Registration completed successfully, showing success message...');
       toast.success(`Welcome, ${firstName.trim()}!${!sessionSaved ? ' (Session not saved)' : ''}`)
       
       // Add delay for Safari compatibility and ensure toast is visible
+      console.log('Setting redirect timeout...');
       setTimeout(() => {
         console.log('Redirecting to menu...');
         router.replace('/menu')
       }, sessionSaved ? 500 : 1500) // Longer delay if session wasn't saved
       
+      console.log('=== SAFARI REGISTRATION DEBUG END (SUCCESS) ===');
+      
     } catch (error) {
-      console.error('Registration error:', error)
-      toast.error('An error occurred. Please try again.')
+      console.error('=== SAFARI REGISTRATION DEBUG END (ERROR) ===');
+      console.error('Outer catch error:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      toast.error(`An error occurred: ${error.message || 'Unknown error'}`)
     } finally {
+      console.log('Setting loading to false...');
       setIsLoading(false)
     }
   }
