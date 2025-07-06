@@ -34,7 +34,7 @@ export default function OrderPage() {
   if (!guestUserId) {
     console.log('OrderPage: Not rendering content, guestUserId is null (initial or after redirect).');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <p>Loading user data or redirecting...</p>
       </div>
     );
@@ -42,7 +42,7 @@ export default function OrderPage() {
 
   console.log('OrderPage: Rendering content for', guestFirstName);
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
       <h1 className="text-3xl font-bold mb-4">Welcome, {guestFirstName}!</h1>
       <p className="text-lg text-gray-700">You can now place your order.</p>
       <p className="text-sm text-gray-500 mt-4">Your User ID: {guestUserId}</p>

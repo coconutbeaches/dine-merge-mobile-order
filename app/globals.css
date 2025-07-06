@@ -63,6 +63,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Set white background for all pages */
+html,
+body {
+  background-color: white;
+}
+
 /* Hide all development indicators and overlays */
 #__next-dev-overlay-container,
 #__next-dev-overlay,
