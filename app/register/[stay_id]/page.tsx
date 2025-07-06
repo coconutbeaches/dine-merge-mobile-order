@@ -38,23 +38,28 @@ export default function RegisterPage({ params }: RegisterPageProps) {
           }
         }
         
-        // Method 3: Fallback to URL parsing
-        if (!extractedStayId) {
+        // Method 3: Fallback to URL parsing (Safari compatibility)
+        if (!extractedStayId && typeof window !== 'undefined') {
           const pathParts = window.location.pathname.split('/');
           const lastPart = pathParts[pathParts.length - 1];
           if (lastPart && lastPart !== 'register') {
-            extractedStayId = lastPart;
+            extractedStayId = decodeURIComponent(lastPart);
           }
         }
         
+        console.log('Extracted stay_id:', extractedStayId); // Debug logging for Safari
         setStayId(extractedStayId || '');
       } catch (error) {
         console.error('Error resolving params:', error);
         // Final fallback: try to extract from URL
         try {
-          const pathParts = window.location.pathname.split('/');
-          const stayIdFromUrl = pathParts[pathParts.length - 1];
-          setStayId(stayIdFromUrl || '');
+          if (typeof window !== 'undefined') {
+            const pathParts = window.location.pathname.split('/');
+            const stayIdFromUrl = pathParts[pathParts.length - 1];
+            const decoded = decodeURIComponent(stayIdFromUrl || '');
+            console.log('Fallback stay_id:', decoded); // Debug logging
+            setStayId(decoded);
+          }
         } catch (urlError) {
           console.error('Error extracting from URL:', urlError);
           setStayId('');
@@ -99,6 +104,8 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('Form submission started'); // Debug logging for Safari
+    
     // 1. Check non-empty firstName
     if (!firstName.trim()) {
       toast.error('Please enter your first name')
@@ -108,6 +115,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     // 2. Check if stay_id is available
     if (!stay_id) {
       toast.error('Registration link is invalid. Please try again.')
+      console.error('No stay_id available:', { stay_id, pathname: window.location.pathname });
       return
     }
     
@@ -116,15 +124,18 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     try {
       // 3. Generate userId
       const userId = nanoid()
+      console.log('Generated user ID:', userId); // Debug logging
       
       // 4. Insert into database
-      const { error } = await supabase
+      console.log('Inserting into database:', { userId, firstName: firstName.trim(), stay_id });
+      const { error, data } = await supabase
         .from('guest_users')
         .insert({ 
           user_id: userId, 
           first_name: firstName.trim(), 
           stay_id 
         })
+        .select()
       
       if (error) {
         console.error('Database error:', error)
@@ -132,25 +143,31 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         return
       }
       
+      console.log('Database insert successful:', data);
+      
       // 5. Save guest session with Safari-compatible error handling
+      let sessionSaved = false;
       try {
         saveGuestSession({
           guest_user_id: userId,
           guest_first_name: firstName.trim(),
           guest_stay_id: stay_id
         })
+        sessionSaved = true;
+        console.log('Session saved successfully');
       } catch (storageError) {
         console.warn('localStorage not available, continuing without session storage:', storageError)
         // Continue without localStorage - user will still be registered in database
       }
       
       // 6. Success message and redirect
-      toast.success(`Welcome, ${firstName.trim()}!`)
+      toast.success(`Welcome, ${firstName.trim()}!${!sessionSaved ? ' (Session not saved)' : ''}`)
       
-      // Add small delay for Safari compatibility
+      // Add delay for Safari compatibility and ensure toast is visible
       setTimeout(() => {
+        console.log('Redirecting to menu...');
         router.replace('/menu')
-      }, 100)
+      }, sessionSaved ? 500 : 1500) // Longer delay if session wasn't saved
       
     } catch (error) {
       console.error('Registration error:', error)

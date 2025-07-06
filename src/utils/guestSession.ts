@@ -13,12 +13,32 @@ export interface GuestSession {
 }
 
 /**
+ * Test if localStorage is available (Safari private mode compatibility)
+ */
+function isLocalStorageAvailable(): boolean {
+  try {
+    const test = '__localStorage_test__';
+    localStorage.setItem(test, 'test');
+    localStorage.removeItem(test);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
  * Get the current guest session from localStorage
  */
 export function getGuestSession(): GuestSession | null {
   if (typeof window === 'undefined') return null;
   
   try {
+    // Test localStorage availability first (Safari private mode check)
+    if (!isLocalStorageAvailable()) {
+      console.warn('localStorage not available (private mode or disabled)');
+      return null;
+    }
+    
     // Safari-compatible localStorage access
     const guest_user_id = localStorage.getItem('guest_user_id');
     const guest_first_name = localStorage.getItem('guest_first_name');
@@ -46,6 +66,11 @@ export function saveGuestSession(session: GuestSession): void {
   if (typeof window === 'undefined') return;
   
   try {
+    // Test localStorage availability first
+    if (!isLocalStorageAvailable()) {
+      throw new Error('localStorage not available (private mode or disabled)');
+    }
+    
     // Safari-compatible localStorage writes
     localStorage.setItem('guest_user_id', session.guest_user_id);
     localStorage.setItem('guest_first_name', session.guest_first_name);
@@ -63,6 +88,12 @@ export function clearGuestSession(): void {
   if (typeof window === 'undefined') return;
   
   try {
+    // Test localStorage availability first
+    if (!isLocalStorageAvailable()) {
+      console.warn('localStorage not available for clearing session');
+      return;
+    }
+    
     // Safari-compatible localStorage removal
     localStorage.removeItem('guest_user_id');
     localStorage.removeItem('guest_first_name');
@@ -83,7 +114,9 @@ export function getRegistrationUrl(): string {
   // Fallback to direct localStorage access with error handling
   if (!storedStayId) {
     try {
-      storedStayId = localStorage.getItem('guest_stay_id');
+      if (isLocalStorageAvailable()) {
+        storedStayId = localStorage.getItem('guest_stay_id');
+      }
     } catch (error) {
       console.warn('localStorage not available for getRegistrationUrl:', error);
     }
@@ -97,4 +130,13 @@ export function getRegistrationUrl(): string {
  */
 export function hasGuestSession(): boolean {
   return getGuestSession() !== null;
+}
+
+/**
+ * Check if the current user is a hotel guest (has stay_id)
+ * This helper determines user type for routing decisions
+ */
+export function isHotelGuest(): boolean {
+  const guestSession = getGuestSession();
+  return guestSession !== null && !!guestSession.guest_stay_id;
 }
