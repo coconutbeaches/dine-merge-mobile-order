@@ -16,6 +16,7 @@ interface ExtendedOrder extends BaseOrder {
   special_instructions?: string | null;
   customer_name_from_profile?: string | null;
   customer_email_from_profile?: string | null;
+  stay_id?: string | null;
 }
 
 const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder => {
@@ -27,6 +28,7 @@ const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder =
       id: order.id,
       guest_user_id: order.guest_user_id,
       guest_first_name: order.guest_first_name,
+      stay_id: order.stay_id,
       user_id: order.user_id,
       profile: profile
     });
@@ -63,6 +65,7 @@ export const useFetchOrders = () => {
             user_id,
             guest_user_id,
             guest_first_name,
+            stay_id,
             total_amount,
             created_at
           `)

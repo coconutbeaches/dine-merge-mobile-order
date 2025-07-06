@@ -77,9 +77,10 @@ const OrdersList = ({
       </div>
       {/* Orders rows */}
       {orders.map((order) => {
+        // For guest orders, show the family account name (stay_id) instead of individual guest name
         const customerDisplayName = order.customer_name_from_profile || 
                                   order.customer_name || 
-                                  order.guest_first_name ||
+                                  (order.guest_user_id && order.stay_id ? order.stay_id : order.guest_first_name) ||
                                   `Order #${order.id}`;
 
         // Debug log for guest orders
@@ -89,6 +90,7 @@ const OrdersList = ({
             customer_name: order.customer_name,
             guest_first_name: order.guest_first_name,
             guest_user_id: order.guest_user_id,
+            stay_id: order.stay_id,
             finalDisplayName: customerDisplayName
           });
         }
@@ -110,20 +112,26 @@ const OrdersList = ({
             </div>
             {/* Customer name, table number below */}
             <div className="col-span-4 min-w-0">
-              {order.user_id ? (
+              {(order.user_id || (order.guest_user_id && order.stay_id)) ? (
                 <Link 
-                  href={`/admin/customer-orders/${order.user_id}`} 
+                  href={`/admin/customer-orders/${order.user_id || order.stay_id}`} 
                   className="font-medium text-primary hover:underline truncate block"
-                  title={`View all orders for ${customerDisplayName} (${order.customer_email_from_profile || 'No Email'})`}
+                  title={`View all orders for ${customerDisplayName} ${order.user_id ? `(${order.customer_email_from_profile || 'No Email'})` : '(Guest Family)'}`}
                 >
-                  {customerDisplayName}
+                  <div className="flex items-center gap-1">
+                    {order.guest_user_id && <span className="text-orange-600">🏨</span>}
+                    {customerDisplayName}
+                  </div>
                 </Link>
               ) : (
                 <div 
                   className="font-medium truncate" 
-                  title={`${customerDisplayName} (${order.customer_email_from_profile || 'No Email'})`}
+                  title={`${customerDisplayName} ${order.user_id ? `(${order.customer_email_from_profile || 'No Email'})` : '(Guest)'}`}
                 >
-                  {customerDisplayName}
+                  <div className="flex items-center gap-1">
+                    {order.guest_user_id && <span className="text-orange-600">🏨</span>}
+                    {customerDisplayName}
+                  </div>
                 </div>
               )}
               {order.table_number && (

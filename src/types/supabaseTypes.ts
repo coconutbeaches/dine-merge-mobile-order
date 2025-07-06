@@ -96,6 +96,7 @@ export type Database = {
           id: number
           order_items: Json | null
           order_status: Database["public"]["Enums"]["order_status"] | null
+          stay_id: string | null
           table_number: string | null
           total_amount: number
           updated_at: string
@@ -109,6 +110,7 @@ export type Database = {
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
+          stay_id?: string | null
           table_number?: string | null
           total_amount: number
           updated_at?: string
@@ -122,6 +124,7 @@ export type Database = {
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
+          stay_id?: string | null
           table_number?: string | null
           total_amount?: number
           updated_at?: string
