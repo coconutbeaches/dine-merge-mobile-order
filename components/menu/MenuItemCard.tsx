@@ -25,7 +25,7 @@ const MenuItemCard = memo(({ product }: MenuItemCardProps) => {
       className="food-card cursor-pointer"
       onClick={handleClick}
     >
-      <div className="menu-item-image">
+      <div className="menu-item-image relative">
         <img 
           src={product.image_url || '/placeholder.svg'} 
           alt={product.name} 

@@ -115,7 +115,7 @@ export function ProfilePictureUploader({
         </AvatarFallback>
       </Avatar>
       
-      <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
         <Button
           type="button"
           variant="ghost"

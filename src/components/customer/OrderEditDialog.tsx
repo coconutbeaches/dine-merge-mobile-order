@@ -131,6 +131,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
                 onChange={e => handleItemChange(index, 'product', e.target.value)}
                 className="flex-[2]"
                 placeholder="Item Name"
+                aria-label="Item name"
               />
               <Input
                 id={`item-quantity-${index}`}

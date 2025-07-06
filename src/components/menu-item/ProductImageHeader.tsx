@@ -45,9 +45,11 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
     <>
       {/* Item Image */}
       <div 
-        className="h-80 w-full bg-center bg-cover rounded-none mb-4" 
+        className="h-80 w-full bg-center bg-cover rounded-none mb-4 relative" 
         style={{ backgroundImage: `url(${imageUrl || '/placeholder.svg'})` }}
-      />
+      >
+        <div className="absolute inset-0 bg-black/20"></div>
+      </div>
       
       {/* Item Details */}
       {(productDescription && productDescription !== 'No description') && (

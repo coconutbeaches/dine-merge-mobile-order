@@ -27,7 +27,7 @@ export function ProductFormFields({ form, categories }: ProductFormFieldsProps) 
             <FormItem>
               <FormLabel>Name <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input placeholder="Product name" {...field} />
+                <Input placeholder="Product name" {...field} aria-label="Product name" />
               </FormControl>
               <FormMessage />
             </FormItem>

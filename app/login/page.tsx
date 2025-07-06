@@ -108,6 +108,7 @@ function LoginContent() {
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    aria-label="Name"
                   />
                 </div>
                 <div className="space-y-2">

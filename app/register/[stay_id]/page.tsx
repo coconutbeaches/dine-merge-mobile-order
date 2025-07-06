@@ -1,88 +1,92 @@
-"use client";
+'use client'
+import React, { useState, useEffect } from 'react'
+import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { nanoid } from 'nanoid'
+import { supabase } from '@/integrations/supabase/client'
+import { toast } from 'sonner'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { nanoid } from 'nanoid';
-import { supabase } from '@/integrations/supabase/client'; // Corrected import
-import { toast } from 'sonner';
+interface RegisterPageProps {
+  params: Promise<{ stay_id: string }>;
+}
 
-export default function RegisterPage({ params }: { params: Promise<{ stay_id: string }> }) {
-  const { stay_id } = React.use(params);
-  const router = useRouter();
-  const [firstName, setFirstName] = useState('');
+export default function RegisterPage({ params }: RegisterPageProps) {
+  const [firstName, setFirstName] = useState('')
+  const router = useRouter()
 
   useEffect(() => {
-    const guestUserId = localStorage.getItem('guest_user_id');
-    if (guestUserId) {
-      router.replace('/order'); // Redirect if already logged in
-    }
-  }, []);
+    const id = localStorage.getItem('guest_user_id')
+    if (id) router.replace('/order')
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("handleSubmit called");
-    e.preventDefault();
-
-    console.log(" Submitting:", { firstName, stayId: stay_id });
-
+    e.preventDefault()
+    
+    // 1. Check non-empty firstName
     if (!firstName.trim()) {
-      toast.error('Please enter your first name.');
-      return;
+      toast.error('Please enter your first name')
+      return
     }
-
-    const userId = nanoid();
-
+    
     try {
+      // 2. Generate userId
+      const userId = nanoid()
+      
+      // 3. Extract stay_id from params
+      const { stay_id } = React.use(params)
+      
+      // 4. Insert into database
       const { error } = await supabase
         .from('guest_users')
-        .insert({ user_id: userId, first_name: firstName.trim(), stay_id });
-
+        .insert({ 
+          user_id: userId, 
+          first_name: firstName.trim(), 
+          stay_id 
+        })
+      
       if (error) {
-        console.error('Supabase insert error:', error);
-        toast.error('Failed to register. Please try again.');
-        return;
-      } else {
-        console.log('Guest registered successfully');
+        console.error('Database error:', error)
+        toast.error('Failed to register. Please try again.')
+        return
       }
-
-      localStorage.setItem('guest_user_id', userId);
-      localStorage.setItem('guest_first_name', firstName.trim());
-      toast.success('Registration successful!');
-      router.replace('/order');
-      return;
-    } catch (err: any) {
-      console.error('Unexpected error during registration:', err);
-      toast.error('An unexpected error occurred.');
+      
+      // 5. Save to localStorage and redirect
+      localStorage.setItem('guest_user_id', userId)
+      localStorage.setItem('guest_first_name', firstName.trim())
+      
+      // 6. Success message and redirect
+      toast.success(`Welcome, ${firstName.trim()}!`)
+      router.replace('/order')
+      
+    } catch (error) {
+      console.error('Registration error:', error)
+      toast.error('An error occurred. Please try again.')
     }
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-4 text-center">Welcome!</h1>
-        <p className="text-gray-600 mb-6 text-center">You're checking in to <span className="font-semibold">{stay_id}</span></p>
-        
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-              Your First Name
-            </label>
-            <input
-              type="text"
-              id="firstName"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            Check In
-          </button>
-        </form>
+    <div className="relative min-h-screen w-full">
+      <Image src="/bg-landing.png" alt="" fill priority className="object-cover object-center -z-10" />
+      <div className="flex flex-col items-center justify-center gap-6 px-6 text-center min-h-screen">
+        <h1 className="text-3xl md:text-4xl font-semibold text-white">Hi! 👋 Welcome to</h1>
+        <Image src="/CoconutBeachLogo.png" alt="Coconut Beach" width={320} height={120} className="w-60 md:w-80 h-auto" priority />
+        <p className="text-2xl md:text-3xl text-white font-bold mt-6">What is your first name?</p>
+        <div className="w-full max-w-sm flex flex-col gap-4">
+          <Input
+            type="text"
+            placeholder="First Name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="bg-white/90 border-white/20 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center"
+            aria-label="First name"
+          />
+          <Button onClick={handleSubmit} size="lg" className="w-full bg-white/70 hover:bg-white/90 text-gray-900 rounded-lg border-0 font-bold">
+            Save
+          </Button>
+        </div>
       </div>
     </div>
-  );
+  )
 }

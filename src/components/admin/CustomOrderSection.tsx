@@ -73,6 +73,7 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
                 value={item.product}
                 onChange={e => updateItem(item.id, 'product', e.target.value)}
                 className="flex-1"
+                aria-label="Product name"
               />
               <div className="w-24">
                 <div className="relative">

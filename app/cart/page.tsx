@@ -76,12 +76,14 @@ export default function Page() {
                   <CardContent className="p-3">
                     <div className="flex">
                       <div
-                        className="w-16 h-16 rounded-md mr-3 bg-center bg-cover flex-shrink-0"
+                        className="w-16 h-16 rounded-md mr-3 bg-center bg-cover flex-shrink-0 relative"
                         style={{
                           backgroundImage: `url(${item.menuItem.image ||
                             '/placeholder.svg'})`,
                         }}
-                      />
+                      >
+                        <div className="absolute inset-0 bg-black/10 rounded-md"></div>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
                           <h3
