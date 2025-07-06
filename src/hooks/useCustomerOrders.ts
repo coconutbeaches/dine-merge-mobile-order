@@ -96,7 +96,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         // For guest families, create a virtual customer profile
         setCustomer({
           id: customerId,
-          name: customerId, // Display stay_id as name (e.g., "A5-CROWLEY")
+          name: customerId.replace(/_/g, ' '), // Display stay_id as name with spaces (e.g., "A5 CROWLEY")
           email: '',
           phone: null,
           role: null,

@@ -44,9 +44,16 @@ export function usePlaceOrder(
       }
     }
     
-    // For guests: finalUserId will be null, but we need guestUserId
+    // Handle admin context with hotel guests
+    if (adminContext && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId)) {
+      // This is a hotel guest (stay_id), not a regular user
+      stayId = adminContext.customerId;
+      finalUserId = null; // Don't set user_id for hotel guests
+    }
+    
+    // For guests: finalUserId will be null, but we need guestUserId or stayId
     // For regular users: finalUserId should be set
-    if (!finalUserId && !guestUserId) {
+    if (!finalUserId && !guestUserId && !stayId) {
       console.error('User must be logged in or have guest session to place an order');
       toast.error('You must be logged in to place an order');
       return null;
@@ -70,7 +77,13 @@ export function usePlaceOrder(
       
       // For hotel guests, skip profile lookup since they don't have profiles
       let profile = null;
-      if (!hasGuestSession() || adminContext) {
+      
+      // Only fetch profile if:
+      // 1. Not a guest session, OR
+      // 2. Admin context with a UUID (regular user)
+      const shouldFetchProfile = !hasGuestSession() && (!adminContext || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId));
+      
+      if (shouldFetchProfile) {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('name, email')
@@ -89,7 +102,7 @@ export function usePlaceOrder(
       console.log("Customer profile found:", profile);
       
       const insertedOrderData = await placeOrderInSupabase({
-        userId: guestUserId ? null : finalUserId, // null for guests, actual userId for regular users
+        userId: (guestUserId || stayId) ? null : finalUserId, // null for guests and hotel guests, actual userId for regular users
         guestUserId,
         guestFirstName,
         stayId,

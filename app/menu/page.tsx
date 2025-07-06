@@ -1,7 +1,7 @@
 "use client";
 // @ts-nocheck
 
-import React, { useEffect, Suspense, useMemo, useCallback, useState } from 'react';
+import React, { useEffect, Suspense, useMemo, useCallback, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +39,9 @@ function MenuIndexContent() {
 
   // Guest session state
   const [guestSession, setGuestSession] = useState<ReturnType<typeof getGuestSession>>(null);
+  
+  // Track previous customerId to avoid infinite loops
+  const prevCustomerIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Read guest session from localStorage
@@ -56,31 +59,46 @@ function MenuIndexContent() {
 
   useEffect(() => {
     const customerId = searchParams?.get('customerId');
-    if (customerId) {
-      // Fetch customer details to get their name
-      const fetchCustomerDetails = async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('name')
-          .eq('id', customerId)
-          .single();
+    
+    // Only process if customerId has changed
+    if (customerId !== prevCustomerIdRef.current) {
+      prevCustomerIdRef.current = customerId;
+      
+      if (customerId) {
+        // Determine if this is a UUID (auth user) or stay_id (hotel guest)
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId);
         
-        if (error) {
-          console.error('Error fetching customer details for admin context:', error);
-          toast.error('Failed to load customer details for order creation.');
-          return;
-        }
+        if (isUUID) {
+          // Fetch customer details from profiles for regular users
+          const fetchCustomerDetails = async () => {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('name')
+              .eq('id', customerId)
+              .single();
+            
+            if (error) {
+              console.error('Error fetching customer details for admin context:', error);
+              toast.error('Failed to load customer details for order creation.');
+              return;
+            }
 
-        if (data) {
-          setAdminCustomerContext({ customerId: customerId, customerName: data.name || 'Unknown Customer' });
+            if (data) {
+              setAdminCustomerContext({ customerId: customerId, customerName: data.name || 'Unknown Customer' });
+            }
+          };
+          fetchCustomerDetails();
+        } else {
+          // For hotel guests (stay_id), use the stay_id as the customer name with spaces
+          const customerName = customerId.replace(/_/g, ' ');
+          setAdminCustomerContext({ customerId: customerId, customerName: customerName });
         }
-      };
-      fetchCustomerDetails();
-    } else if (adminCustomerContext) {
-      // Clear adminCustomerContext if no customerId is in the URL
-      setAdminCustomerContext(null);
+      } else {
+        // Clear adminCustomerContext if no customerId is in the URL
+        setAdminCustomerContext(null);
+      }
     }
-  }, [searchParams, setAdminCustomerContext, adminCustomerContext, toast]);
+  }, [searchParams, setAdminCustomerContext, toast]);
 
   // Optimized queries with better caching and stale time
   const { data: categories, isLoading: catLoading, error: catError } = useQuery({

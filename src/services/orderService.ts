@@ -115,17 +115,29 @@ export const createCustomOrder = async (
   // Use the provided datetime directly since it should now include time
   const finalDateTime = orderDate;
   
+  // Determine if customerId is a UUID (regular user) or stay_id (hotel guest)
+  const isUUID = customerId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId);
+  
+  const orderData: any = {
+    customer_name: customerName,
+    order_items: items as any,
+    total_amount: total,
+    order_status: 'completed',
+    created_at: finalDateTime,
+    updated_at: new Date().toISOString(),
+  };
+  
+  if (isUUID) {
+    // Regular authenticated user
+    orderData.user_id = customerId;
+  } else if (customerId) {
+    // Hotel guest - use stay_id
+    orderData.stay_id = customerId;
+  }
+  
   const { data, error } = await supabase
     .from('orders')
-    .insert({
-      user_id: customerId || null,
-      customer_name: customerName,
-      order_items: items as any,
-      total_amount: total,
-      order_status: 'completed',
-      created_at: finalDateTime,
-      updated_at: new Date().toISOString(),
-    })
+    .insert(orderData)
     .select()
     .single();
 

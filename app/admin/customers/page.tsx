@@ -36,8 +36,8 @@ export default function CustomersDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
-  const [sortKey, setSortKey] = useState<keyof GroupedCustomer>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [sortKey, setSortKey] = useState<keyof GroupedCustomer>('last_order_date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [includeArchived, setIncludeArchived] = useState(false);
   
   const fetchCustomers = async () => {

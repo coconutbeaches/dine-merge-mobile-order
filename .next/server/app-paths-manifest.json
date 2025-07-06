@@ -1,8 +1,10 @@
 {
-  "/admin/orders/page": "app/admin/orders/page.js",
   "/order/[id]/confirmation/page": "app/order/[id]/confirmation/page.js",
+  "/login/page": "app/login/page.js",
+  "/admin/customers/page": "app/admin/customers/page.js",
   "/admin/customer-orders/[userId]/page": "app/admin/customer-orders/[userId]/page.js",
-  "/menu/page": "app/menu/page.js",
-  "/menu/item/[id]/page": "app/menu/item/[id]/page.js",
-  "/admin/customers/page": "app/admin/customers/page.js"
+  "/register/[stay_id]/page": "app/register/[stay_id]/page.js",
+  "/profile/page": "app/profile/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/orders/page": "app/admin/orders/page.js"
 }

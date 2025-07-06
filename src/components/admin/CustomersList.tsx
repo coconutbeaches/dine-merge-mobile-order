@@ -165,14 +165,12 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 <TableCell className="font-medium">
                   {(() => {
                     if (customer.customer_type === 'guest_family') {
-                      // For hotel guests: show stay_id on top, guest name below
-                      const { first } = parseName(customer.name);
+                      // For hotel guests: show only stay_id (no guest name below)
                       return (
                         <div>
                           <Link href={`/admin/customer-orders/${customer.customer_id}`} className="text-sm font-semibold hover:underline block">
-                            {customer.customer_id}
+                            {customer.customer_id.replace(/_/g, ' ')}
                           </Link>
-                          <div className="text-xs text-muted-foreground">{first}</div>
                         </div>
                       );
                     } else {

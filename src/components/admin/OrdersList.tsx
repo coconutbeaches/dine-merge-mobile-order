@@ -81,12 +81,14 @@ const OrdersList = ({
         let customerDisplayName;
         
         if (order.customer_name_from_profile || order.customer_name) {
-          // Authenticated user with profile
+          // Authenticated user with profile or admin-placed order with customer name
           customerDisplayName = order.customer_name_from_profile || order.customer_name;
+        } else if (order.stay_id) {
+          // Hotel guest - show stay_id as main name (for both regular guests and admin-placed orders)
+          customerDisplayName = order.stay_id.replace(/_/g, ' ');
         } else if (order.guest_user_id) {
-          // Guest user - for hotel guests (have stay_id), show stay_id as main name
-          // For non-hotel guests, use guest_first_name
-          customerDisplayName = order.stay_id || order.guest_first_name || `Guest Order #${order.id}`;
+          // Regular guest user without stay_id
+          customerDisplayName = order.guest_first_name || `Guest Order #${order.id}`;
         } else {
           // Fallback
           customerDisplayName = `Order #${order.id}`;
@@ -121,7 +123,7 @@ const OrdersList = ({
             </div>
             {/* Customer name, table number below */}
             <div className="col-span-4 min-w-0">
-              {(order.user_id || (order.guest_user_id && order.stay_id)) ? (
+              {(order.user_id || order.stay_id) ? (
                 <div>
                   <Link 
                     href={`/admin/customer-orders/${order.user_id || order.stay_id}`} 
