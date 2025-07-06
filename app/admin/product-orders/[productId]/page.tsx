@@ -123,10 +123,10 @@ const ProductOrdersPage = () => {
                             href={`/admin/customer-orders/${order.user_id}`} 
                             className="hover:underline text-primary"
                           >
-                            {order.customer_name}
+                            {order.customer_name || order.guest_first_name || 'Guest'}
                           </Link>
                         ) : (
-                          <span>{order.customer_name}</span>
+                          <span>{order.customer_name || order.guest_first_name || 'Guest'}</span>
                         )}
                       </TableCell>
                       <TableCell>

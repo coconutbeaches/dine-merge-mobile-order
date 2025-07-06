@@ -11,11 +11,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/register/[stay_id]/page.js"
     ],
-    "/order/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/order/page.js"
-    ],
     "/menu/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -41,15 +36,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/cart/page.js"
     ],
+    "/checkout/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/checkout/page.js"
+    ],
+    "/order/[id]/confirmation/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/order/[id]/confirmation/page.js"
+    ],
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/login/page.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
     ],
     "/_not-found/page": [
       "static/chunks/webpack.js",

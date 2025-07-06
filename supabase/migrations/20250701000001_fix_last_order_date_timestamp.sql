@@ -36,7 +36,6 @@ AS $$
   FROM
     public.profiles p
     LEFT JOIN public.orders o ON p.id = o.user_id 
-      AND o.order_status != 'cancelled' -- Exclude cancelled orders
   GROUP BY
     p.id, p.name, p.email, p.phone, p.role, p.customer_type, 
     p.created_at, p.updated_at, p.avatar_path

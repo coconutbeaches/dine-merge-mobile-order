@@ -21,11 +21,22 @@ interface ExtendedOrder extends BaseOrder {
 const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder => {
   const profile = profilesData?.find(p => p.id === order.user_id);
 
+  // Debug log for guest orders
+  if (order.guest_user_id) {
+    console.log('Transforming guest order:', {
+      id: order.id,
+      guest_user_id: order.guest_user_id,
+      guest_first_name: order.guest_first_name,
+      user_id: order.user_id,
+      profile: profile
+    });
+  }
+
   // Since the database only has basic columns, we provide defaults for missing fields
   return {
     ...order,
     // Provide defaults for missing columns
-    customer_name: profile?.name || null,
+    customer_name: profile?.name || order.guest_first_name || null,
     customer_email: profile?.email || null,
     order_status: 'new' as OrderStatus, // Default status since column doesn't exist
     order_items: [], // Default empty array since column doesn't exist
@@ -50,6 +61,8 @@ export const useFetchOrders = () => {
           .select(`
             id,
             user_id,
+            guest_user_id,
+            guest_first_name,
             total_amount,
             created_at
           `)

@@ -79,7 +79,19 @@ const OrdersList = ({
       {orders.map((order) => {
         const customerDisplayName = order.customer_name_from_profile || 
                                   order.customer_name || 
+                                  order.guest_first_name ||
                                   `Order #${order.id}`;
+
+        // Debug log for guest orders
+        if (order.guest_user_id || order.guest_first_name) {
+          console.log(`Order #${order.id} display name logic:`, {
+            customer_name_from_profile: order.customer_name_from_profile,
+            customer_name: order.customer_name,
+            guest_first_name: order.guest_first_name,
+            guest_user_id: order.guest_user_id,
+            finalDisplayName: customerDisplayName
+          });
+        }
 
         const statusVal: OrderStatus = order.order_status || "new";
 

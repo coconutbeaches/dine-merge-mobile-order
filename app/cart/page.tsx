@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { formatThaiCurrency } from '@/lib/utils';
 import { calculateTotalPrice } from '@/utils/productUtils';
+import { hasGuestSession } from '@/utils/guestSession';
 
 export default function Page() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function Page() {
   };
 
   const handleCheckout = () => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn && !hasGuestSession()) {
       toast({
         title: 'Sign in required',
         description: 'Please sign in or create an account to checkout',

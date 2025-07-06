@@ -65,7 +65,7 @@ function OrdersDashboardContent() {
     if (search.trim()) {
       const s = search.trim().toLowerCase();
       filtered = filtered.filter(order => {
-        const name = (order.customer_name_from_profile || order.customer_name || "").toLowerCase();
+        const name = (order.customer_name_from_profile || order.customer_name || order.guest_first_name || "").toLowerCase();
         const email = (order.customer_email_from_profile || "").toLowerCase();
         const orderIdStr = String(order.id);
 

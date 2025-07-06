@@ -120,6 +120,8 @@ export const useFetchOrderById = (orderId: string | undefined) => {
       const enrichedData: EnrichedOrder = {
         id: orderData.id,
         user_id: orderData.user_id || undefined,
+        guest_user_id: orderData.guest_user_id || undefined,
+        guest_first_name: orderData.guest_first_name || undefined,
         total_amount: orderData.total_amount,
         created_at: orderData.created_at,
         updated_at: orderData.updated_at,

@@ -12,6 +12,8 @@ export async function placeOrder(orderData: {
   tableNumber: string;
   customerName?: string;
   userId?: string;
+  guestUserId?: string;
+  guestFirstName?: string;
 }): Promise<{ success: boolean; orderId?: number; error?: string }> {
   try {
     console.log('Placing order with data:', orderData);
@@ -20,6 +22,8 @@ export async function placeOrder(orderData: {
       .from('orders')
       .insert({
         user_id: orderData.userId || null,
+        guest_user_id: orderData.guestUserId || null,
+        guest_first_name: orderData.guestFirstName || null,
         total_amount: orderData.total,
         order_status: 'new',
         order_items: orderData.items as any, // Cast to Json
@@ -46,17 +50,31 @@ export async function placeOrder(orderData: {
 }
 
 export const placeOrderInSupabase = async (
-  userId: string | null,
-  customerName: string | null,
-  cartItems: CartItem[],
-  total: number,
-  tableNumber: string
+  {
+    userId,
+    guestUserId,
+    guestFirstName,
+    customerName,
+    cartItems,
+    total,
+    tableNumber
+  }: {
+    userId?: string | null;
+    guestUserId?: string | null;
+    guestFirstName?: string | null;
+    customerName?: string | null;
+    cartItems: CartItem[];
+    total: number;
+    tableNumber: string;
+  }
 ) => {
   try {
     const { data, error } = await supabase
       .from('orders')
       .insert({
-        user_id: userId,
+        user_id: userId || null,
+        guest_user_id: guestUserId || null,
+        guest_first_name: guestFirstName || null,
         customer_name: customerName,
         order_items: cartItems as any, // Cast to Json
         total_amount: total,
@@ -81,7 +99,7 @@ export type CustomOrderItem = {
 };
 
 export const createCustomOrder = async (
-  customerId: string,
+  customerId: string | null,
   customerName: string | null,
   items: CustomOrderItem[],
   orderDate: string
@@ -97,7 +115,7 @@ export const createCustomOrder = async (
   const { data, error } = await supabase
     .from('orders')
     .insert({
-      user_id: customerId,
+      user_id: customerId || null,
       customer_name: customerName,
       order_items: items as any,
       total_amount: total,
@@ -116,7 +134,16 @@ export const createCustomOrder = async (
   return data;
 };
 
-export const getFilteredOrderHistory = (orders: Order[], userId?: string) => {
+export const getFilteredOrderHistory = (orders: Order[], userId?: string, hasGuestSession?: boolean) => {
   if (!userId) return [];
-  return orders.filter(order => order.user_id === userId);
+  
+  return orders.filter(order => {
+    if (hasGuestSession) {
+      // For guest sessions, filter by user_id OR guest_user_id
+      return order.user_id === userId || order.guest_user_id === userId;
+    } else {
+      // For regular sessions, filter by user_id only
+      return order.user_id === userId;
+    }
+  });
 };

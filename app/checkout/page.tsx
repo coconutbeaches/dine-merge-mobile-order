@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { calculateTotalPrice } from '@/utils/productUtils';
+import { hasGuestSession } from '@/utils/guestSession';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -36,7 +37,7 @@ export default function CheckoutPage() {
 
   const validateOrder = () => {
     const errors: Record<string,string> = {};
-    if (!currentUser) {
+    if (!currentUser && !hasGuestSession()) {
       errors.user = 'You must be logged in to place an order.';
     }
     if (cart.length === 0) {
@@ -161,7 +162,7 @@ export default function CheckoutPage() {
             <Button
               className="w-full bg-black text-white hover:bg-gray-800"
               onClick={handlePlaceOrder}
-              disabled={isPlacingOrder || !currentUser || cart.length===0}
+              disabled={isPlacingOrder || (!currentUser && !hasGuestSession()) || cart.length===0}
             >
               {isPlacingOrder ? <><Loader2 className="animate-spin mr-2"/>Processing...</> : <>Place Order {formatThaiCurrency(grandTotal)}</>}
             </Button>

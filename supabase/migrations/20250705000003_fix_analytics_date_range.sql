@@ -18,8 +18,7 @@ AS $$
     SUM(CASE WHEN p.customer_type IS NULL OR p.customer_type != 'hotel_guest' THEN o.total_amount ELSE 0 END) AS outside_guest_revenue
   FROM public.orders o
   LEFT JOIN public.profiles p ON o.user_id = p.id
-  WHERE o.order_status <> 'cancelled'
-    AND o.created_at >= start_date
+  WHERE o.created_at >= start_date
     AND o.created_at < (end_date + INTERVAL '1 day')
   GROUP BY order_date
   ORDER BY order_date DESC

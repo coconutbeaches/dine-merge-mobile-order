@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CartItem, placeOrderInSupabase } from '@/services/orderService';
 import { Address, Order, OrderStatus } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
+import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
 
 export function usePlaceOrder(
   userId: string | undefined,
@@ -18,10 +19,33 @@ export function usePlaceOrder(
     tableNumberInput = 'Take Away',
     adminContext: { customerId: string, customerName: string } | null = null
   ): Promise<Order | null> => {
-    const finalUserId = adminContext?.customerId || userId;
+    // Keep existing logic to determine finalUserId and customerName
+    let finalUserId = adminContext?.customerId || userId;
+    let customerName = adminContext?.customerName;
     
-    if (!finalUserId) {
-      console.error('User must be logged in to place an order');
+    // Introduce guestUserId/guestFirstName variables when hasGuestSession() is true and adminContext not provided
+    let guestUserId = null;
+    let guestFirstName = null;
+    
+    if (hasGuestSession() && !adminContext) {
+      const guestSession = getGuestSession();
+      if (guestSession) {
+        guestUserId = guestSession.guest_user_id;
+        guestFirstName = guestSession.guest_first_name;
+        // For guests, we DON'T set finalUserId - it should remain null
+        // The guest info goes in separate guest fields
+        
+        // Use guest first name if no customerName provided
+        if (!customerName) {
+          customerName = guestFirstName;
+        }
+      }
+    }
+    
+    // For guests: finalUserId will be null, but we need guestUserId
+    // For regular users: finalUserId should be set
+    if (!finalUserId && !guestUserId) {
+      console.error('User must be logged in or have guest session to place an order');
       toast.error('You must be logged in to place an order');
       return null;
     }
@@ -42,26 +66,35 @@ export function usePlaceOrder(
         adminContext
       });
       
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('name, email')
-        .eq('id', finalUserId)
-        .single();
-      
-      if (profileError) {
-        console.error("Error fetching profile for order:", profileError);
+      // For hotel guests, skip profile lookup since they don't have profiles
+      let profile = null;
+      if (!hasGuestSession() || adminContext) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', finalUserId)
+          .single();
+        
+        if (profileError) {
+          console.error("Error fetching profile for order:", profileError);
+        } else {
+          profile = profileData;
+        }
       }
       
-      const customerName = adminContext?.customerName || profile?.name || null;
+      // Use the customerName we determined earlier, or fall back to profile name
+      const finalCustomerName = customerName || profile?.name || null;
       console.log("Customer profile found:", profile);
       
-      const insertedOrderData = await placeOrderInSupabase(
-        finalUserId, // Always associate with the profile ID
-        customerName, 
-        cart as CartItem[], 
-        cartTotal, 
-        tableNumberInput
-      );
+      const insertedOrderData = await placeOrderInSupabase({
+        userId: guestUserId ? null : finalUserId, // null for guests, actual userId for regular users
+        guestUserId,
+        guestFirstName,
+        customerName: finalCustomerName,
+        cartItems: cart as CartItem[],
+        total: cartTotal,
+        tableNumber: tableNumberInput
+      });
 
       if (!insertedOrderData) {
         console.error("Failed to insert order in Supabase");
@@ -74,6 +107,8 @@ export function usePlaceOrder(
       const newOrderForLocalState: Order = {
         id: insertedOrderData.id,
         user_id: insertedOrderData.user_id,
+        guest_user_id: insertedOrderData.guest_user_id,
+        guest_first_name: insertedOrderData.guest_first_name,
         total_amount: insertedOrderData.total_amount,
         order_status: 'new' as OrderStatus,
         created_at: insertedOrderData.created_at,
@@ -81,7 +116,7 @@ export function usePlaceOrder(
         order_items: insertedOrderData.order_items,
         table_number: insertedOrderData.table_number || tableNumberInput,
         customer_name: insertedOrderData.customer_name,
-        customer_name_from_profile: customerName,
+        customer_name_from_profile: finalCustomerName,
         customer_email_from_profile: profile?.email || null
       };
       
