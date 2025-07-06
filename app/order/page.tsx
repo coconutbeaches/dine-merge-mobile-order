@@ -1,34 +1,51 @@
 "use client";
 
-import React, { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Layout from '@/components/layout/Layout';
-import { useGuestContext } from '@/context/GuestContext';
+import { toast } from 'sonner';
 
 export default function OrderPage() {
   const router = useRouter();
-  const { getGuestSession } = useGuestContext();
+  // Initialize state directly from localStorage
+  const [guestFirstName, setGuestFirstName] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') { // Check if window is defined (client-side)
+      return localStorage.getItem('guest_first_name');
+    }
+    return null;
+  });
+  const [guestUserId, setGuestUserId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') { // Check if window is defined (client-side)
+      return localStorage.getItem('guest_user_id');
+    }
+    return null;
+  });
 
   useEffect(() => {
-    const guestSession = getGuestSession();
-    if (!guestSession) {
-      // Redirect to a generic register page if no stay_id is known
-      router.replace('/register/some_default_stay_id'); // You might want to make this more dynamic
+    console.log('OrderPage: useEffect running for redirect check');
+    // If guestUserId is null after initial state, it means no session was found.
+    // In this case, redirect to register page.
+    if (!guestUserId) {
+      console.log('OrderPage: guest_user_id not found. Redirecting to /register/unknown');
+      toast.error('Guest session not found. Please register.');
+      router.replace('/register/unknown'); // Placeholder, ideally should know stay_id
     }
-  }, [getGuestSession, router]);
+  }, [guestUserId, router]); // Depend on guestUserId to trigger redirect if it becomes null
 
-  // Render the order page content if guestSession exists
-  return (
-    <Layout title="Your Order" showBackButton>
-      <div className="page-container">
-        {/* Your order page content goes here */}
-        <h1 className="text-2xl font-bold mb-4">Your Order</h1>
-        <p>Welcome, guest! You can now place your order.</p>
-        {/* Example: Display guest info */}
-        {getGuestSession() && (
-          <p>Guest: {getGuestSession()?.first_name} (Stay ID: {getGuestSession()?.stay_id})</p>
-        )}
+  if (!guestUserId) {
+    console.log('OrderPage: Not rendering content, guestUserId is null (initial or after redirect).');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p>Loading user data or redirecting...</p>
       </div>
-    </Layout>
+    );
+  }
+
+  console.log('OrderPage: Rendering content for', guestFirstName);
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+      <h1 className="text-3xl font-bold mb-4">Welcome, {guestFirstName}!</h1>
+      <p className="text-lg text-gray-700">You can now place your order.</p>
+      <p className="text-sm text-gray-500 mt-4">Your User ID: {guestUserId}</p>
+    </div>
   );
 }

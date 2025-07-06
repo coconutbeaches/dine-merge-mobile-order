@@ -1,7 +1,7 @@
 "use client";
 // @ts-nocheck
 
-import React, { useEffect, Suspense, useMemo, useCallback } from 'react';
+import React, { useEffect, Suspense, useMemo, useCallback, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,6 +35,21 @@ function MenuIndexContent() {
   const { isLoggedIn, currentUser, setAdminCustomerContext, adminCustomerContext } = useAppContext();
 
   const { toast } = useToast();
+
+  // New state for guest information
+  const [guestUserId, setGuestUserId] = useState<string | null>(null);
+  const [guestFirstName, setGuestFirstName] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Read guest info from localStorage
+    const storedGuestUserId = localStorage.getItem('guest_user_id');
+    const storedGuestFirstName = localStorage.getItem('guest_first_name');
+
+    if (storedGuestUserId) {
+      setGuestUserId(storedGuestUserId);
+      setGuestFirstName(storedGuestFirstName);
+    }
+  }, []); // Run once on mount
 
   useEffect(() => {
     const customerId = searchParams?.get('customerId');
@@ -147,6 +162,20 @@ function MenuIndexContent() {
   return (
     <Layout title="Menu">
       <div className="page-container">
+        {/* Conditional Welcome Message for Guests */}
+        {guestUserId && guestFirstName && (
+          <div className="mb-6">
+            <Card className="border border-gray-200">
+              <CardContent className="p-4">
+                <h2 className="text-lg font-semibold">
+                  Welcome, {guestFirstName}!
+                </h2>
+                <p className="text-sm text-gray-600">Ready to order?</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {isLoggedIn && currentUser && (
           <div className="mb-6">
             <Card className="border border-gray-200">

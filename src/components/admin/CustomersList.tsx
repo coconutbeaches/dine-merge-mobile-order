@@ -9,37 +9,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Profile } from '@/types/supabaseTypes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Edit, User, Mail, Calendar, ChevronUp, ChevronDown, Archive, Eye } from 'lucide-react';
+import { User, ChevronUp, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
-import { ProfilePictureUploader } from './ProfilePictureUploader';
 import { formatLastOrderDate } from '@/utils/orderDashboardUtils';
 
+interface GroupedCustomer {
+  customer_id: string; // UUID for profiles, TEXT stay_id for guests
+  name: string;
+  customer_type: 'auth_user' | 'guest_family';
+  total_spent: number;
+  last_order_date: string | null;
+  archived: boolean;
+  joined_at: string;
+}
+
 interface CustomersListProps {
-  customers: (
-    Profile & {
-      total_spent: number
-      last_order_date: string | null
-      avatar_path?: string | null
-      avatar_url?: string | null
-    }
-  )[];
+  customers: GroupedCustomer[];
   selectedCustomers: string[];
   toggleSelectCustomer: (customerId: string) => void;
   selectAllCustomers: (customerIds?: string[]) => void;
   clearSelection: () => void;
-  onEditCustomer: (customer: Profile) => void;
-  onUpdateCustomer?: (customerId: string, updates: Partial<Profile>) => void;
-  toggleCustomerType?: (id: string, isGuestNow: boolean) => void;
-  onArchiveCustomer: (customerId: string, isArchived: boolean) => void;
+  onEditCustomer: (customer: GroupedCustomer) => void;
+  onArchiveCustomer: (customer: GroupedCustomer, isArchived: boolean) => void;
   recentlyUpdatedId?: string | null;
-  sortKey: 'name' | 'total_spent' | 'last_order_date' | 'created_at';
+  sortKey: 'name' | 'total_spent' | 'last_order_date' | 'joined_at' | 'customer_type';
   sortDirection: 'asc' | 'desc';
-  handleSort: (key: 'name' | 'total_spent' | 'last_order_date' | 'created_at') => void;
+  handleSort: (key: 'name' | 'total_spent' | 'last_order_date' | 'joined_at' | 'customer_type') => void;
 }
 
 const CustomersList: React.FC<CustomersListProps> = ({
@@ -49,13 +48,11 @@ const CustomersList: React.FC<CustomersListProps> = ({
   selectAllCustomers,
   clearSelection,
   onEditCustomer,
-  onUpdateCustomer,
-  toggleCustomerType,
+  onArchiveCustomer,
   recentlyUpdatedId,
   sortKey,
   sortDirection,
   handleSort,
-  onArchiveCustomer,
 }) => {
   const allOnPageSelected = customers.length > 0 && selectedCustomers.length === customers.length;
   
@@ -63,22 +60,9 @@ const CustomersList: React.FC<CustomersListProps> = ({
     if (allOnPageSelected) {
       clearSelection();
     } else {
-      selectAllCustomers(customers.map(c => c.id));
+      selectAllCustomers(customers.map(c => c.customer_id));
     }
   };
-
-  const handleAvatarUpdate = useCallback((customerId: string) =>
-    (newAvatarUrl: string | null, newAvatarPath: string | null) => {
-      if (onUpdateCustomer) {
-        onUpdateCustomer(customerId, {
-          avatar_url: newAvatarUrl,
-          avatar_path: newAvatarPath
-        });
-      }
-    },
-    [onUpdateCustomer]
-  );
-
 
   if (customers.length === 0) {
     return (
@@ -123,13 +107,12 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 onClick={() => handleSort('customer_type')}
               >
                 <div className="flex items-center gap-1 justify-start">
-                  Status
+                  Type
                   {sortKey === 'customer_type' && (
                     sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                   )}
                 </div>
               </TableHead>
-              <TableHead className="hidden lg:table-cell">Email</TableHead>
               <TableHead 
                 className="text-right cursor-pointer hover:text-primary transition-colors"
                 onClick={() => handleSort('total_spent')}
@@ -146,7 +129,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 onClick={() => handleSort('last_order_date')}
               >
                 <div className="flex items-center gap-1">
-                  Last Order
+                  Ordered
                   {sortKey === 'last_order_date' && (
                     sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                   )}
@@ -154,11 +137,11 @@ const CustomersList: React.FC<CustomersListProps> = ({
               </TableHead>
               <TableHead 
                 className="hidden lg:table-cell cursor-pointer hover:text-primary transition-colors"
-                onClick={() => handleSort('created_at')}
+                onClick={() => handleSort('joined_at')}
               >
                 <div className="flex items-center gap-1">
                   Joined
-                  {sortKey === 'created_at' && (
+                  {sortKey === 'joined_at' && (
                     sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                   )}
                 </div>
@@ -169,47 +152,38 @@ const CustomersList: React.FC<CustomersListProps> = ({
           <TableBody>
             {customers.map((customer) => (
               <TableRow 
-                key={`${customer.id}-${customer.customer_type || 'none'}`} 
-                className={recentlyUpdatedId === customer.id ? 'animate-pulse bg-muted/20' : ''}
+                key={`${customer.customer_id}-${customer.customer_type}`} 
+                className={recentlyUpdatedId === customer.customer_id ? 'animate-pulse bg-muted/20' : ''}
               >
                 <TableCell>
                   <Checkbox
-                    checked={selectedCustomers.includes(customer.id)}
-                    onCheckedChange={() => toggleSelectCustomer(customer.id)}
+                    checked={selectedCustomers.includes(customer.customer_id)}
+                    onCheckedChange={() => toggleSelectCustomer(customer.customer_id)}
                     aria-label={`Select customer ${customer.name}`}
                   />
                 </TableCell>
                 <TableCell className="font-medium">
                   <div>
                     <Link 
-                      href={`/admin/customer-orders/${customer.id}`} 
+                      href={`/admin/customer-orders/${customer.customer_id}`} 
                       className="font-medium hover:underline"
                     >
                       {customer.name || 'Unnamed Customer'}
                     </Link>
-                    <div className="text-xs text-muted-foreground md:hidden">
-                      {customer.email}
-                    </div>
+                    {customer.customer_type === 'guest_family' && (
+                      <div className="text-xs text-muted-foreground">{customer.customer_id}</div>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-left w-[80px]">
                   <div className="flex justify-start">
                     <Badge 
-                      variant={customer.customer_type === 'hotel_guest' ? 'default' : 'outline'}
-                      className={`cursor-pointer hover:opacity-80 transition-opacity text-xs ${
-                        customer.customer_type === 'hotel_guest' ? '-ml-2' : 'ml-0'
-                      }`}
-                      onClick={() => toggleCustomerType && toggleCustomerType(
-                        customer.id,
-                        customer.customer_type === 'hotel_guest'
-                      )}
+                      variant={customer.customer_type === 'auth_user' ? 'default' : 'secondary'}
+                      className="text-xs"
                     >
-                      {customer.customer_type === 'hotel_guest' ? 'Guest' : 'Out'}
+                      {customer.customer_type === 'auth_user' ? 'User' : 'Guest'}
                     </Badge>
                   </div>
-                </TableCell>
-                <TableCell className="hidden lg:table-cell">
-                  {customer.email}
                 </TableCell>
                 <TableCell className="text-right">
                   {formatThaiCurrencyWithComma(customer.total_spent)}
@@ -218,7 +192,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   {formatLastOrderDate(customer?.last_order_date)}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
-                  {format(new Date(customer.created_at), 'MMM d')}
+                  {customer.joined_at ? format(new Date(customer.joined_at), 'MMM d') : '—'}
                 </TableCell>
                 
               </TableRow>

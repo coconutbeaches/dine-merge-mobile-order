@@ -1,3 +1,4 @@
 {
-  "/admin/customers/page": "app/admin/customers/page.js"
+  "/order/page": "app/order/page.js",
+  "/register/[stay_id]/page": "app/register/[stay_id]/page.js"
 }
