@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Profile } from '@/types/supabaseTypes';
+import { GroupedCustomer } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
 
 // Maximum number of retry attempts
@@ -9,9 +9,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
 export const useFetchCustomers = () => {
-  const [customers, setCustomers] = useState<(
-    Profile & { total_spent: number; last_order_date: string | null; avatar_url: string | null }
-  )[]>([]);
+  const [customers, setCustomers] = useState<GroupedCustomer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -26,9 +24,9 @@ export const useFetchCustomers = () => {
 
       if (supabaseError) {
         console.error('Supabase RPC error in get_customers_with_total_spent:', supabaseError);
-        // If the function doesn't exist, fall back to basic query
+        // If the function doesn't exist, fall back to basic query for auth users only
         if (supabaseError.message?.includes('could not find') || supabaseError.code === 'PGRST202') {
-          console.log('Function not found, using fallback query...');
+          console.log('Function not found, using fallback query for auth users only...');
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('profiles')
             .select('*')
@@ -38,11 +36,15 @@ export const useFetchCustomers = () => {
             throw new Error(fallbackError.message || 'Failed to fetch customers');
           }
           
-          // Add dummy data for total_spent and last_order_date
-          const customersWithDummyData = (fallbackData || []).map(customer => ({
-            ...customer,
+          // Convert profiles to GroupedCustomer format
+          const customersWithDummyData: GroupedCustomer[] = (fallbackData || []).map(profile => ({
+            customer_id: profile.id,
+            name: profile.name || 'Unnamed Customer',
+            customer_type: 'auth_user' as const,
             total_spent: 0,
-            last_order_date: null
+            last_order_date: null,
+            archived: profile.archived || false,
+            joined_at: profile.created_at
           }));
           
           setCustomers(customersWithDummyData);
@@ -56,10 +58,14 @@ export const useFetchCustomers = () => {
         throw new Error('No data returned from server');
       }
 
-      setCustomers(data as (Profile & { total_spent: number; last_order_date: string | null; avatar_url: string | null })[]);
-      console.log('Successfully fetched', data.length, 'customers');
+      setCustomers(data as GroupedCustomer[]);
+      console.log('Successfully fetched', data.length, 'grouped customers (auth users + guest families)');
       console.log('Sample customer data:', data[0]);
-      console.log('Does first customer have last_order_date?', 'last_order_date' in (data[0] || {}));
+      
+      // Count auth users vs guest families
+      const authUsers = data.filter(c => c.customer_type === 'auth_user').length;
+      const guestFamilies = data.filter(c => c.customer_type === 'guest_family').length;
+      console.log(`Auth users: ${authUsers}, Guest families: ${guestFamilies}`);
     } catch (err: any) {
       console.error('Error in fetchCustomers:', err);
       

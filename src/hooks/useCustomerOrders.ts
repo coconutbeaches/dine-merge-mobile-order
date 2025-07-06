@@ -27,21 +27,32 @@ const transformSupabaseOrder = (order: any, profileData: Profile | null): Order 
 export const useCustomerOrders = (customerId: string | undefined) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [customer, setCustomer] = useState<Profile | null>(null);
+  const [customerType, setCustomerType] = useState<'auth_user' | 'guest_family' | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (customerId) {
+      // Determine if this is a UUID (auth user) or stay_id (guest family)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId);
+      const detectedCustomerType = isUUID ? 'auth_user' : 'guest_family';
+      setCustomerType(detectedCustomerType);
+      
       Promise.all([
-        fetchCustomerDetails(customerId),
-        fetchCustomerOrders(customerId)
+        fetchCustomerDetails(customerId, detectedCustomerType),
+        fetchCustomerOrders(customerId, detectedCustomerType)
       ]).finally(() => setIsLoading(false));
       
       // Setup real-time subscription for this customer's orders
+      // For guest families, we need to listen for stay_id changes
+      const filter = detectedCustomerType === 'auth_user' 
+        ? `user_id=eq.${customerId}` 
+        : `stay_id=eq.${customerId}`;
+        
       const channel = supabase
         .channel(`customer-orders-${customerId}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${customerId}` },
+          { event: '*', schema: 'public', table: 'orders', filter },
           (payload) => {
             setOrders(prevOrders => {
               const newOrder = payload.new as Order;
@@ -70,41 +81,79 @@ export const useCustomerOrders = (customerId: string | undefined) => {
     }
   }, [customerId]);
 
-  const fetchCustomerDetails = async (userId: string) => {
+  const fetchCustomerDetails = async (customerId: string, customerType: 'auth_user' | 'guest_family') => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-        
-      if (error) throw error;
-      setCustomer(data);
+      if (customerType === 'auth_user') {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', customerId)
+          .single();
+          
+        if (error) throw error;
+        setCustomer(data);
+      } else {
+        // For guest families, create a virtual customer profile
+        setCustomer({
+          id: customerId,
+          name: customerId, // Display stay_id as name (e.g., "A5-CROWLEY")
+          email: '',
+          phone: null,
+          role: null,
+          customer_type: 'guest_family',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          avatar_url: null,
+          avatar_path: null,
+          archived: false
+        });
+      }
     } catch (error) {
       console.error('Error fetching customer details:', error);
     }
   };
 
-  const fetchCustomerOrders = async (userId: string) => {
+  const fetchCustomerOrders = async (customerId: string, customerType: 'auth_user' | 'guest_family') => {
     try {
-      // First fetch orders
-      const { data: ordersData, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      let ordersData;
+      let ordersError;
+      
+      if (customerType === 'auth_user') {
+        // Fetch orders for authenticated user
+        const result = await supabase
+          .from('orders')
+          .select('*')
+          .eq('user_id', customerId)
+          .order('created_at', { ascending: false });
+        ordersData = result.data;
+        ordersError = result.error;
+      } else {
+        // Fetch orders for guest family (all orders with same stay_id)
+        const result = await supabase
+          .from('orders')
+          .select('*')
+          .eq('stay_id', customerId)
+          .order('created_at', { ascending: false });
+        ordersData = result.data;
+        ordersError = result.error;
+      }
         
       if (ordersError) throw ordersError;
       
-      // Then fetch profile data separately
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('name, email')
-        .eq('id', userId)
-        .single();
-        
-      if (profileError) {
-        console.warn('Could not fetch profile data:', profileError);
+      let profileData = null;
+      if (customerType === 'auth_user') {
+        // Fetch profile data for auth users
+        const { data, error: profileError } = await supabase
+          .from('profiles')
+          .select('name, email')
+          .eq('id', customerId)
+          .single();
+          
+        if (profileError) {
+          console.warn('Could not fetch profile data:', profileError);
+        } else {
+          profileData = data;
+        }
       }
       
       if (ordersData) {
@@ -112,6 +161,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         const transformedOrders = ordersData.map(order => transformSupabaseOrder(order, profileData));
         
         setOrders(transformedOrders);
+        console.log(`Fetched ${transformedOrders.length} orders for ${customerType} customer: ${customerId}`);
       } else {
         setOrders([]);
       }
@@ -125,6 +175,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
     orders,
     setOrders,
     customer,
+    customerType,
     isLoading
   };
 };

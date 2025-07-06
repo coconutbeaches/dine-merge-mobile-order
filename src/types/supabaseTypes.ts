@@ -617,3 +617,14 @@ export interface ProductOptionWithChoices extends ProductOption {
 export type OrderStatus = Database['public']['Enums']['order_status'];
 export type FulfillmentStatus = Database['public']['Enums']['fulfillment_status'];
 export type PaymentStatus = Database['public']['Enums']['payment_status'];
+
+// Grouped customer type for dashboard (combines auth users and guest families)
+export interface GroupedCustomer {
+  customer_id: string; // UUID for profiles, TEXT stay_id for guests
+  name: string;
+  customer_type: 'auth_user' | 'guest_family';
+  total_spent: number;
+  last_order_date: string | null;
+  archived: boolean;
+  joined_at: string;
+}

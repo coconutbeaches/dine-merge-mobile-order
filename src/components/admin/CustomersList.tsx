@@ -16,16 +16,8 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { formatLastOrderDate } from '@/utils/orderDashboardUtils';
+import { GroupedCustomer } from '@/types/supabaseTypes';
 
-interface GroupedCustomer {
-  customer_id: string; // UUID for profiles, TEXT stay_id for guests
-  name: string;
-  customer_type: 'auth_user' | 'guest_family';
-  total_spent: number;
-  last_order_date: string | null;
-  archived: boolean;
-  joined_at: string;
-}
 
 interface CustomersListProps {
   customers: GroupedCustomer[];
