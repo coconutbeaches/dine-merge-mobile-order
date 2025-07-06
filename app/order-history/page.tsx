@@ -91,7 +91,7 @@ export default function OrderHistoryPage() {
 
   if (isLoadingUserContext || isLoading) {
     return (
-      <Layout title="My Orders" showBackButton>
+      <Layout title="View Orders" showBackButton>
         <div className="page-container text-center py-10">
           <p>Loading your orders...</p>
         </div>
@@ -101,7 +101,7 @@ export default function OrderHistoryPage() {
 
   if (!isHotelGuest && (!isLoggedIn || !currentUser)) {
     return (
-      <Layout title="My Orders" showBackButton>
+      <Layout title="View Orders" showBackButton>
         <div className="page-container text-center py-10">
           <p>Please log in to view your order history.</p>
         </div>
@@ -110,10 +110,10 @@ export default function OrderHistoryPage() {
   }
 
   return (
-    <Layout title="My Orders" showBackButton>
+    <Layout title="View Orders" showBackButton>
       <div className="page-container p-4 md:p-6">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold mb-1">My Orders</h1>
+          <h1 className="text-2xl font-bold mb-1">View Orders</h1>
           {isHotelGuest && guestSession && (
             <div className="text-sm text-muted-foreground mb-4">
               {guestSession.guest_stay_id.replace(/_/g, ' ')}

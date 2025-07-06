@@ -292,12 +292,17 @@ export default function Page() {
                   Room: {guestSession?.guest_stay_id?.replace(/_/g, ' ')}
                 </p>
               </div>
-              {!isEditing && (
-                <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                  <Edit className="h-4 w-4" />
-                  <span className="sr-only">Edit Names</span>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => router.push('/order-history')} size="sm" className="bg-black text-white hover:bg-gray-800">
+                  View Orders
                 </Button>
-              )}
+                {!isEditing && (
+                  <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                    <Edit className="h-4 w-4" />
+                    <span className="sr-only">Edit Names</span>
+                  </Button>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {familyMembers.map((member, index) => {
@@ -308,34 +313,34 @@ export default function Page() {
                 return (
                   <div key={member.user_id} className="flex items-center gap-2">
                     <div className="flex-1">
-                      <Label htmlFor={`member-${member.user_id}`} className="flex items-center gap-2">
-                        Family Member {index + 1}
+                      <div className="relative">
+                        <Input
+                          id={`member-${member.user_id}`}
+                          value={member.first_name}
+                          onChange={(e) => updateFamilyMemberName(member.user_id, e.target.value)}
+                          disabled={!isEditing || isLoading}
+                          placeholder="Enter name"
+                          className="pr-20"
+                        />
                         {hasOrders && (
-                          <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
                             {orderCount} order{orderCount !== 1 ? 's' : ''}
                           </span>
                         )}
-                      </Label>
-                      <Input
-                        id={`member-${member.user_id}`}
-                        value={member.first_name}
-                        onChange={(e) => updateFamilyMemberName(member.user_id, e.target.value)}
-                        disabled={!isEditing || isLoading}
-                        placeholder="Enter name"
-                      />
+                      </div>
                     </div>
                     {isEditing && canDelete && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeFamilyMember(member.user_id)}
-                        className="text-red-500 hover:text-red-700 mt-6"
+                        className="text-red-500 hover:text-red-700"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
                     {isEditing && !canDelete && familyMembers.length > 1 && (
-                      <div className="mt-6 px-3 py-2">
+                      <div className="px-3 py-2">
                         <Trash2 className="h-4 w-4 text-gray-300" title={hasOrders ? "Cannot delete - has orders" : "Cannot delete - last member"} />
                       </div>
                     )}
@@ -345,14 +350,18 @@ export default function Page() {
             </CardContent>
             {isEditing && (
               <CardFooter className="flex justify-end gap-2">
-                <Button onClick={saveFamilyMembers} disabled={isLoading}>
-                  {isLoading ? 'Saving...' : 'Save Changes'}
-                </Button>
                 <Button
                   variant="outline"
                   onClick={() => setIsEditing(false)}
                 >
                   Cancel
+                </Button>
+                <Button 
+                  onClick={saveFamilyMembers} 
+                  disabled={isLoading}
+                  className="bg-black text-white hover:bg-gray-800"
+                >
+                  {isLoading ? 'Saving...' : 'Save'}
                 </Button>
               </CardFooter>
             )}
@@ -397,9 +406,6 @@ export default function Page() {
               </CardContent>
               {isEditing && (
                 <CardFooter className="flex justify-end gap-2">
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Saving...' : 'Save Changes'}
-                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -408,6 +414,13 @@ export default function Page() {
                     }}
                   >
                     Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="bg-black text-white hover:bg-gray-800"
+                  >
+                    {isLoading ? 'Saving...' : 'Save'}
                   </Button>
                 </CardFooter>
               )}
@@ -465,11 +478,6 @@ export default function Page() {
           </Card>
         )}
 
-        <div className="mt-6 text-center space-y-3">
-          <Button onClick={() => router.push('/order-history')} className="w-full sm:w-auto bg-black text-white hover:bg-gray-800">
-            My Orders
-          </Button>
-        </div>
 
         <div className="mt-8 text-center">
           <Button 
