@@ -66,7 +66,7 @@ async function fixTyler33Order() {
     });
 
     console.log('\n✅ Tyler33 order fix completed successfully!');
-    console.log('Now Tyler33 orders should display as "🏨 A5-CROWLEY" in the admin dashboard');
+    console.log('Now Tyler33 orders should display as "🛖 A5-CROWLEY" in the admin dashboard');
 
   } catch (error) {
     console.error('❌ Unexpected error:', error);

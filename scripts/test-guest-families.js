@@ -83,14 +83,14 @@ async function testDatabase() {
 
     console.log(`Found ${customers.length} grouped customers:`);
     customers.forEach(customer => {
-      console.log(`  ${customer.customer_type === 'auth_user' ? '👤' : '🏨'} ${customer.name} (${customer.customer_type}) - $${customer.total_spent}`);
+      console.log(`  ${customer.customer_type === 'auth_user' ? '👤' : '🛖'} ${customer.name} (${customer.customer_type}) - $${customer.total_spent}`);
     });
 
     // 4. Create test guest orders if no guest data exists
     const hasGuestOrders = orders.some(order => order.guest_user_id);
     
     if (!hasGuestOrders) {
-      console.log('\n🏨 No guest orders found. Creating test guest family data...');
+      console.log('\n🛖 No guest orders found. Creating test guest family data...');
       
       // Create test guest orders for family "A5-CROWLEY"
       const testOrders = [
@@ -153,7 +153,7 @@ async function testDatabase() {
 
       console.log(`\n👥 Updated customer list (${updatedCustomers.length} customers):`);
       updatedCustomers.forEach(customer => {
-        console.log(`  ${customer.customer_type === 'auth_user' ? '👤' : '🏨'} ${customer.name} (${customer.customer_type}) - $${customer.total_spent}`);
+        console.log(`  ${customer.customer_type === 'auth_user' ? '👤' : '🛖'} ${customer.name} (${customer.customer_type}) - $${customer.total_spent}`);
       });
     }
 

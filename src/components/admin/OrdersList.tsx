@@ -127,7 +127,7 @@ const OrdersList = ({
                   title={`View all orders for ${customerDisplayName} ${order.user_id ? `(${order.customer_email_from_profile || 'No Email'})` : '(Guest Family)'}`}
                 >
                   <div className="flex items-center gap-1">
-                    {order.guest_user_id && <span className="text-orange-600">🏨</span>}
+                    {order.guest_user_id && <span className="text-orange-600">🛖</span>}
                     {customerDisplayName}
                   </div>
                 </Link>
@@ -137,7 +137,7 @@ const OrdersList = ({
                   title={`${customerDisplayName} ${order.user_id ? `(${order.customer_email_from_profile || 'No Email'})` : '(Guest)'}`}
                 >
                   <div className="flex items-center gap-1">
-                    {order.guest_user_id && <span className="text-orange-600">🏨</span>}
+                    {order.guest_user_id && <span className="text-orange-600">🛖</span>}
                     {customerDisplayName}
                   </div>
                 </div>

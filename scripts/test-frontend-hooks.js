@@ -132,7 +132,7 @@ async function testFrontendLogic() {
 
     console.log(`✅ Manually grouped ${groupedCustomers.length} customers:`);
     groupedCustomers.forEach(customer => {
-      const icon = customer.customer_type === 'auth_user' ? '👤' : '🏨';
+      const icon = customer.customer_type === 'auth_user' ? '👤' : '🛖';
       console.log(`  ${icon} ${customer.name} (${customer.customer_type}) - $${customer.total_spent}`);
     });
 
@@ -140,7 +140,7 @@ async function testFrontendLogic() {
     const familyStayIds = Object.keys(guestFamilies);
     if (familyStayIds.length > 0) {
       const testStayId = familyStayIds[0];
-      console.log(`\n🏨 Testing family order history for stay_id: ${testStayId}`);
+      console.log(`\n🛖 Testing family order history for stay_id: ${testStayId}`);
       
       const { data: familyOrders, error: familyError } = await supabase
         .from('orders')
