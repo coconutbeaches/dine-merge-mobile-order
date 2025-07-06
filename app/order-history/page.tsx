@@ -114,7 +114,7 @@ export default function OrderHistoryPage() {
       <div className="page-container p-4 md:p-6">
         <div className="mb-6 text-center">
           {isHotelGuest && guestSession && (
-            <div className="text-3xl font-bold mb-4">
+            <div className="text-3xl font-bold">
               {guestSession.guest_stay_id.replace(/_/g, ' ')}
             </div>
           )}

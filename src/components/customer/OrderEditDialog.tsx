@@ -97,7 +97,7 @@ const OrderEditDialog: React.FC<OrderEditDialogProps> = ({ order, isOpen, onClos
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] bg-white">
         <DialogHeader className="mb-4">
-          <DialogTitle className="text-lg">Edit Order #{order.id.toString().padStart(4, '0')}</DialogTitle>
+          <DialogTitle className="text-lg">Edit Order {order.id}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3 mb-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-2">

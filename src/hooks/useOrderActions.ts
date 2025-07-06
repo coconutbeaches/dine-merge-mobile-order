@@ -158,7 +158,7 @@ export const useOrderActions = (
           order.id === id ? { ...updatedOrder } : order
         )
       );
-      toast.success(`Order #${id.toString().padStart(4, '0')} updated successfully`);
+      toast.success(`Order ${id} updated successfully`);
     } catch (error: any) {
       console.error('Error updating order:', error);
       toast.error(`Failed to update order: ${error.message}`);

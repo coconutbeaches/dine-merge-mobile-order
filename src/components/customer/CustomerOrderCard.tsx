@@ -92,7 +92,7 @@ const CustomerOrderCard = ({ order, onStatusClick, onOrderSave }: CustomerOrderC
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <div>
-            <h3 className="font-semibold cursor-pointer" onClick={handleOrderNumberClick}>Order #{order.id.toString().padStart(4, '0')}</h3>
+            <h3 className="font-semibold cursor-pointer" onClick={handleOrderNumberClick}>Order {order.id}</h3>
             <p className="text-xs text-muted-foreground">
               {/* Format: Jun 14 2025  8:39 PM */}
               {format(new Date(order.created_at), "MMM dd yyyy  h:mm a")}
