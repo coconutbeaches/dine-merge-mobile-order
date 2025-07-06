@@ -8,6 +8,37 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { saveGuestSession, hasGuestSession } from '@/utils/guestSession'
+import './safari-ios-fixes.css'
+
+// Safari iOS compatibility checks
+const isSafariIOS = () => {
+  if (typeof window === 'undefined') return false;
+  const userAgent = window.navigator.userAgent;
+  return /iP(ad|od|hone)/i.test(userAgent) && /WebKit/i.test(userAgent) && !/CriOS/i.test(userAgent);
+};
+
+// iOS Safari specific fixes
+const applySafariIOSFixes = () => {
+  if (typeof window === 'undefined') return;
+  
+  // Fix viewport scaling issues on iOS Safari
+  const viewport = document.querySelector('meta[name=viewport]');
+  if (viewport && isSafariIOS()) {
+    viewport.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+  }
+  
+  // Prevent iOS Safari zoom on input focus
+  if (isSafariIOS()) {
+    document.addEventListener('focusin', (e) => {
+      if (e.target instanceof HTMLInputElement) {
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          document.body.scrollTop = 0;
+        }, 300);
+      }
+    });
+  }
+};
 
 interface RegisterPageProps {
   params: { stay_id: string };
@@ -18,6 +49,11 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   const [firstName, setFirstName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+
+  // Apply Safari iOS fixes on component mount
+  useEffect(() => {
+    applySafariIOSFixes();
+  }, []);
 
   // Handle params extraction with Safari compatibility
   useEffect(() => {
@@ -178,40 +214,78 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   }
 
   return (
-    <div className="relative min-h-screen w-full">
-      <Image src="/bg-landing.png" alt="" fill priority className="object-cover object-center -z-10" />
-      <div className="flex flex-col items-center justify-center gap-6 px-6 text-center min-h-screen">
-        <h1 className="text-3xl md:text-4xl font-semibold text-white">Hi! 👋 Welcome to</h1>
-        <Image src="/CoconutBeachLogo.png" alt="Coconut Beach" width={320} height={120} className="w-60 md:w-80 h-auto" priority />
-        <p className="text-2xl md:text-3xl text-white font-bold mt-6">What is your first name?</p>
+    <div 
+      className="w-full overflow-hidden safari-ios-viewport safari-ios-background safari-ios-no-bounce" 
+      style={{
+        minHeight: '100vh',
+        minHeight: '100dvh', // Dynamic viewport height for Safari iOS
+        position: 'relative',
+        backgroundImage: 'url(/bg-landing.png)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'scroll' // Avoid fixed for Safari iOS
+      }}
+    >
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black/20"></div>
+      
+      <div 
+        className="relative z-10 flex flex-col items-center justify-center gap-6 px-6 text-center safari-ios-safe-area safari-ios-no-highlight"
+        style={{
+          minHeight: '100vh',
+          minHeight: '100dvh',
+          paddingTop: 'env(safe-area-inset-top, 20px)',
+          paddingBottom: 'env(safe-area-inset-bottom, 20px)'
+        }}
+      >
+        <h1 className="text-3xl md:text-4xl font-semibold text-white drop-shadow-lg safari-ios-text">Hi! 👋 Welcome to</h1>
+        <Image 
+          src="/CoconutBeachLogo.png" 
+          alt="Coconut Beach" 
+          width={320} 
+          height={120} 
+          className="w-60 md:w-80 h-auto drop-shadow-lg safari-ios-no-highlight" 
+          priority 
+        />
+        <p className="text-2xl md:text-3xl text-white font-bold mt-6 drop-shadow-lg safari-ios-text">What is your first name?</p>
+        
         {isLoading && !stay_id ? (
-          <div className="text-white text-lg">Loading...</div>
+          <div className="text-white text-lg drop-shadow-lg safari-ios-text">Loading...</div>
         ) : (
-          <div className="w-full max-w-sm flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col gap-4 safari-ios-form">
             <Input
               type="text"
               placeholder="First Name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="bg-white/90 border-white/20 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center"
+              className="bg-white/95 border-2 border-white/30 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center text-lg py-3 rounded-xl shadow-lg safari-ios-input"
+              style={{
+                fontSize: '16px', // Prevent zoom on iOS Safari
+                WebkitAppearance: 'none',
+                borderRadius: '12px'
+              }}
               aria-label="First name"
               disabled={isLoading}
-              onKeyDown={(e) => {
-                // Safari-compatible enter key handling
-                if (e.key === 'Enter' && !isLoading) {
-                  handleSubmit(e)
-                }
-              }}
+              autoComplete="given-name"
+              autoCapitalize="words"
+              autoCorrect="off"
+              spellCheck="false"
+              required
             />
             <Button 
-              onClick={handleSubmit} 
+              type="submit"
               size="lg" 
-              className="w-full bg-white/70 hover:bg-white/90 text-gray-900 rounded-lg border-0 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-white/80 hover:bg-white/95 text-gray-900 rounded-xl border-2 border-white/30 font-bold disabled:opacity-50 disabled:cursor-not-allowed text-lg py-3 shadow-lg transition-all duration-200 safari-ios-button"
               disabled={isLoading || !stay_id}
+              style={{
+                WebkitAppearance: 'none',
+                borderRadius: '12px'
+              }}
             >
               {isLoading ? 'Saving...' : 'Save'}
             </Button>
-          </div>
+          </form>
         )}
       </div>
     </div>

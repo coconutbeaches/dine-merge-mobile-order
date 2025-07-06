@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingCart, User, Settings } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';
 import { restaurantInfo } from '@/data/mockData';
-import { hasGuestSession } from '@/utils/guestSession';
+import { hasGuestSession, isHotelGuest } from '@/utils/guestSession';
 
 interface HeaderProps {
   title?: string;
@@ -73,15 +73,17 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => {
-            // Check if user is a hotel guest first
-            const isHotelGuest = hasGuestSession();
+            // Unified user-icon routing logic
+            const isGuest = isHotelGuest();
             
-            if (!isLoggedIn && !isHotelGuest) {
+            if (!isLoggedIn && !isGuest) {
+              // Not logged in and not a hotel guest -> login
               router.push('/login');
             } else if (isLoggedIn && currentUser?.role === 'admin') {
+              // Admin users -> profile page
               router.push('/profile');
             } else {
-              // Both hotel guests and regular users go to order history
+              // Hotel guests (with stay_id) and regular customers -> order history
               router.push('/order-history');
             }
           }} className="flex items-center">
