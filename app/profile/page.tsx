@@ -288,20 +288,22 @@ export default function Page() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Family Members</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Room: {guestSession?.guest_stay_id?.replace(/_/g, ' ')}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  {!isEditing && (
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)} className="p-1 h-auto">
+                      <Edit className="h-3 w-3" />
+                      <span className="sr-only">Edit Names</span>
+                    </Button>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    Room: {guestSession?.guest_stay_id?.replace(/_/g, ' ')}
+                  </p>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button onClick={() => router.push('/order-history')} size="sm" className="bg-black text-white hover:bg-gray-800">
                   View Orders
                 </Button>
-                {!isEditing && (
-                  <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
-                    <Edit className="h-4 w-4" />
-                    <span className="sr-only">Edit Names</span>
-                  </Button>
-                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">

@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
 import { formatThaiCurrency } from '@/lib/utils';
+import { Edit } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function OrderHistoryPage() {
   const router = useRouter();
@@ -114,7 +116,10 @@ export default function OrderHistoryPage() {
       <div className="page-container p-4 md:p-6">
         <div className="mb-6 text-center">
           {isHotelGuest && guestSession && (
-            <div className="text-3xl font-bold">
+            <div 
+              className="text-3xl font-bold cursor-pointer hover:text-blue-600 transition-colors"
+              onClick={() => router.push('/profile')}
+            >
               {guestSession.guest_stay_id.replace(/_/g, ' ')}
             </div>
           )}

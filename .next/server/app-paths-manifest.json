@@ -1,4 +1,8 @@
 {
+  "/register/[stay_id]/page": "app/register/[stay_id]/page.js",
   "/order-history/page": "app/order-history/page.js",
-  "/profile/page": "app/profile/page.js"
+  "/profile/page": "app/profile/page.js",
+  "/menu/page": "app/menu/page.js",
+  "/login/page": "app/login/page.js",
+  "/order/[id]/confirmation/page": "app/order/[id]/confirmation/page.js"
 }
