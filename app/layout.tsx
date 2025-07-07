@@ -53,7 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SessionRecovery>
             <Providers>{children}</Providers>
           </SessionRecovery>
-          <AddToHomeScreen />
+          {/* <AddToHomeScreen /> */}
         </PWAProvider>
       </body>
     </html>
