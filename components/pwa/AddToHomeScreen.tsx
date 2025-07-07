@@ -97,19 +97,10 @@ export default function AddToHomeScreen() {
   }
 
   return (
-    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300 px-6">
-      <div className="bg-white/90 rounded-lg shadow-lg border border-gray-200 p-4 w-full max-w-sm">
+    <div className="fixed bottom-4 z-50 animate-in slide-in-from-bottom-4 duration-300" style={{ left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 48px)', maxWidth: '384px' }}>
+      <div className="bg-white/95 rounded-xl shadow-lg border border-gray-200 p-4 w-full">
         <div className="flex items-start justify-between">
           <div className="flex-1 text-center">
-            <div className="flex justify-center mb-2">
-              <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-                <img 
-                  src="/icons/icon-96x96.png" 
-                  alt="Coconut Beach" 
-                  className="w-8 h-8 rounded-md"
-                />
-              </div>
-            </div>
             <h3 className="text-sm font-medium text-gray-900">
               Add Coconut Beach to Home Screen
             </h3>
