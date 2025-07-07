@@ -8,6 +8,8 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { saveGuestSession, hasGuestSession } from '@/utils/guestSession'
+import { cn } from '@/lib/utils'
+import { NAME_PROMPT_WIDTH } from '@/lib/constants'
 
 // Safari iOS compatibility checks
 const isSafariIOS = () => {
@@ -320,7 +322,12 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         ) : (
           <form 
             onSubmit={handleSubmit} 
-            className="w-full max-w-sm flex flex-col gap-4"
+            className={cn(
+              'w-full',
+              'sm:max-w-none',
+              'sm:w-[270px]',
+              'flex flex-col gap-4'
+            )}
             style={{
               WebkitTransform: 'translate3d(0, 0, 0)',
               transform: 'translate3d(0, 0, 0)'
@@ -331,7 +338,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
               placeholder="First Name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="bg-white/95 border-2 border-white/30 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center text-lg py-3 rounded-xl shadow-lg"
+              className="w-full sm:w-[270px] bg-white/95 border-2 border-white/30 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center text-lg py-3 rounded-xl shadow-lg"
               style={{
                 fontSize: '16px', // Prevent zoom on iOS Safari
                 WebkitAppearance: 'none',

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { X, Plus, Share, Download } from 'lucide-react'
+import { NAME_PROMPT_WIDTH } from '@/lib/constants'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>
@@ -97,7 +98,7 @@ export default function AddToHomeScreen() {
   }
 
   return (
-    <div className="fixed bottom-4 z-50 animate-in slide-in-from-bottom-4 duration-300" style={{ left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 48px)', maxWidth: '384px' }}>
+    <div className="fixed bottom-4 z-50 animate-in slide-in-from-bottom-4 duration-300" style={{ left: '50%', transform: 'translateX(-50%)', width: 'calc(100% - 48px)', maxWidth: NAME_PROMPT_WIDTH, width: NAME_PROMPT_WIDTH }}>
       <div className="bg-white/95 rounded-xl shadow-lg border border-gray-200 p-4 w-full">
         <div className="flex items-start justify-between">
           <div className="flex-1 text-center">
