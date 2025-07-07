@@ -2,8 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   devIndicators: {
-    buildActivity: false,
-    buildActivityPosition: 'bottom-right',
+    position: 'bottom-right',
   },
   eslint: {
     // Warning: This allows production builds to successfully complete even if
@@ -44,4 +43,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
