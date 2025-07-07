@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { saveGuestSession, hasGuestSession, logStandaloneStatus, isStandaloneMode } from '@/utils/guestSession'
+import { saveGuestSession, hasGuestSession, logStandaloneStatus, isStandaloneMode, recoverGuestSessionInStandalone } from '@/utils/guestSession'
 import { cn } from '@/lib/utils'
 import { NAME_PROMPT_WIDTH } from '@/lib/constants'
 
@@ -109,7 +109,21 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     // Only check guest session after stay_id is loaded
     if (!isLoading && stay_id) {
       logStandaloneStatus();
-      // Add Safari-specific localStorage check
+      
+      // In standalone mode, check for any existing guest session
+      if (isStandaloneMode()) {
+        console.log('[Registration] Standalone mode detected, checking for existing session...');
+        
+        // Try enhanced recovery first
+        const recoveredSession = recoverGuestSessionInStandalone();
+        if (recoveredSession) {
+          console.log('[Registration] Found existing session in standalone mode, redirecting to menu');
+          router.replace('/menu');
+          return;
+        }
+      }
+      
+      // Standard guest session check
       try {
         if (hasGuestSession()) {
           console.log('Guest session already exists, redirecting to menu')

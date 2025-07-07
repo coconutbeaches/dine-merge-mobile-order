@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { isStandaloneMode, logStandaloneStatus, getGuestSession, recoverGuestSessionInStandalone } from '@/utils/guestSession'
 import { supabase } from '@/integrations/supabase/client'
 
@@ -16,6 +16,7 @@ interface SessionRecoveryProps {
  */
 export function SessionRecovery({ children }: SessionRecoveryProps) {
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     const handleSessionRecovery = async () => {
@@ -26,6 +27,7 @@ export function SessionRecovery({ children }: SessionRecoveryProps) {
 
       logStandaloneStatus()
       console.log('[SessionRecovery] PWA standalone mode detected, checking session...')
+      console.log('[SessionRecovery] Current pathname:', pathname)
 
       try {
         // Check if we have a Supabase session
@@ -44,10 +46,21 @@ export function SessionRecovery({ children }: SessionRecoveryProps) {
           if (recoveredSession) {
             console.log('[SessionRecovery] Successfully recovered guest session:', recoveredSession)
             
-            // Redirect to menu with recovered session
-            console.log('[SessionRecovery] Redirecting to menu with recovered guest session')
-            router.replace('/menu')
-            return
+            // If we're on a registration page, always redirect to menu
+            if (pathname.startsWith('/register/')) {
+              console.log('[SessionRecovery] On registration page with existing session, redirecting to menu')
+              router.replace('/menu')
+              return
+            }
+            
+            // For other pages, only redirect if we're on root or the session is different
+            if (pathname === '/' || pathname === '') {
+              console.log('[SessionRecovery] On root page with recovered session, redirecting to menu')
+              router.replace('/menu')
+              return
+            }
+            
+            console.log('[SessionRecovery] Guest session recovered but staying on current page:', pathname)
           }
           
           console.log('[SessionRecovery] No guest session could be recovered, user may need to re-register')
@@ -64,7 +77,7 @@ export function SessionRecovery({ children }: SessionRecoveryProps) {
     const timeoutId = setTimeout(handleSessionRecovery, 100)
     
     return () => clearTimeout(timeoutId)
-  }, [router])
+  }, [router, pathname])
 
   return <>{children}</>
 }
