@@ -20,15 +20,19 @@ export function SessionRecovery({ children }: SessionRecoveryProps) {
 
   useEffect(() => {
     const handleSessionRecovery = async () => {
-      // Only run in standalone mode
-      if (!isStandaloneMode()) {
-        return
-      }
-
-      logStandaloneStatus()
-      console.log('[SessionRecovery] PWA standalone mode detected, checking session...')
+      console.log('[SessionRecovery] Starting session recovery check...')
       console.log('[SessionRecovery] Current pathname:', pathname)
-
+      
+      // Check standalone mode
+      const isStandalone = isStandaloneMode()
+      logStandaloneStatus()
+      
+      // For debugging: run in both standalone and browser mode
+      console.log('[SessionRecovery] Standalone mode:', isStandalone)
+      
+      // Always check for guest sessions (not just standalone mode for debugging)
+      console.log('[SessionRecovery] Checking for existing session...')
+      
       try {
         // Check if we have a Supabase session
         const { data: { session }, error } = await supabase.auth.getSession()
@@ -40,31 +44,51 @@ export function SessionRecovery({ children }: SessionRecoveryProps) {
         if (!session) {
           console.log('[SessionRecovery] No Supabase session found, attempting guest session recovery...')
           
-          // Attempt to recover guest session using the enhanced recovery function
-          const recoveredSession = recoverGuestSessionInStandalone()
+          // Try multiple recovery methods
+          console.log('[SessionRecovery] Attempting standard getGuestSession...')
+          const standardSession = getGuestSession()
+          console.log('[SessionRecovery] Standard session result:', standardSession)
           
-          if (recoveredSession) {
-            console.log('[SessionRecovery] Successfully recovered guest session:', recoveredSession)
+          console.log('[SessionRecovery] Attempting enhanced recovery...')
+          const recoveredSession = recoverGuestSessionInStandalone()
+          console.log('[SessionRecovery] Enhanced recovery result:', recoveredSession)
+          
+          // Check localStorage directly for debugging
+          const directCheck = {
+            guest_user_id: localStorage.getItem('guest_user_id'),
+            guest_first_name: localStorage.getItem('guest_first_name'),
+            guest_stay_id: localStorage.getItem('guest_stay_id')
+          }
+          console.log('[SessionRecovery] Direct localStorage check:', directCheck)
+          
+          const sessionToUse = recoveredSession || standardSession
+          
+          if (sessionToUse || directCheck.guest_user_id) {
+            console.log('[SessionRecovery] Found session data, proceeding with redirect...')
+            console.log('[SessionRecovery] Session to use:', sessionToUse)
             
             // If we're on a registration page, always redirect to menu
             if (pathname.startsWith('/register/')) {
               console.log('[SessionRecovery] On registration page with existing session, redirecting to menu')
-              router.replace('/menu')
+              setTimeout(() => {
+                router.replace('/menu')
+              }, 500) // Add slight delay for debugging
               return
             }
             
-            // For other pages, only redirect if we're on root or the session is different
+            // For other pages, only redirect if we're on root
             if (pathname === '/' || pathname === '') {
               console.log('[SessionRecovery] On root page with recovered session, redirecting to menu')
-              router.replace('/menu')
+              setTimeout(() => {
+                router.replace('/menu')
+              }, 500)
               return
             }
             
             console.log('[SessionRecovery] Guest session recovered but staying on current page:', pathname)
+          } else {
+            console.log('[SessionRecovery] No guest session could be recovered, user may need to re-register')
           }
-          
-          console.log('[SessionRecovery] No guest session could be recovered, user may need to re-register')
-          // Could potentially redirect to registration page or show a prompt
         } else {
           console.log('[SessionRecovery] Supabase session found:', session.user?.id)
         }

@@ -176,9 +176,10 @@ export function isHotelGuest(): boolean {
  * Attempts to restore session data if it exists in localStorage
  */
 export function recoverGuestSessionInStandalone(): GuestSession | null {
-  if (!isStandaloneMode()) {
-    return null;
-  }
+  // For debugging, allow recovery in any mode
+  // if (!isStandaloneMode()) {
+  //   return null;
+  // }
 
   logStandaloneStatus();
   console.log('[Session Recovery] Attempting to recover guest session in standalone mode...');
