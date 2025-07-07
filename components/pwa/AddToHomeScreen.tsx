@@ -97,25 +97,22 @@ export default function AddToHomeScreen() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-sm mx-auto">
+    <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300 px-6">
+      <div className="bg-white/90 rounded-lg shadow-lg border border-gray-200 p-4 w-full max-w-sm">
         <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
-              <img 
-                src="/icons/icon-96x96.png" 
-                alt="Coconut Beach" 
-                className="w-8 h-8 rounded-md"
-              />
+          <div className="flex-1 text-center">
+            <div className="flex justify-center mb-2">
+              <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
+                <img 
+                  src="/icons/icon-96x96.png" 
+                  alt="Coconut Beach" 
+                  className="w-8 h-8 rounded-md"
+                />
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-medium text-gray-900 truncate">
-                Add to Home Screen
-              </h3>
-              <p className="text-xs text-gray-500 mt-1">
-                Install Coconut Beach for quick access
-              </p>
-            </div>
+            <h3 className="text-sm font-medium text-gray-900">
+              Add Coconut Beach to Home Screen
+            </h3>
           </div>
           <button
             onClick={handleDismiss}
@@ -125,11 +122,11 @@ export default function AddToHomeScreen() {
           </button>
         </div>
         
-        <div className="mt-4 flex space-x-2">
+        <div className="mt-4 text-center">
           {isAndroid && deferredPrompt && (
             <button
               onClick={handleInstallClick}
-              className="flex-1 bg-emerald-500 text-white text-sm font-medium py-2 px-3 rounded-md hover:bg-emerald-600 transition-colors flex items-center justify-center space-x-1"
+              className="w-full bg-emerald-500 text-white text-sm font-medium py-2 px-3 rounded-md hover:bg-emerald-600 transition-colors flex items-center justify-center space-x-1"
             >
               <Download className="w-4 h-4" />
               <span>Install</span>
@@ -137,24 +134,17 @@ export default function AddToHomeScreen() {
           )}
           
           {isIOS && (
-            <div className="flex-1 text-xs text-gray-600 leading-tight">
-              <div className="flex items-center space-x-1 mb-1">
-                <Share className="w-4 h-4" />
+            <div className="text-xs text-gray-600 leading-tight space-y-1">
+              <div className="flex items-center justify-center space-x-1">
                 <span>Tap Share button</span>
+                <Share className="w-4 h-4" />
               </div>
-              <div className="flex items-center space-x-1">
-                <Plus className="w-4 h-4" />
+              <div className="flex items-center justify-center space-x-1">
                 <span>Then "Add to Home Screen"</span>
+                <Plus className="w-4 h-4" />
               </div>
             </div>
           )}
-          
-          <button
-            onClick={handleDismiss}
-            className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-          >
-            Later
-          </button>
         </div>
       </div>
     </div>
