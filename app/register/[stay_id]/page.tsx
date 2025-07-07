@@ -347,20 +347,22 @@ export default function RegisterPage({ params }: RegisterPageProps) {
               spellCheck="false"
               required
             />
-            <Button 
-              type="submit"
-              size="lg" 
-              className="w-full bg-white/80 hover:bg-white/95 text-gray-900 rounded-xl border-2 border-white/30 font-bold disabled:opacity-50 disabled:cursor-not-allowed text-lg py-3 shadow-lg transition-all duration-200"
-              disabled={isLoading || !stay_id}
-              style={{
-                WebkitAppearance: 'none',
-                borderRadius: '12px',
-                WebkitTransform: 'translate3d(0, 0, 0)',
-                transform: 'translate3d(0, 0, 0)'
-              }}
-            >
-              {isLoading ? 'Saving...' : 'Save'}
-            </Button>
+            {firstName.trim() && (
+              <Button 
+                type="submit"
+                size="lg" 
+                className="w-full bg-white/80 hover:bg-white/95 text-gray-900 rounded-xl border-2 border-white/30 font-bold disabled:opacity-50 disabled:cursor-not-allowed text-lg py-3 shadow-lg transition-all duration-200"
+                disabled={isLoading || !stay_id}
+                style={{
+                  WebkitAppearance: 'none',
+                  borderRadius: '12px',
+                  WebkitTransform: 'translate3d(0, 0, 0)',
+                  transform: 'translate3d(0, 0, 0)'
+                }}
+              >
+                {isLoading ? 'Saving...' : 'Save'}
+              </Button>
+            )}
           </form>
         )}
       </div>
