@@ -102,9 +102,9 @@ export default function AddToHomeScreen() {
       <div className="bg-white/95 rounded-xl shadow-lg border border-gray-200 p-4 w-full">
         <div className="flex items-start justify-between">
           <div className="flex-1 text-center">
-            <h3 className="text-sm font-medium text-gray-900">
+            <h2 className="text-sm font-medium text-gray-900">
               Add Coconut Beach to Home Screen
-            </h3>
+            </h2>
           </div>
           <button
             onClick={handleDismiss}

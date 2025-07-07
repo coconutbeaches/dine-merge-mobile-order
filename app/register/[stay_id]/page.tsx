@@ -49,6 +49,8 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   const [stay_id, setStayId] = useState<string>('')
   const [firstName, setFirstName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
+  const [inputWidth, setInputWidth] = useState('100%')
+  const [formWidth, setFormWidth] = useState('100%')
   const router = useRouter()
   
   // Unwrap params using React.use()
@@ -57,6 +59,29 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   // Apply Safari iOS fixes on component mount
   useEffect(() => {
     applySafariIOSFixes();
+  }, []);
+
+  // Handle responsive input width
+  useEffect(() => {
+    const isMobileDevice = () => {
+      // Check for mobile devices using multiple methods
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const hasTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isSmallScreen = window.innerWidth < 768; // Use md breakpoint instead of sm
+      
+      return isMobile || (hasTouchScreen && isSmallScreen);
+    };
+    
+    const handleResize = () => {
+      const width = isMobileDevice() ? '100%' : `${NAME_PROMPT_WIDTH}px`;
+      setInputWidth(width);
+      setFormWidth(width);
+    };
+    
+    handleResize(); // Set initial width
+    window.addEventListener('resize', handleResize);
+    
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   // Handle params extraction using unwrapped params
@@ -323,14 +348,12 @@ export default function RegisterPage({ params }: RegisterPageProps) {
           <form 
             onSubmit={handleSubmit} 
             className={cn(
-              'w-full',
-              'sm:max-w-none',
-              'sm:w-[270px]',
               'flex flex-col gap-4'
             )}
             style={{
               WebkitTransform: 'translate3d(0, 0, 0)',
-              transform: 'translate3d(0, 0, 0)'
+              transform: 'translate3d(0, 0, 0)',
+              width: formWidth
             }}
           >
             <Input
@@ -338,13 +361,14 @@ export default function RegisterPage({ params }: RegisterPageProps) {
               placeholder="First Name"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
-              className="w-full sm:w-[270px] bg-white/95 border-2 border-white/30 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center text-lg py-3 rounded-xl shadow-lg"
+              className={cn('bg-white/95 border-2 border-white/30 placeholder:text-gray-500 text-gray-900 text-center placeholder:text-center text-lg py-3 rounded-xl shadow-lg')}
               style={{
                 fontSize: '16px', // Prevent zoom on iOS Safari
                 WebkitAppearance: 'none',
                 borderRadius: '12px',
                 WebkitTransform: 'translate3d(0, 0, 0)',
-                transform: 'translate3d(0, 0, 0)'
+                transform: 'translate3d(0, 0, 0)',
+                width: inputWidth
               }}
               aria-label="First name"
               disabled={isLoading}
