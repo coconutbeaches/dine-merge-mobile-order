@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { saveGuestSession, hasGuestSession } from '@/utils/guestSession'
+import { saveGuestSession, hasGuestSession, logStandaloneStatus, isStandaloneMode } from '@/utils/guestSession'
 import { cn } from '@/lib/utils'
 import { NAME_PROMPT_WIDTH } from '@/lib/constants'
 
@@ -108,6 +108,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   useEffect(() => {
     // Only check guest session after stay_id is loaded
     if (!isLoading && stay_id) {
+      logStandaloneStatus();
       // Add Safari-specific localStorage check
       try {
         if (hasGuestSession()) {
@@ -232,8 +233,19 @@ export default function RegisterPage({ params }: RegisterPageProps) {
           guest_first_name: firstName.trim(),
           guest_stay_id: stay_id
         })
+        
+        // Also store guest_user_id separately for standalone mode fallback
+        localStorage.setItem('guest_user_id', userId);
+        
         sessionSaved = true;
         console.log('Session saved successfully');
+        
+        // If in standalone mode, force session write and verify
+        if (isStandaloneMode()) {
+          console.log('[PWA] Standalone mode detected, verifying session storage...');
+          const verifySession = localStorage.getItem('guest_user_id');
+          console.log('[PWA] Verification result:', verifySession === userId ? 'SUCCESS' : 'FAILED');
+        }
       } catch (storageError) {
         console.error('localStorage error:', storageError);
         console.warn('localStorage not available, continuing without session storage');

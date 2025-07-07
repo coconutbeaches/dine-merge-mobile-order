@@ -19,4 +19,17 @@ if (process.env.NODE_ENV === 'development') {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    // Enable automatic session refresh
+    autoRefreshToken: true,
+    // Persist auth session in localStorage
+    persistSession: true,
+    // Detect session in URL (for OAuth flows)
+    detectSessionInUrl: true,
+    // Storage key for session
+    storageKey: 'supabase.auth.token',
+    // Storage provider
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  }
+});

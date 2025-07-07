@@ -3,6 +3,7 @@ import { Providers } from './providers'
 import GoogleAnalytics from '@/components/analytics/GoogleAnalytics'
 import AddToHomeScreen from '@/components/pwa/AddToHomeScreen'
 import PWAProvider from '@/components/pwa/PWAProvider'
+import { SessionRecovery } from '@/components/SessionRecovery'
 
 export const metadata = {
   title: 'Coconut Beach - Online Ordering',
@@ -49,7 +50,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <GoogleAnalytics />
         <PWAProvider>
-          <Providers>{children}</Providers>
+          <SessionRecovery>
+            <Providers>{children}</Providers>
+          </SessionRecovery>
           <AddToHomeScreen />
         </PWAProvider>
       </body>

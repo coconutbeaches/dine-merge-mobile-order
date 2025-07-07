@@ -4,12 +4,42 @@
  * Utilities for managing hotel guest sessions in localStorage.
  * Guests register once with their first name and stay_id, then their session
  * is remembered via localStorage for the duration of their stay.
+ * 
+ * Includes PWA standalone mode detection and session recovery.
  */
 
 export interface GuestSession {
   guest_user_id: string;
   guest_first_name: string;
   guest_stay_id: string;
+}
+
+/**
+ * Detect if the app is running in standalone mode (PWA)
+ */
+export function isStandaloneMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  // Check for PWA standalone mode
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
+    || (window.navigator as any).standalone === true;
+  
+  return isStandalone;
+}
+
+/**
+ * Log standalone mode status for debugging
+ */
+export function logStandaloneStatus(): void {
+  if (typeof window === 'undefined') return;
+  
+  const isStandalone = isStandaloneMode();
+  const displayMode = window.matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'browser';
+  const navigatorStandalone = (window.navigator as any).standalone;
+  
+  console.log('[PWA Debug] Standalone mode:', isStandalone);
+  console.log('[PWA Debug] Display mode:', displayMode);
+  console.log('[PWA Debug] Navigator standalone:', navigatorStandalone);
 }
 
 /**
@@ -139,4 +169,68 @@ export function hasGuestSession(): boolean {
 export function isHotelGuest(): boolean {
   const guestSession = getGuestSession();
   return guestSession !== null && !!guestSession.guest_stay_id;
+}
+
+/**
+ * Recover guest session in standalone mode
+ * Attempts to restore session data if it exists in localStorage
+ */
+export function recoverGuestSessionInStandalone(): GuestSession | null {
+  if (!isStandaloneMode()) {
+    return null;
+  }
+
+  logStandaloneStatus();
+  console.log('[Session Recovery] Attempting to recover guest session in standalone mode...');
+
+  try {
+    // First try the standard getGuestSession
+    let session = getGuestSession();
+    
+    if (session) {
+      console.log('[Session Recovery] Found complete guest session:', session);
+      return session;
+    }
+
+    // Fallback: try to reconstruct from individual localStorage items
+    const guestId = localStorage.getItem('guest_user_id');
+    const firstName = localStorage.getItem('guest_first_name');
+    const stayId = localStorage.getItem('guest_stay_id');
+
+    if (guestId && firstName && stayId) {
+      session = {
+        guest_user_id: guestId,
+        guest_first_name: firstName,
+        guest_stay_id: stayId
+      };
+      
+      console.log('[Session Recovery] Reconstructed guest session:', session);
+      
+      // Re-save the session to ensure consistency
+      try {
+        saveGuestSession(session);
+        console.log('[Session Recovery] Re-saved reconstructed session');
+      } catch (saveError) {
+        console.warn('[Session Recovery] Failed to re-save session:', saveError);
+      }
+      
+      return session;
+    }
+
+    // Check if we have at least the guest_user_id for minimal session
+    if (guestId) {
+      console.log('[Session Recovery] Found partial session with guest_user_id:', guestId);
+      return {
+        guest_user_id: guestId,
+        guest_first_name: firstName || 'Guest',
+        guest_stay_id: stayId || 'unknown'
+      };
+    }
+
+    console.log('[Session Recovery] No guest session data found');
+    return null;
+  } catch (error) {
+    console.error('[Session Recovery] Error during recovery:', error);
+    return null;
+  }
 }

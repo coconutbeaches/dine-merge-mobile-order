@@ -102,10 +102,18 @@ export function usePlaceOrder(
       console.log("Customer profile found:", profile);
       
       const insertedOrderData = await placeOrderInSupabase({
-        userId: (guestUserId || stayId) ? null : finalUserId, // null for guests and hotel guests, actual userId for regular users
-        guestUserId,
-        guestFirstName,
-        stayId,
+        userId: adminContext ? 
+          // Admin creating order: use customer ID if it's a UUID, null if hotel guest
+          (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId) ? adminContext.customerId : null) :
+          // Regular user/guest: null for guests, userId for regular users
+          ((guestUserId || stayId) ? null : finalUserId),
+        guestUserId: adminContext ? null : guestUserId, // Don't use admin's guest session for customer orders
+        guestFirstName: adminContext ? null : guestFirstName, // Don't use admin's guest info for customer orders
+        stayId: adminContext ? 
+          // Admin creating order: use stay_id if customer is hotel guest, null otherwise
+          (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId) ? null : adminContext.customerId) :
+          // Regular guest: use their stay_id
+          stayId,
         customerName: finalCustomerName,
         cartItems: cart as CartItem[],
         total: cartTotal,
