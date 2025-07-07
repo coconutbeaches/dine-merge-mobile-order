@@ -4,7 +4,7 @@ import { useOrderActions } from './useOrderActions';
 import { useOrderSelection } from './useOrderSelection';
 
 export const useOrdersDashboard = () => {
-  const { orders, setOrders, isLoading, fetchOrders } = useFetchOrders();
+  const { orders, setOrders, isLoading, isLoadingMore, hasMore, fetchOrders, loadMore } = useFetchOrders();
   const { 
     selectedOrders, 
     setSelectedOrders, 
@@ -26,7 +26,10 @@ export const useOrdersDashboard = () => {
   return {
     orders,
     isLoading,
+    isLoadingMore,
+    hasMore,
     fetchOrders,
+    loadMore,
     selectedOrders,
     updateOrderStatus,
     deleteSelectedOrders,

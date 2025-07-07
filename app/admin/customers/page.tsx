@@ -44,11 +44,66 @@ export default function CustomersDashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error: supabaseError } = await supabase
-        .rpc('get_all_customers_with_total_spent_grouped');
+      // First try the new optimized function, fallback to old method
+      let data;
+      let supabaseError;
+      
+      try {
+        const result = await supabase
+          .rpc('get_all_customers_with_total_spent_grouped', {
+            p_limit: 100,
+            p_offset: 0,
+            p_include_archived: includeArchived
+          });
+        data = result.data;
+        supabaseError = result.error;
+      } catch (rpcError) {
+        console.log('New RPC function not available, using fallback method');
+        // Fallback to optimized manual query
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            name,
+            email,
+            created_at,
+            archived
+          `)
+          .limit(100);
+
+        if (profilesError) throw profilesError;
+
+        // Get order totals for each profile
+        const profilesWithTotals = await Promise.all(
+          (profilesData || []).map(async (profile) => {
+            const { data: orderData } = await supabase
+              .from('orders')
+              .select('total_amount, created_at')
+              .eq('user_id', profile.id);
+
+            const totalSpent = orderData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+            const lastOrderDate = orderData?.length > 0 
+              ? Math.max(...orderData.map(o => new Date(o.created_at).getTime()))
+              : null;
+
+            return {
+              customer_id: profile.id,
+              name: profile.name || profile.email,
+              customer_type: 'auth_user' as const,
+              total_spent: totalSpent,
+              last_order_date: lastOrderDate ? new Date(lastOrderDate).toISOString() : null,
+              archived: profile.archived || false,
+              joined_at: profile.created_at
+            };
+          })
+        );
+
+        data = profilesWithTotals;
+        supabaseError = null;
+      }
 
       if (supabaseError) {
-        console.error('Supabase RPC error in get_all_customers_with_total_spent_grouped:', supabaseError);
+        console.error('Supabase error:', supabaseError);
         throw new Error(supabaseError.message || 'Failed to fetch customers');
       }
 
@@ -57,14 +112,13 @@ export default function CustomersDashboardPage() {
         return;
       }
 
-      // Filter based on includeArchived state
-      const filteredData = includeArchived
-        ? data
-        : data.filter(customer => !customer.archived);
+      // Filter based on includeArchived state if not already filtered by RPC
+      const filteredData = data.filter(customer => 
+        includeArchived || !customer.archived
+      );
 
       setCustomers(filteredData as GroupedCustomer[]);
-      console.log('Successfully fetched', filteredData.length, 'customers with real totals');
-      console.log('Sample customer data:', filteredData[0]);
+      console.log('Successfully fetched', filteredData.length, 'customers');
     } catch (err: any) {
       setError(err);
       toast.error(`Failed to fetch customers: ${err.message}`);

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { formatThaiCurrency, cn } from '@/lib/utils';
@@ -36,6 +37,9 @@ interface OrdersListProps {
   orderStatusOptions: OrderStatus[];
   selectAllOrders: () => void;
   clearSelection: () => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }
 
 const OrdersList = ({ 
@@ -46,6 +50,9 @@ const OrdersList = ({
   orderStatusOptions,
   selectAllOrders,
   clearSelection,
+  onLoadMore,
+  hasMore = false,
+  isLoadingMore = false,
 }: OrdersListProps) => {
   if (orders.length === 0) {
     return <div className="p-6 text-center text-muted-foreground">No orders found.</div>;
@@ -218,6 +225,27 @@ const OrdersList = ({
           </div>
         );
       })}
+      
+      {/* Load More Button */}
+      {hasMore && onLoadMore && (
+        <div className="p-4 border-t bg-muted/20 text-center">
+          <Button 
+            variant="outline" 
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="min-w-[120px]"
+          >
+            {isLoadingMore ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+                Loading...
+              </div>
+            ) : (
+              'Load More Orders'
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

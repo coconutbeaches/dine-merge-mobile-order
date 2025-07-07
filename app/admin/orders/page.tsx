@@ -18,7 +18,10 @@ function OrdersDashboardContent() {
     orders, 
     selectedOrders, 
     isLoading, 
+    isLoadingMore,
+    hasMore,
     fetchOrders,
+    loadMore,
     updateOrderStatus,
     deleteSelectedOrders,
     toggleSelectOrder,
@@ -154,6 +157,9 @@ function OrdersDashboardContent() {
                 orderStatusOptions={orderStatusOptions}
                 selectAllOrders={() => selectAllOrders(filteredOrders.map(o => o.id))}
                 clearSelection={clearSelection}
+                onLoadMore={loadMore}
+                hasMore={hasMore}
+                isLoadingMore={isLoadingMore}
               />
             )}
           </CardContent>

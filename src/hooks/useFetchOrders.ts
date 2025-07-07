@@ -54,9 +54,21 @@ const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder =
 export const useFetchOrders = () => {
   const [orders, setOrders] = useState<ExtendedOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
 
-  const fetchOrders = useCallback(async () => {
-    setIsLoading(true);
+  const fetchOrders = useCallback(async (reset = false) => {
+    const currentPage = reset ? 0 : page;
+    const isInitialLoad = reset || currentPage === 0;
+    
+    if (isInitialLoad) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+    
     try {
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
@@ -70,7 +82,7 @@ export const useFetchOrders = () => {
             created_at
           `)
           .order('created_at', { ascending: false })
-          .limit(1000); // Limit to prevent large data transfers
+          .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1);
 
       if (ordersError) throw ordersError;
 
@@ -92,19 +104,49 @@ export const useFetchOrders = () => {
         }
 
         const transformedOrders = ordersData.map(order => transformOrder(order, profilesData));
-        setOrders(transformedOrders);
-        console.log("[Dashboard] Orders fetched from DB:", ordersData.map(o => ({ id: o.id, status: o.order_status })));
+        
+        if (isInitialLoad) {
+          setOrders(transformedOrders);
+          setPage(1);
+        } else {
+          setOrders(prev => [...prev, ...transformedOrders]);
+          setPage(prev => prev + 1);
+        }
+        
+        setHasMore(ordersData.length === pageSize);
+        console.log(`[Dashboard] Fetched ${ordersData.length} orders (page ${currentPage + 1})`);
       }
     } catch (error) {
       console.error('Error fetching orders:', error);
       toast.error('Failed to fetch orders');
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
-  }, []);
+  }, [page, pageSize]);
+
+  const resetAndFetch = useCallback(() => {
+    setPage(0);
+    setHasMore(true);
+    fetchOrders(true);
+  }, [fetchOrders]);
+
+  const loadMore = useCallback(() => {
+    if (!isLoadingMore && hasMore) {
+      fetchOrders(false);
+    }
+  }, [fetchOrders, isLoadingMore, hasMore]);
 
   useEffect(() => {
-    fetchOrders();
+    resetAndFetch();
+  }, []);
+    
+  // Set up real-time subscription with debouncing
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
     
     const channel = supabase
       .channel('orders-dashboard-refactored')
@@ -113,15 +155,28 @@ export const useFetchOrders = () => {
         { event: '*', schema: 'public', table: 'orders' },
         (payload) => {
           console.log("Real-time order update:", payload);
-          fetchOrders();
+          // Debounce refetch to avoid too many calls
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            resetAndFetch();
+          }, 1000);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(timeoutId);
       supabase.removeChannel(channel);
     };
-  }, [fetchOrders]);
+  }, [resetAndFetch]);
 
-  return { orders, setOrders, isLoading, fetchOrders };
+  return { 
+    orders, 
+    setOrders, 
+    isLoading, 
+    isLoadingMore,
+    hasMore,
+    fetchOrders: resetAndFetch,
+    loadMore
+  };
 };
