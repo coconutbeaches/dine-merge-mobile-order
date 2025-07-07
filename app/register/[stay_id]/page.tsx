@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, use } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { nanoid } from 'nanoid'
@@ -40,7 +40,7 @@ const applySafariIOSFixes = () => {
 };
 
 interface RegisterPageProps {
-  params: { stay_id: string };
+  params: Promise<{ stay_id: string }>;
 }
 
 export default function RegisterPage({ params }: RegisterPageProps) {
@@ -48,64 +48,35 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   const [firstName, setFirstName] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
+  
+  // Unwrap params using React.use()
+  const unwrappedParams = use(params)
 
   // Apply Safari iOS fixes on component mount
   useEffect(() => {
     applySafariIOSFixes();
   }, []);
 
-  // Handle params extraction with Safari compatibility
+  // Handle params extraction using unwrapped params
   useEffect(() => {
-    const extractParams = async () => {
-      try {
-        let extractedStayId = '';
-        
-        // Try multiple methods for extracting stay_id for Safari compatibility
-        if (params && typeof params === 'object') {
-          // Method 1: Direct access (for newer browsers)
-          if ('stay_id' in params) {
-            extractedStayId = params.stay_id;
-          }
-          // Method 2: Await if it's a Promise (Next.js 15)
-          else if (typeof params.then === 'function') {
-            const resolvedParams = await params;
-            extractedStayId = resolvedParams.stay_id || '';
-          }
-        }
-        
-        // Method 3: Fallback to URL parsing (Safari compatibility)
-        if (!extractedStayId && typeof window !== 'undefined') {
-          const pathParts = window.location.pathname.split('/');
-          const lastPart = pathParts[pathParts.length - 1];
-          if (lastPart && lastPart !== 'register') {
-            extractedStayId = decodeURIComponent(lastPart);
-          }
-        }
-        
-        console.log('Extracted stay_id:', extractedStayId); // Debug logging for Safari
-        setStayId(extractedStayId || '');
-      } catch (error) {
-        console.error('Error resolving params:', error);
-        // Final fallback: try to extract from URL
-        try {
-          if (typeof window !== 'undefined') {
-            const pathParts = window.location.pathname.split('/');
-            const stayIdFromUrl = pathParts[pathParts.length - 1];
-            const decoded = decodeURIComponent(stayIdFromUrl || '');
-            console.log('Fallback stay_id:', decoded); // Debug logging
-            setStayId(decoded);
-          }
-        } catch (urlError) {
-          console.error('Error extracting from URL:', urlError);
-          setStayId('');
-        }
-      } finally {
-        setIsLoading(false);
+    try {
+      const extractedStayId = unwrappedParams.stay_id || '';
+      console.log('Extracted stay_id:', extractedStayId); // Debug logging
+      setStayId(extractedStayId);
+    } catch (error) {
+      console.error('Error extracting stay_id:', error);
+      // Fallback to URL parsing
+      if (typeof window !== 'undefined') {
+        const pathParts = window.location.pathname.split('/');
+        const stayIdFromUrl = pathParts[pathParts.length - 1];
+        const decoded = decodeURIComponent(stayIdFromUrl || '');
+        console.log('Fallback stay_id:', decoded);
+        setStayId(decoded);
       }
-    };
-    
-    extractParams();
-  }, [params])
+    } finally {
+      setIsLoading(false);
+    }
+  }, [unwrappedParams])
 
   useEffect(() => {
     // Only check guest session after stay_id is loaded
@@ -158,7 +129,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         stay_id, 
         pathname: window.location.pathname,
         href: window.location.href,
-        params: params 
+        params: unwrappedParams 
       });
       toast.error('Registration link is invalid. Please try again.')
       return
