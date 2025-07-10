@@ -7,6 +7,7 @@ import { OrderStatus } from '@/types/supabaseTypes';
 import { ExtendedOrder } from '@/src/types/app';
 import { formatThaiCurrency, cn } from '@/lib/utils';
 import { formatOrderDate, formatOrderTime, getStatusBadgeClasses, getStatusBadgeHoverClasses } from '@/utils/orderDashboardUtils';
+import { formatStayId } from '@/src/utils/guestUtils';
 
 // Helper for pill-style status badge (smaller, rounded, colored)
 const getStatusPillStyles = (status: OrderStatus) => {
@@ -93,7 +94,7 @@ if (order.customer_name_from_profile || order.customer_name) {
           customerDisplayName = order.customer_name_from_profile || order.customer_name;
         } else if (order.formattedStayId || order.stay_id) {
           // Prefer formattedStayId when present
-          customerDisplayName = order.formattedStayId || order.stay_id.replace(/_/g, ' ');
+          customerDisplayName = order.formattedStayId || formatStayId(order.stay_id);
         } else {
           // Fallback
           customerDisplayName = `Order #${order.id}`;

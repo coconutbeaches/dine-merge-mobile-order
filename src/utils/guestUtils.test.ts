@@ -4,12 +4,12 @@ import { formatStayId } from './guestUtils';
 describe('formatStayId', () => {
   it('should format walkin with table number', () => {
     const result = formatStayId('walkin_abc', '7');
-    expect(result).toBe('walkin 7');
+    expect(result).toBe('Walkin 7');
   });
 
   it('should format walkin without table number', () => {
     const result = formatStayId('walkin_xyz', null);
-    expect(result).toBe('walkin');
+    expect(result).toBe('Walkin');
   });
 
   it('should return "unknown" for null stayId', () => {
@@ -17,8 +17,8 @@ describe('formatStayId', () => {
     expect(result).toBe('unknown');
   });
 
-  it('should return hotel guest stayId untouched', () => {
-    const result = formatStayId('A5_CROWLEY');
-    expect(result).toBe('A5_CROWLEY');
+  it('should format hotel guest stayId by replacing underscores with spaces', () => {
+    const result = formatStayId('New_House_Diogo');
+    expect(result).toBe('New House Diogo');
   });
 });

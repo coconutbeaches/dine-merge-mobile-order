@@ -4,5 +4,6 @@ export const formatStayId = (stayId?: string | null, tableNumber?: string | null
   if (isWalkIn) {
     return tableNumber ? `Walkin ${tableNumber}` : 'Walkin';
   }
-  return stayId;     // hotel guests – unchanged
+  // For hotel guests, replace underscores with spaces for better readability
+  return stayId.replace(/_/g, ' ');
 };
