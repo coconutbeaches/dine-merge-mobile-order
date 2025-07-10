@@ -2,22 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Order as BaseOrder } from '@/types/supabaseTypes';
-import { OrderStatus } from '@/src/types/app';
+import { OrderStatus, ExtendedOrder } from '@/src/types/app';
 import { toast } from 'sonner';
-
-// Extended Order type that includes fields the UI expects
-interface ExtendedOrder extends BaseOrder {
-  customer_name?: string | null;
-  customer_email?: string | null;
-  order_status?: OrderStatus;
-  order_items?: any[];
-  updated_at?: string | null;
-  customer_type?: string | null;
-  special_instructions?: string | null;
-  customer_name_from_profile?: string | null;
-  customer_email_from_profile?: string | null;
-  stay_id?: string | null;
-}
 
 const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder => {
   const profile = profilesData?.find(p => p.id === order.user_id);
@@ -79,6 +65,7 @@ export const useFetchOrders = () => {
             guest_first_name,
             stay_id,
             total_amount,
+            table_number,
             created_at
           `)
           .order('created_at', { ascending: false })

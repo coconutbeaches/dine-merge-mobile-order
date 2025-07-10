@@ -122,7 +122,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         // Fetch orders for authenticated user
         const result = await supabase
           .from('orders')
-          .select('*')
+          .select('*, table_number')
           .eq('user_id', customerId)
           .order('created_at', { ascending: false });
         ordersData = result.data;
@@ -131,7 +131,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         // Fetch orders for guest family (all orders with same stay_id)
         const result = await supabase
           .from('orders')
-          .select('*')
+          .select('*, table_number')
           .eq('stay_id', customerId)
           .order('created_at', { ascending: false });
         ordersData = result.data;
