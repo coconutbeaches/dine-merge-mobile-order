@@ -37,10 +37,15 @@ const TableScanRouter = () => {
       const session = getGuestSession();
       console.log('[TableScanRouter] Current session:', session);
       
-      console.log('[TableScanRouter] Redirecting to registration to get user name');
-      const registrationUrl = `/register/unknown?table=${tableNum}`;
-      console.log('[TableScanRouter] Registration URL:', registrationUrl);
-      router.replace(registrationUrl);
+      if (session && session.guest_user_id && session.guest_first_name) {
+        console.log('[TableScanRouter] Existing guest session found, redirecting to menu');
+        router.replace('/menu');
+      } else {
+        console.log('[TableScanRouter] No existing session, redirecting to registration');
+        const registrationUrl = `/register/unknown?table=${tableNum}`;
+        console.log('[TableScanRouter] Registration URL:', registrationUrl);
+        router.replace(registrationUrl);
+      }
     };
     
     processTableScan();
