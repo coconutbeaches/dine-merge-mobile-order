@@ -23,7 +23,7 @@ export async function placeOrder(orderData: {
 
     // Get guest session and context for merging
     const guestSession = getGuestSession();
-    const guestCtx = { tableNumber: getTableNumber() };
+    const guestCtx = { tableNumber: typeof window !== 'undefined' ? getTableNumber() : null };
     
     // Merge according to specification:
     // tableNumber: providedTableNumber || guestCtx.tableNumber || undefined

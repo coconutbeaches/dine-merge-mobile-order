@@ -4,7 +4,6 @@ import GoogleAnalytics from '@/components/analytics/GoogleAnalytics'
 import AddToHomeScreen from '@/components/pwa/AddToHomeScreen'
 import PWAProvider from '@/components/pwa/PWAProvider'
 import { SessionRecovery } from '@/components/SessionRecovery'
-import TableScanRouter from '@/components/TableScanRouter'
 
 export const metadata = {
   title: 'Coconut Beach - Online Ordering',
@@ -50,7 +49,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <GoogleAnalytics />
-        <TableScanRouter />
         <PWAProvider>
           <SessionRecovery>
             <Providers>{children}</Providers>

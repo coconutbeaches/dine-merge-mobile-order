@@ -1,5 +1,5 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingCart, User, Settings } from 'lucide-react';
@@ -19,6 +19,12 @@ const Header: React.FC<HeaderProps> = ({
   const router = useRouter();
   const pathname = usePathname();
   const { cart, isLoggedIn, currentUser, cartIsLoading } = useAppContext(); // Include currentUser to check admin role
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure this only runs on the client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
   const shouldShowBadge = !cartIsLoading && totalItems > 0;
@@ -73,7 +79,9 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => {
-            // Unified user-icon routing logic
+            // Unified user-icon routing logic - only run on client
+            if (!isClient) return;
+            
             const isGuest = isHotelGuest();
             
             if (!isLoggedIn && !isGuest) {

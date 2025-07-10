@@ -1,15 +1,24 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getGuestSession } from '@/utils/guestSession';
 import { useGuestContext } from '@/context/GuestContext';
 
-const TableScanRouter = () => {
+const TableScanRouter = () => {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
   const { setTableNumber } = useGuestContext();
 
-  useEffect(() => {
+  // Ensure this only runs on the client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    // Only run on client-side
+    if (!isClient) return;
+    
     const params = new URLSearchParams(window.location.search);
     const goto = params.get('goto');              // e.g. "table-7"
     if (!goto?.startsWith('table-')) return;      // nothing to do
@@ -17,8 +26,7 @@ const TableScanRouter = () => {
     
     console.log('[TableScanRouter] Processing table scan:', { goto, tableNum });
     
-    const processTableScan = async () => {
-      // Try to set table number, but continue even if it fails (Safari private mode)
+    const processTableScan = async () => {
       try {
         setTableNumber(tableNum);
         console.log('[TableScanRouter] Table number stored successfully');
@@ -29,8 +37,6 @@ const TableScanRouter = () => {
       const session = getGuestSession();
       console.log('[TableScanRouter] Current session:', session);
       
-      // Always redirect to registration to get user's name
-      // Don't create guest user here - let registration handle it
       console.log('[TableScanRouter] Redirecting to registration to get user name');
       const registrationUrl = `/register/unknown?table=${tableNum}`;
       console.log('[TableScanRouter] Registration URL:', registrationUrl);
@@ -38,7 +44,7 @@ const TableScanRouter = () => {
     };
     
     processTableScan();
-  }, [router, setTableNumber]);
+  }, [router, setTableNumber, isClient]);
   
   return null;
 };

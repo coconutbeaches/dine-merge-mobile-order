@@ -5,6 +5,7 @@ import { CartProvider } from './CartContext';
 import { UserProvider } from './UserContext';
 import { OrderProvider } from './OrderContext';
 import { GuestProvider } from './GuestContext';
+import ClientOnlyWrapper from '@/components/ClientOnlyWrapper';
 
 interface AppContextProviderProps {
   children: ReactNode;
@@ -16,7 +17,9 @@ const AppContextProvider = ({ children }: AppContextProviderProps) => {
       <CartProvider>
         <OrderProvider>
           <GuestProvider>
-            <AppProvider>{children}</AppProvider>
+            <AppProvider>
+              <ClientOnlyWrapper>{children}</ClientOnlyWrapper>
+            </AppProvider>
           </GuestProvider>
         </OrderProvider>
       </CartProvider>

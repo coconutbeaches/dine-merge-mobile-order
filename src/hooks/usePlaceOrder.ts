@@ -104,7 +104,7 @@ export function usePlaceOrder(
       
       // Get guest session and context for merging according to specification
       const guestSession = getGuestSession();
-      const guestCtx = { tableNumber: getTableNumber() };
+      const guestCtx = { tableNumber: typeof window !== 'undefined' ? getTableNumber() : null };
       
       const insertedOrderData = await placeOrderInSupabase({
         userId: adminContext ? 
