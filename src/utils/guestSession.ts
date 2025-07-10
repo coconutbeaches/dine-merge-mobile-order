@@ -175,13 +175,20 @@ export function getTableNumber(): string | null {
 
 export async function createGuestUser({ table_number, first_name = 'Guest' }: { table_number: string; first_name?: string }): Promise<GuestSession> {
   const randomId = crypto.randomUUID();
-  console.log('[createGuestUser] Creating guest user with:', { randomId, first_name, table_number });
+  const finalStayId = `walkin-${randomId}`;
   
-  // Insert the guest user
+  console.log('[createGuestUser] Creating guest user with:', { 
+    randomId, 
+    first_name, 
+    table_number, 
+    finalStayId 
+  });
+  
+  // Insert the guest user with final stay_id to avoid update query
   const { data, error } = await supabase.from('guest_users').insert({
     user_id: randomId,
     first_name,
-    stay_id: 'walkin',
+    stay_id: finalStayId,
     table_number
   }).select();
   
@@ -196,32 +203,12 @@ export async function createGuestUser({ table_number, first_name = 'Guest' }: { 
   }
   
   const insertedUser = data[0];
-  console.log('[createGuestUser] User inserted:', insertedUser);
-  
-  // Update stay_id to include the guest user ID
-  const { data: updateData, error: updateError } = await supabase
-    .from('guest_users')
-    .update({ stay_id: `walkin-${insertedUser.user_id}` })
-    .eq('user_id', insertedUser.user_id)
-    .select();
-    
-  if (updateError) {
-    console.error('[createGuestUser] Update error:', updateError);
-    throw updateError;
-  }
-  
-  if (!updateData || updateData.length === 0) {
-    console.error('[createGuestUser] No data returned from update');
-    throw new Error('Failed to update guest user: no data returned');
-  }
-  
-  const updatedUser = updateData[0];
-  console.log('[createGuestUser] User updated:', updatedUser);
+  console.log('[createGuestUser] User inserted successfully:', insertedUser);
   
   const session = {
-    guest_user_id: updatedUser.user_id,
-    guest_first_name: updatedUser.first_name,
-    guest_stay_id: updatedUser.stay_id
+    guest_user_id: insertedUser.user_id,
+    guest_first_name: insertedUser.first_name,
+    guest_stay_id: insertedUser.stay_id
   };
   
   try {
