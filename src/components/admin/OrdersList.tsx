@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Order, OrderStatus } from '@/types/supabaseTypes';
+import { OrderStatus } from '@/types/supabaseTypes';
+import { ExtendedOrder } from '@/src/types/app';
 import { formatThaiCurrency, cn } from '@/lib/utils';
 import { formatOrderDate, formatOrderTime, getStatusBadgeClasses, getStatusBadgeHoverClasses } from '@/utils/orderDashboardUtils';
 
@@ -30,7 +31,7 @@ const getStatusPillStyles = (status: OrderStatus) => {
 };
 
 interface OrdersListProps {
-  orders: Order[];
+  orders: ExtendedOrder[];
   selectedOrders: number[];
   toggleSelectOrder: (orderId: number) => void;
   updateOrderStatus: (orderId: number, newStatus: OrderStatus) => void;
@@ -87,31 +88,17 @@ const OrdersList = ({
         // For guest orders, prioritize family account name (stay_id) over individual guest name
         let customerDisplayName;
         
-        if (order.customer_name_from_profile || order.customer_name) {
+if (order.customer_name_from_profile || order.customer_name) {
           // Authenticated user with profile or admin-placed order with customer name
           customerDisplayName = order.customer_name_from_profile || order.customer_name;
-        } else if (order.stay_id) {
-          // Hotel guest - show stay_id as main name (for both regular guests and admin-placed orders)
-          customerDisplayName = order.stay_id.replace(/_/g, ' ');
-        } else if (order.guest_user_id) {
-          // Regular guest user without stay_id
-          customerDisplayName = order.guest_first_name || `Guest Order #${order.id}`;
+        } else if (order.formattedStayId || order.stay_id) {
+          // Prefer formattedStayId when present
+          customerDisplayName = order.formattedStayId || order.stay_id.replace(/_/g, ' ');
         } else {
           // Fallback
           customerDisplayName = `Order #${order.id}`;
         }
 
-        // Debug log for guest orders
-        if (order.guest_user_id || order.guest_first_name) {
-          console.log(`Order #${order.id} display name logic:`, {
-            customer_name_from_profile: order.customer_name_from_profile,
-            customer_name: order.customer_name,
-            guest_first_name: order.guest_first_name,
-            guest_user_id: order.guest_user_id,
-            stay_id: order.stay_id,
-            finalDisplayName: customerDisplayName
-          });
-        }
 
         const statusVal: OrderStatus = order.order_status || "new";
 
