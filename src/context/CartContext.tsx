@@ -4,6 +4,9 @@ import { CartItem, MenuItem } from '../types';
 import { useUserContext } from './UserContext';
 import { calculateTotalPrice } from '@/utils/productUtils';
 import { nanoid } from 'nanoid';
+import { debounce } from 'lodash';
+import { backupCartToSupabase, loadCartFromBackup } from '@/lib/cartService';
+import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
 
 interface CartContextType {
   cart: CartItem[];
@@ -34,28 +37,59 @@ export const CartProvider = ({ children }: CartProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const { isLoading: userIsLoading } = useUserContext();
 
-// Load cart from localStorage once on mount, delayed to avoid blocking main thread
+  // Create a debounced backup function
+  const debouncedBackupCart = debounce((guestId: string, cartData: CartItem[]) => {
+    backupCartToSupabase(guestId, cartData);
+  }, 300);
+
 useEffect(() => {
-  setTimeout(() => {
-    const storedCart = localStorage.getItem('cart');
-    if (storedCart) {
-      try {
-        setCart(JSON.parse(storedCart));
-      } catch (error) {
-        console.error('Error parsing cart from localStorage:', error);
-        localStorage.removeItem('cart');
+  (async () => {
+    try {
+      const stored = localStorage.getItem('cart');
+      if (stored) {
+        try { setCart(JSON.parse(stored)); }
+        catch { 
+          try {
+            localStorage.removeItem('cart'); 
+          } catch (e) {
+            console.warn('[Cart] localStorage not available for cleanup:', e);
+          }
+        }
+        setIsLoading(false);
+        return;
       }
+    } catch (e) {
+      console.warn('[Cart] localStorage not available for reading:', e);
+    }
+
+    // No localStorage or localStorage failed, attempt Supabase backup
+    const guestId = getGuestSession()?.guest_user_id;
+    if (guestId) {
+      const backup = await loadCartFromBackup(guestId);
+      setCart(backup);
     }
     setIsLoading(false);
-  }, 0);
+  })();
 }, []);
 
-// Save cart to localStorage only when necessary
 useEffect(() => {
-  if (!userIsLoading && !isLoading) {
-    const currentCartString = JSON.stringify(cart);
-    if (currentCartString !== localStorage.getItem('cart')) {
-      localStorage.setItem('cart', currentCartString);
+  if (userIsLoading || isLoading) return;
+  const json = JSON.stringify(cart);
+  
+  // Try to save to localStorage, but don't fail if it's not available
+  try {
+    if (json !== localStorage.getItem('cart')) {
+      localStorage.setItem('cart', json);
+    }
+  } catch (e) {
+    console.warn('[Cart] localStorage not available for writing:', e);
+  }
+  
+  // Always try to backup to Supabase when guest session exists
+  if (hasGuestSession()) {
+    const guestId = getGuestSession()?.guest_user_id;
+    if (guestId) {
+      debouncedBackupCart(guestId, cart);
     }
   }
 }, [cart, userIsLoading, isLoading]);

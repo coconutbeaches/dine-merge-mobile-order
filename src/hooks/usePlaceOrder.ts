@@ -6,6 +6,7 @@ import { CartItem, placeOrderInSupabase } from '@/services/orderService';
 import { Address, Order, OrderStatus } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
 import { getGuestSession, hasGuestSession, getTableNumber } from '@/utils/guestSession';
+import { clearCartBackup } from '@/lib/cartService';
 
 export function usePlaceOrder(
   userId: string | undefined,
@@ -161,6 +162,10 @@ export function usePlaceOrder(
       }
       
       clearCart();
+      if (hasGuestSession()) {
+        const guestId = getGuestSession()?.guest_user_id;
+        clearCartBackup(guestId);
+      }
       toast.success(`Order #${insertedOrderData.id} placed successfully!`);
       
       return newOrderForLocalState;

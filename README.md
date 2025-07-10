@@ -58,7 +58,13 @@ If Codespaces or Codex fails to start, open the Command Palette and choose **"Co
 
 The setup also recommends installing the `dbaeumer.vscode-eslint` extension so linting works out of the box.
 
-### Automated console‑error capture
+### Privacy & Data Retention
+
+This project uses cart backups stored in Supabase. In Safari Private Mode or if the PWA is relaunched, `localStorage` may be unavailable or cleared. Cart backups ensure that user data is preserved across sessions.
+
+Cart backups are cleared upon successful order placement to prevent stale carts. The data retained is limited to cart information associated with guest IDs.
+
+### Automated console-error capture
 
 Scrape browser console messages (errors, warnings, logs) via a headless Chromium.  Note the app now runs with Next.js (typically on port 3000):
 
