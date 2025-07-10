@@ -58,8 +58,10 @@ export default function CustomersDashboardPage() {
         data = result.data;
         supabaseError = result.error;
       } catch (rpcError) {
-        console.log('New RPC function not available, using fallback method');
-        // Fallback to optimized manual query
+        console.log('New RPC function not available, using fallback method that includes guests');
+        
+        // Fallback: Get both auth users and guest families manually
+        // 1. Get auth users from profiles
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select(`
@@ -69,7 +71,7 @@ export default function CustomersDashboardPage() {
             created_at,
             archived
           `)
-          .limit(100);
+          .limit(50);
 
         if (profilesError) throw profilesError;
 
@@ -98,7 +100,49 @@ export default function CustomersDashboardPage() {
           })
         );
 
-        data = profilesWithTotals;
+        // 2. Get guest families by grouping orders by stay_id
+        const { data: guestOrders, error: guestError } = await supabase
+          .from('orders')
+          .select('stay_id, total_amount, created_at')
+          .not('guest_user_id', 'is', null)
+          .not('stay_id', 'is', null);
+
+        if (guestError) {
+          console.warn('Error fetching guest orders:', guestError);
+        }
+
+        // Group guest orders by stay_id
+        const guestFamilies: GroupedCustomer[] = [];
+        if (guestOrders) {
+          const guestGroups = guestOrders.reduce((groups, order) => {
+            const stayId = order.stay_id;
+            if (!groups[stayId]) {
+              groups[stayId] = [];
+            }
+            groups[stayId].push(order);
+            return groups;
+          }, {} as Record<string, typeof guestOrders>);
+
+          Object.entries(guestGroups).forEach(([stayId, orders]) => {
+            const totalSpent = orders.reduce((sum, order) => sum + order.total_amount, 0);
+            const dates = orders.map(o => new Date(o.created_at).getTime());
+            const lastOrderDate = Math.max(...dates);
+            const joinedAt = Math.min(...dates);
+
+            guestFamilies.push({
+              customer_id: stayId,
+              name: stayId, // Will be formatted by formatStayId
+              customer_type: 'guest_family' as const,
+              total_spent: totalSpent,
+              last_order_date: new Date(lastOrderDate).toISOString(),
+              archived: false,
+              joined_at: new Date(joinedAt).toISOString()
+            });
+          });
+        }
+
+        // Combine auth users and guest families
+        data = [...profilesWithTotals, ...guestFamilies];
         supabaseError = null;
       }
 

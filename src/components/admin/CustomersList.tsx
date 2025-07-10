@@ -15,6 +15,7 @@ import { User, ChevronUp, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
+import { formatStayId } from '@/utils/guestUtils';
 import { formatLastOrderDate } from '@/utils/orderDashboardUtils';
 import { GroupedCustomer } from '@/types/supabaseTypes';
 
@@ -165,11 +166,12 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 <TableCell className="font-medium">
                   {(() => {
                     if (customer.customer_type === 'guest_family') {
-                      // For hotel guests: show only stay_id (no guest name below)
+                      // For hotel guests: show formatted stay_id using formatStayId
+                      const formattedName = formatStayId(customer.customer_id);
                       return (
                         <div>
                           <Link href={`/admin/customer-orders/${customer.customer_id}`} className="text-sm font-semibold hover:underline block">
-                            {customer.customer_id.replace(/_/g, ' ')}
+                            {formattedName}
                           </Link>
                         </div>
                       );
