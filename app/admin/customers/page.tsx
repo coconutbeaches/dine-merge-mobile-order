@@ -59,6 +59,7 @@ export default function CustomersDashboardPage() {
         supabaseError = result.error;
       } catch (rpcError) {
         console.log('New RPC function not available, using fallback method that includes guests');
+        console.log('RPC Error details:', rpcError);
         
         // Fallback: Get both auth users and guest families manually
         // 1. Get auth users from profiles
@@ -109,6 +110,9 @@ export default function CustomersDashboardPage() {
 
         if (guestError) {
           console.warn('Error fetching guest orders:', guestError);
+        } else {
+          console.log('Guest orders fetched successfully:', guestOrders?.length || 0, 'orders');
+          console.log('Sample guest orders:', guestOrders?.slice(0, 3));
         }
 
         // Group guest orders by stay_id
@@ -142,6 +146,11 @@ export default function CustomersDashboardPage() {
         }
 
         // Combine auth users and guest families
+        console.log('Fallback results:', {
+          profilesWithTotals: profilesWithTotals.length,
+          guestFamilies: guestFamilies.length,
+          sampleGuestFamilies: guestFamilies.slice(0, 3)
+        });
         data = [...profilesWithTotals, ...guestFamilies];
         supabaseError = null;
       }
