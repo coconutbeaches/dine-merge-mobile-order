@@ -173,14 +173,17 @@ export function getTableNumber(): string | null {
   }
 }
 
-export async function createGuestUser({ table_number, first_name = 'Guest' }: { table_number: string; first_name?: string }): Promise<GuestSession> {
+export async function createGuestUser({ table_number, first_name = 'Guest', stay_id }: { table_number: string; first_name?: string; stay_id?: string }): Promise<GuestSession> {
   const randomId = crypto.randomUUID();
-  const finalStayId = `walkin-${randomId}`;
+  
+  // If stay_id is provided (hotel guest), use it. Otherwise, create walkin stay_id
+  const finalStayId = stay_id || `walkin-${randomId}`;
   
   console.log('[createGuestUser] Creating guest user with:', { 
     randomId, 
     first_name, 
     table_number, 
+    provided_stay_id: stay_id,
     finalStayId 
   });
   

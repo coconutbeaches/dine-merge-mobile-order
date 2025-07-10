@@ -185,22 +185,34 @@ export default function RegisterPage({ params }: RegisterPageProps) {
       // Check multiple sources for table number:
       // 1. Stored table number from QR scan
       // 2. URL parameter (fallback for localStorage failures)
-      // 3. stay_id (final fallback)
+      // 3. stay_id (final fallback for walkin guests)
       const storedTableNumber = getTableNumber();
       const urlParams = new URLSearchParams(window.location.search);
       const urlTableNumber = urlParams.get('table');
-      const tableNumberToUse = storedTableNumber || urlTableNumber || stay_id;
       
-      console.log('Table number sources:', {
+      // Determine if this is a walkin guest or hotel guest
+      const isWalkinGuest = stay_id.toLowerCase().includes('unknown') || 
+                           stay_id.toLowerCase().includes('walkin') ||
+                           storedTableNumber || urlTableNumber;
+      
+      // For walkin guests, use table number. For hotel guests, use stay_id
+      const tableNumberToUse = isWalkinGuest 
+        ? (storedTableNumber || urlTableNumber || stay_id)
+        : stay_id;
+      
+      console.log('Guest registration details:', {
         storedTableNumber,
         urlTableNumber,
         stay_id,
-        final: tableNumberToUse
+        isWalkinGuest,
+        tableNumberToUse,
+        stay_id_for_hotel: isWalkinGuest ? undefined : stay_id
       });
       
       const session = await createGuestUser({ 
         table_number: tableNumberToUse, 
-        first_name: firstName.trim() 
+        first_name: firstName.trim(),
+        stay_id: isWalkinGuest ? undefined : stay_id  // Only pass stay_id for hotel guests
       });
       console.log('Generated session:', session);
       
