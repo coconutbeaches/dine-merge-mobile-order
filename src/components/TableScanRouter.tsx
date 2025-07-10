@@ -15,31 +15,41 @@ const TableScanRouter = () => {
     
     console.log('[TableScanRouter] Processing table scan:', { goto, tableNum });
     
-    // Try to set table number, but continue even if it fails (Safari private mode)
-    try {
-      setTableNumber(tableNum);
-      console.log('[TableScanRouter] Table number stored successfully');
-    } catch (error) {
-      console.warn('[TableScanRouter] Failed to store table number:', error);
-    }
-    
-    const session = getGuestSession();
-    console.log('[TableScanRouter] Current session:', session);
-    
-    if (!session) {
-      console.log('[TableScanRouter] No session found, creating guest user');
-      createGuestUser({ table_number: tableNum, first_name: 'Guest' })
-        .then(newSession => {
+    const processTableScan = async () => {
+      // Try to set table number, but continue even if it fails (Safari private mode)
+      try {
+        setTableNumber(tableNum);
+        console.log('[TableScanRouter] Table number stored successfully');
+      } catch (error) {
+        console.warn('[TableScanRouter] Failed to store table number:', error);
+      }
+      
+      const session = getGuestSession();
+      console.log('[TableScanRouter] Current session:', session);
+      
+      if (!session) {
+        console.log('[TableScanRouter] No session found, creating guest user');
+        try {
+          const newSession = await createGuestUser({ table_number: tableNum, first_name: 'Guest' });
           console.log('[TableScanRouter] Guest user created successfully:', newSession);
-        })
-        .catch(error => {
+          
+          // Wait a bit to ensure session is saved before redirecting
+          setTimeout(() => {
+            console.log('[TableScanRouter] Redirecting to menu after guest user creation');
+            router.replace('/menu');
+          }, 100);
+        } catch (error) {
           console.error('[TableScanRouter] Failed to create guest user:', error);
-        });
-    } else {
-      console.log('[TableScanRouter] Session exists, skipping guest user creation');
-    }
+          // If guest user creation fails, redirect with table number in URL
+          router.replace(`/register/unknown?table=${tableNum}`);
+        }
+      } else {
+        console.log('[TableScanRouter] Session exists, skipping guest user creation');
+        router.replace('/menu');
+      }
+    };
     
-    router.replace('/menu');
+    processTableScan();
   }, [router]);
   
   return null;

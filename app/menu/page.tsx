@@ -44,16 +44,30 @@ function MenuIndexContent() {
   const prevCustomerIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Read guest session from localStorage
-    const session = getGuestSession();
+    // Check if there's a goto parameter, which means TableScanRouter might still be processing
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasGotoParam = urlParams.has('goto');
     
-    if (session) {
-      setGuestSession(session);
-    } else if (!isLoggedIn) {
-      // No guest session AND not logged in - redirect to registration
-      const redirectUrl = getRegistrationUrl();
-      console.log('MenuPage: No guest session and not logged in. Redirecting to registration:', redirectUrl);
-      router.replace(redirectUrl);
+    const checkSession = () => {
+      // Read guest session from localStorage
+      const session = getGuestSession();
+      
+      if (session) {
+        setGuestSession(session);
+      } else if (!isLoggedIn) {
+        // No guest session AND not logged in - redirect to registration
+        const redirectUrl = getRegistrationUrl();
+        console.log('MenuPage: No guest session and not logged in. Redirecting to registration:', redirectUrl);
+        router.replace(redirectUrl);
+      }
+    };
+    
+    // If there's a goto parameter, wait a bit for TableScanRouter to process
+    if (hasGotoParam) {
+      console.log('MenuPage: Detected goto parameter, waiting for TableScanRouter...');
+      setTimeout(checkSession, 200);
+    } else {
+      checkSession();
     }
   }, [router, isLoggedIn]); // Run once on mount and when login status changes
 

@@ -182,9 +182,21 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     
     try {
       // 3. Create guest user with first name and table number
-      // Check if there's a stored table number from QR scan first
+      // Check multiple sources for table number:
+      // 1. Stored table number from QR scan
+      // 2. URL parameter (fallback for localStorage failures)
+      // 3. stay_id (final fallback)
       const storedTableNumber = getTableNumber();
-      const tableNumberToUse = storedTableNumber || stay_id;
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTableNumber = urlParams.get('table');
+      const tableNumberToUse = storedTableNumber || urlTableNumber || stay_id;
+      
+      console.log('Table number sources:', {
+        storedTableNumber,
+        urlTableNumber,
+        stay_id,
+        final: tableNumberToUse
+      });
       
       const session = await createGuestUser({ 
         table_number: tableNumberToUse, 
