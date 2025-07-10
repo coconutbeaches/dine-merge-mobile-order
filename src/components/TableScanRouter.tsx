@@ -2,12 +2,14 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { setTableNumber, getGuestSession, createGuestUser } from '@/utils/guestSession';
+import { getGuestSession } from '@/utils/guestSession';
+import { useGuestContext } from '@/context/GuestContext';
 
-const TableScanRouter = () => {
+const TableScanRouter = () => {
   const router = useRouter();
-  
-  useEffect(() => {
+  const { setTableNumber } = useGuestContext();
+
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const goto = params.get('goto');              // e.g. "table-7"
     if (!goto?.startsWith('table-')) return;      // nothing to do
@@ -15,7 +17,7 @@ const TableScanRouter = () => {
     
     console.log('[TableScanRouter] Processing table scan:', { goto, tableNum });
     
-    const processTableScan = async () => {
+    const processTableScan = async () => {
       // Try to set table number, but continue even if it fails (Safari private mode)
       try {
         setTableNumber(tableNum);
@@ -36,7 +38,7 @@ const TableScanRouter = () => {
     };
     
     processTableScan();
-  }, [router]);
+  }, [router, setTableNumber]);
   
   return null;
 };
