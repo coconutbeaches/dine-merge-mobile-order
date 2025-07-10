@@ -41,7 +41,9 @@ const TableScanRouter = () => {
         } catch (error) {
           console.error('[TableScanRouter] Failed to create guest user:', error);
           // If guest user creation fails, redirect with table number in URL
-          router.replace(`/register/unknown?table=${tableNum}`);
+          const fallbackUrl = `/register/unknown?table=${tableNum}`;
+          console.log('[TableScanRouter] Redirecting to fallback URL:', fallbackUrl);
+          router.replace(fallbackUrl);
         }
       } else {
         console.log('[TableScanRouter] Session exists, skipping guest user creation');

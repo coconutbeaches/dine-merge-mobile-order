@@ -175,30 +175,64 @@ export function getTableNumber(): string | null {
 
 export async function createGuestUser({ table_number, first_name = 'Guest' }: { table_number: string; first_name?: string }): Promise<GuestSession> {
   const randomId = crypto.randomUUID();
+  console.log('[createGuestUser] Creating guest user with:', { randomId, first_name, table_number });
+  
+  // Insert the guest user
   const { data, error } = await supabase.from('guest_users').insert({
     user_id: randomId,
     first_name,
     stay_id: 'walkin',
     table_number
-  }).select().single();
-  if (error) throw error;
+  }).select();
+  
+  if (error) {
+    console.error('[createGuestUser] Insert error:', error);
+    throw error;
+  }
+  
+  if (!data || data.length === 0) {
+    console.error('[createGuestUser] No data returned from insert');
+    throw new Error('Failed to create guest user: no data returned');
+  }
+  
+  const insertedUser = data[0];
+  console.log('[createGuestUser] User inserted:', insertedUser);
   
   // Update stay_id to include the guest user ID
   const { data: updateData, error: updateError } = await supabase
     .from('guest_users')
-    .update({ stay_id: `walkin-${data.user_id}` })
-    .eq('user_id', data.user_id)
-    .select()
-    .single();
-  if (updateError) throw updateError;
+    .update({ stay_id: `walkin-${insertedUser.user_id}` })
+    .eq('user_id', insertedUser.user_id)
+    .select();
+    
+  if (updateError) {
+    console.error('[createGuestUser] Update error:', updateError);
+    throw updateError;
+  }
+  
+  if (!updateData || updateData.length === 0) {
+    console.error('[createGuestUser] No data returned from update');
+    throw new Error('Failed to update guest user: no data returned');
+  }
+  
+  const updatedUser = updateData[0];
+  console.log('[createGuestUser] User updated:', updatedUser);
   
   const session = {
-    guest_user_id: updateData.user_id,
-    guest_first_name: updateData.first_name,
-    guest_stay_id: updateData.stay_id
+    guest_user_id: updatedUser.user_id,
+    guest_first_name: updatedUser.first_name,
+    guest_stay_id: updatedUser.stay_id
   };
-  saveGuestSession(session);
-  setTableNumber(table_number);
+  
+  try {
+    saveGuestSession(session);
+    setTableNumber(table_number);
+    console.log('[createGuestUser] Session saved successfully:', session);
+  } catch (storageError) {
+    console.warn('[createGuestUser] Failed to save session to localStorage:', storageError);
+    // Don't throw here - the user was created successfully in the database
+  }
+  
   return session;
 }
 
