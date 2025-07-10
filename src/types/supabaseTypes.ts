@@ -350,7 +350,11 @@ export type Database = {
     }
     Functions: {
       get_all_customers_with_total_spent_grouped: {
-        Args: Record<PropertyKey, never>
+        Args: {
+          p_include_archived?: boolean
+          p_limit?: number
+          p_offset?: number
+        }
         Returns: {
           customer_id: string
           name: string
