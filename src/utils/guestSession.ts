@@ -10,6 +10,10 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+/**
+ * GuestSession interface for managing guest user sessions
+ * stay_id is either a hotel stay (e.g. '3A12') or 'walkin-<guest_user_id>' for walk-in guests
+ */
 export interface GuestSession {
   guest_user_id: string;
   guest_first_name: string;
@@ -152,10 +156,20 @@ export async function createGuestUser({ table_number }: { table_number: string }
     table_number
   }).select().single();
   if (error) throw error;
+  
+  // Update stay_id to include the guest user ID
+  const { data: updateData, error: updateError } = await supabase
+    .from('guest_users')
+    .update({ stay_id: `walkin-${data.user_id}` })
+    .eq('user_id', data.user_id)
+    .select()
+    .single();
+  if (updateError) throw updateError;
+  
   const session = {
-    guest_user_id: data.user_id,
-    guest_first_name: data.first_name,
-    guest_stay_id: data.stay_id
+    guest_user_id: updateData.user_id,
+    guest_first_name: updateData.first_name,
+    guest_stay_id: updateData.stay_id
   };
   saveGuestSession(session);
   setTableNumber(table_number);

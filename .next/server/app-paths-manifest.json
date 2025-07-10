@@ -1,7 +1,1 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/admin/customer-orders/[userId]/page": "app/admin/customer-orders/[userId]/page.js",
-  "/page": "app/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/admin/customers/page": "app/admin/customers/page.js"
-}
+{}

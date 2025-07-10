@@ -44,6 +44,31 @@ AS $$
       WHEN p_include_archived THEN true 
       ELSE COALESCE(p.archived, false) = false 
     END
+    
+  UNION ALL
+  
+  -- Get guest families grouped by stay_id with optimized query
+  SELECT 
+    guest_totals.stay_id as customer_id,
+    guest_totals.stay_id as name,
+    'guest_family' as customer_type,
+    guest_totals.total_spent::numeric(10,2) as total_spent,
+    guest_totals.last_order_date,
+    guest_totals.joined_at,
+    false as archived
+  FROM (
+    SELECT 
+      o.stay_id,
+      SUM(o.total_amount) as total_spent,
+      MAX(o.created_at) as last_order_date,
+      MIN(o.created_at) as joined_at
+    FROM public.orders o
+    WHERE 
+      o.guest_user_id IS NOT NULL 
+      AND o.stay_id IS NOT NULL
+    GROUP BY o.stay_id
+  ) guest_totals
+    
   ORDER BY last_order_date DESC NULLS LAST, name
   LIMIT p_limit
   OFFSET p_offset;

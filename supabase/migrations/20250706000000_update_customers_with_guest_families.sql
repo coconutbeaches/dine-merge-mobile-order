@@ -24,12 +24,12 @@ AS $$
     COALESCE(SUM(o.total_amount), 0)::numeric(10,2) as total_spent,
     MAX(o.created_at)::timestamptz as last_order_date,
     p.created_at as joined_at,
-    COALESCE(p.archived, false) as archived
+    false as archived
   FROM 
     public.profiles p
     LEFT JOIN public.orders o ON p.id = o.user_id
   GROUP BY 
-    p.id, p.name, p.created_at, p.archived
+    p.id, p.name, p.created_at
     
   UNION ALL
   
