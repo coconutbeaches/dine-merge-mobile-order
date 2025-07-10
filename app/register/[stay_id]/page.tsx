@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { saveGuestSession, hasGuestSession, logStandaloneStatus, isStandaloneMode, recoverGuestSessionInStandalone, createGuestUser } from '@/utils/guestSession'
+import { saveGuestSession, hasGuestSession, logStandaloneStatus, isStandaloneMode, recoverGuestSessionInStandalone, createGuestUser, getTableNumber } from '@/utils/guestSession'
 import { cn } from '@/lib/utils'
 import { NAME_PROMPT_WIDTH } from '@/lib/constants'
 
@@ -182,8 +182,12 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     
     try {
       // 3. Create guest user with first name and table number
+      // Check if there's a stored table number from QR scan first
+      const storedTableNumber = getTableNumber();
+      const tableNumberToUse = storedTableNumber || stay_id;
+      
       const session = await createGuestUser({ 
-        table_number: stay_id, 
+        table_number: tableNumberToUse, 
         first_name: firstName.trim() 
       });
       console.log('Generated session:', session);

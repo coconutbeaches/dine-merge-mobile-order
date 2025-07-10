@@ -139,12 +139,38 @@ export function clearGuestSession(): void {
   }
 }
 
-export function setTableNumber(table: string) {
-  localStorage.setItem('table_number_pending', table);
+export function setTableNumber(table: string): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    // Test localStorage availability first
+    if (!isLocalStorageAvailable()) {
+      throw new Error('localStorage not available (private mode or disabled)');
+    }
+    
+    localStorage.setItem('table_number_pending', table);
+    console.log('[Table Number] Saved table number:', table);
+  } catch (error) {
+    console.warn('Failed to save table number to localStorage:', error);
+    throw error; // Re-throw so calling code can handle it
+  }
 }
 
 export function getTableNumber(): string | null {
-  return localStorage.getItem('table_number_pending');
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    // Test localStorage availability first
+    if (!isLocalStorageAvailable()) {
+      console.warn('localStorage not available for getting table number');
+      return null;
+    }
+    
+    return localStorage.getItem('table_number_pending');
+  } catch (error) {
+    console.warn('Failed to get table number from localStorage:', error);
+    return null;
+  }
 }
 
 export async function createGuestUser({ table_number, first_name = 'Guest' }: { table_number: string; first_name?: string }): Promise<GuestSession> {
