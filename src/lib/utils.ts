@@ -15,3 +15,5 @@ export function formatThaiCurrency(amount: number): string {
 export function formatThaiCurrencyWithComma(amount: number): string {
   return `฿${Math.round(amount).toLocaleString()}`;
 }
+
+export { formatStayId } from '@/utils/guestUtils';

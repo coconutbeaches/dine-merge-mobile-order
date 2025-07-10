@@ -15,7 +15,7 @@ const TableScanRouter = () => {
     setTableNumber(tableNum);
     const session = getGuestSession();
     if (!session) {
-      createGuestUser({ table_number: tableNum }).catch(console.error);
+      createGuestUser({ table_number: tableNum, first_name: 'Guest' }).catch(console.error);
     }
     router.replace('/menu');
   }, [router]);

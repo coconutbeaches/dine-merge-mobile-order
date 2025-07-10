@@ -18,6 +18,20 @@ export type OrderStatus =
 
 export type SupabaseOrderStatus = OrderStatus;
 
+// Extended Order interface that includes additional fields for UI components
+export interface ExtendedOrder extends Order {
+  customer_name?: string | null;
+  customer_email?: string | null;
+  order_status?: OrderStatus;
+  order_items?: any[];
+  updated_at?: string | null;
+  customer_type?: string | null;
+  special_instructions?: string | null;
+  customer_name_from_profile?: string | null;
+  customer_email_from_profile?: string | null;
+  formattedStayId?: string;
+}
+
 // JSON column types
 // This is a simplified representation of what's stored in the order_items JSON column.
 // It's based on the structure used in useFetchOrderById.ts and other parts of the app.

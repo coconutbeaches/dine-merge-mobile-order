@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order as BaseOrder } from '@/types/supabaseTypes';
 import { OrderStatus, ExtendedOrder } from '@/src/types/app';
 import { toast } from 'sonner';
+import { formatStayId } from '@/lib/utils';
 
 const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder => {
   const profile = profilesData?.find(p => p.id === order.user_id);
@@ -20,6 +21,8 @@ const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder =
     });
   }
 
+  const formattedStayId = formatStayId(order.stay_id, order.table_number);
+
   // Since the database only has basic columns, we provide defaults for missing fields
   return {
     ...order,
@@ -33,7 +36,8 @@ const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder =
     special_instructions: null, // Default null since column doesn't exist
     // Add profile data for UI display
     customer_name_from_profile: profile?.name || null,
-    customer_email_from_profile: profile?.email || null
+    customer_email_from_profile: profile?.email || null,
+    formattedStayId
   } as ExtendedOrder;
 };
 

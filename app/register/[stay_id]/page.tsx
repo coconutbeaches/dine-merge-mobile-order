@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { saveGuestSession, hasGuestSession, logStandaloneStatus, isStandaloneMode, recoverGuestSessionInStandalone } from '@/utils/guestSession'
+import { saveGuestSession, hasGuestSession, logStandaloneStatus, isStandaloneMode, recoverGuestSessionInStandalone, createGuestUser } from '@/utils/guestSession'
 import { cn } from '@/lib/utils'
 import { NAME_PROMPT_WIDTH } from '@/lib/constants'
 
@@ -181,101 +181,26 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     setIsLoading(true)
     
     try {
-      // 3. Generate userId
-      const userId = nanoid()
-      console.log('Generated user ID:', userId);
-      
-      // 4. Test Supabase connection first
-      console.log('Testing Supabase connection...');
-      try {
-        const connectionTest = await supabase.from('guest_users').select('count').limit(1);
-        console.log('Supabase connection test result:', connectionTest);
-      } catch (connError) {
-        console.error('Supabase connection test failed:', connError);
-      }
-      
-      // 5. Insert into database with detailed logging
-      console.log('Attempting database insert...');
-      console.log('Insert data:', {
-        user_id: userId,
-        first_name: firstName.trim(),
-        stay_id: stay_id
+      // 3. Create guest user with first name and table number
+      const session = await createGuestUser({ 
+        table_number: stay_id, 
+        first_name: firstName.trim() 
       });
+      console.log('Generated session:', session);
       
-      const insertResult = await supabase
-        .from('guest_users')
-        .insert({ 
-          user_id: userId, 
-          first_name: firstName.trim(), 
-          stay_id 
-        })
-        .select()
-      
-      console.log('Database insert result:', insertResult);
-      console.log('Insert error:', insertResult.error);
-      console.log('Insert data:', insertResult.data);
-      
-      if (insertResult.error) {
-        console.error('=== DATABASE ERROR DETAILS ===');
-        console.error('Error object:', insertResult.error);
-        console.error('Error code:', insertResult.error.code);
-        console.error('Error message:', insertResult.error.message);
-        console.error('Error details:', insertResult.error.details);
-        console.error('Error hint:', insertResult.error.hint);
-        
-        // More specific error messages
-        if (insertResult.error.code === '23505') {
-          toast.error('Registration already exists for this stay. Please try logging in instead.')
-        } else if (insertResult.error.code === '42501') {
-          toast.error('Permission denied. Please contact support.')
-        } else if (insertResult.error.message?.includes('network')) {
-          toast.error('Network error. Please check your connection and try again.')
-        } else {
-          toast.error(`Registration failed: ${insertResult.error.message || 'Unknown error'}`)
-        }
-        return
-      }
-      
-      console.log('Database insert successful:', insertResult.data);
-      
-      // 6. Save guest session with Safari-compatible error handling
-      console.log('Attempting to save guest session...');
-      let sessionSaved = false;
-      try {
-        saveGuestSession({
-          guest_user_id: userId,
-          guest_first_name: firstName.trim(),
-          guest_stay_id: stay_id
-        })
-        
-        // Also store guest_user_id separately for standalone mode fallback
-        localStorage.setItem('guest_user_id', userId);
-        
-        sessionSaved = true;
-        console.log('Session saved successfully');
-        
-        // If in standalone mode, force session write and verify
-        if (isStandaloneMode()) {
-          console.log('[PWA] Standalone mode detected, verifying session storage...');
-          const verifySession = localStorage.getItem('guest_user_id');
-          console.log('[PWA] Verification result:', verifySession === userId ? 'SUCCESS' : 'FAILED');
-        }
-      } catch (storageError) {
-        console.error('localStorage error:', storageError);
-        console.warn('localStorage not available, continuing without session storage');
-        // Continue without localStorage - user will still be registered in database
-      }
+      // Session is automatically saved by createGuestUser
+      console.log('Session saved successfully:', session);
       
       // 7. Success message and redirect
       console.log('Registration completed successfully, showing success message...');
-      toast.success(`Welcome, ${firstName.trim()}!${!sessionSaved ? ' (Session not saved)' : ''}`)
+      toast.success(`Welcome, ${firstName.trim()}!`)
       
       // Add delay for Safari compatibility and ensure toast is visible
       console.log('Setting redirect timeout...');
       setTimeout(() => {
         console.log('Redirecting to menu...');
         router.replace('/menu')
-      }, sessionSaved ? 500 : 1500) // Longer delay if session wasn't saved
+      }, 500)
       
       console.log('=== SAFARI REGISTRATION DEBUG END (SUCCESS) ===');
       

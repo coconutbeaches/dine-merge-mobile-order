@@ -71,6 +71,7 @@ function OrdersDashboardContent() {
         const name = (order.customer_name_from_profile || order.customer_name || order.guest_first_name || "").toLowerCase();
         const email = (order.customer_email_from_profile || "").toLowerCase();
         const orderIdStr = String(order.id);
+        const stayId = (order.formattedStayId || '').toLowerCase();
 
         let containsProduct = false;
         if (Array.isArray(order.order_items)) {
@@ -87,7 +88,8 @@ function OrdersDashboardContent() {
           name.includes(s) ||
           email.includes(s) ||
           orderIdStr.includes(s) ||
-          containsProduct
+          containsProduct ||
+          stayId.includes(s)
         );
       });
     }

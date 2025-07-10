@@ -54,6 +54,7 @@ export interface CartItem {
 
 // Re-export Order and OrderStatus from supabaseTypes to maintain consistency
 export type { Order, OrderStatus } from './supabaseTypes';
+export type { ExtendedOrder } from './app';
 
 export interface RestaurantInfo {
   name: string;

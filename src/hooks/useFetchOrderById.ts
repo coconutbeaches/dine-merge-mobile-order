@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Order, CartItem } from '@/types/app';
+import { Order, CartItem, ExtendedOrder } from '@/types/app';
 import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
 import { calculateTotalPrice } from '@/utils/productUtils';
+import { formatStayId } from '@/lib/utils';
 
 interface EnrichedOrderItem {
   id: string;
@@ -14,7 +15,7 @@ interface EnrichedOrderItem {
   originalCartItem: CartItem;
 }
 
-interface EnrichedOrder extends Omit<Order, 'order_items'> {
+interface EnrichedOrder extends Omit<ExtendedOrder, 'order_items'> {
   order_items: EnrichedOrderItem[];
 }
 
@@ -117,6 +118,8 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         }
       }
 
+      const formattedStayId = formatStayId(orderData.stay_id, orderData.table_number);
+      
       const enrichedData: EnrichedOrder = {
         id: orderData.id,
         user_id: orderData.user_id || undefined,
@@ -131,6 +134,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         customer_name_from_profile: profileData?.name || undefined,
         customer_email_from_profile: profileData?.email || undefined,
         order_items: enrichedItems,
+        formattedStayId,
       };
       
       return enrichedData;

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Profile } from '@/types/supabaseTypes';
-import { formatThaiCurrency } from '@/lib/utils';
+import { formatThaiCurrency, formatStayId } from '@/lib/utils';
 
 interface CustomerInfoProps {
   customer: Profile;

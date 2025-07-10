@@ -7,6 +7,7 @@ import {
   SupabaseOrderStatus
 } from '@/types/app';
 import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
+import { formatStayId } from '@/lib/utils';
 
 // Helper function to transform a single Supabase order
 const transformSupabaseOrder = (order: any, profileData: Profile | null): Order => {
@@ -96,7 +97,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
         // For guest families, create a virtual customer profile
         setCustomer({
           id: customerId,
-          name: customerId.replace(/_/g, ' '), // Display stay_id as name with spaces (e.g., "A5 CROWLEY")
+          name: formatStayId(customerId), // Use formatStayId for consistent display (e.g., "walkin 12" or "A5 CROWLEY")
           email: '',
           phone: null,
           role: null,

@@ -39,6 +39,7 @@ export async function placeOrder(orderData: {
         user_id: orderData.userId || null,
         guest_user_id: finalGuestUserId || null,
         guest_first_name: finalGuestFirstName || null,
+        stay_id: guestSession?.guest_stay_id || null,
         total_amount: orderData.total,
         order_status: 'new',
         order_items: orderData.items as any, // Cast to Json

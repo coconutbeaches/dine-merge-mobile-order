@@ -147,11 +147,11 @@ export function getTableNumber(): string | null {
   return localStorage.getItem('table_number_pending');
 }
 
-export async function createGuestUser({ table_number }: { table_number: string }): Promise<GuestSession> {
+export async function createGuestUser({ table_number, first_name = 'Guest' }: { table_number: string; first_name?: string }): Promise<GuestSession> {
   const randomId = crypto.randomUUID();
   const { data, error } = await supabase.from('guest_users').insert({
     user_id: randomId,
-    first_name: 'Guest',
+    first_name,
     stay_id: 'walkin',
     table_number
   }).select().single();
