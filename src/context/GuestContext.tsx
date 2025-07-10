@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import { getTableNumber, setTableNumber as setTableNumberLS } from '../utils/guestSession';
 
 interface GuestSession {
   guest_id: string;
@@ -11,6 +12,8 @@ interface GuestContextType {
   setGuestSession: (session: GuestSession) => void;
   clearGuestSession: () => void;
   getGuestSession: () => GuestSession | null;
+  tableNumber: string | null;
+  setTableNumber: (tableNumber: string) => void;
 }
 
 const GuestContext = createContext<GuestContextType | undefined>(undefined);
@@ -32,6 +35,13 @@ export const GuestProvider = ({ children }: GuestProviderProps) => {
     if (typeof window !== 'undefined') {
       const storedSession = localStorage.getItem('guest_session');
       return storedSession ? JSON.parse(storedSession) : null;
+    }
+    return null;
+  });
+
+  const [tableNumber, setTableNumberState] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return getTableNumber();
     }
     return null;
   });
@@ -58,11 +68,20 @@ export const GuestProvider = ({ children }: GuestProviderProps) => {
     return null;
   }, []);
 
+  const setTableNumber = useCallback((tableNumber: string) => {
+    if (typeof window !== 'undefined') {
+      setTableNumberLS(tableNumber);
+    }
+    setTableNumberState(tableNumber);
+  }, []);
+
   const value = {
     guestSession,
     setGuestSession,
     clearGuestSession,
     getGuestSession,
+    tableNumber,
+    setTableNumber,
   };
 
   return <GuestContext.Provider value={value}>{children}</GuestContext.Provider>;

@@ -8,6 +8,8 @@
  * Includes PWA standalone mode detection and session recovery.
  */
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface GuestSession {
   guest_user_id: string;
   guest_first_name: string;
@@ -131,6 +133,112 @@ export function clearGuestSession(): void {
   } catch (error) {
     console.warn('Failed to clear guest session from localStorage:', error);
   }
+}
+
+export function setTableNumber(table: string) {
+  localStorage.setItem('table_number_pending', table);
+}
+
+export function getTableNumber(): string | null {
+  return localStorage.getItem('table_number_pending');
+}
+
+export async function createGuestUser({ table_number }: { table_number: string }): Promise<GuestSession> {
+  const randomId = crypto.randomUUID();
+  const { data, error } = await supabase.from('guest_users').insert({
+    user_id: randomId,
+    first_name: 'Guest',
+    stay_id: 'walkin',
+    table_number
+  }).select().single();
+  if (error) throw error;
+  const session = {
+    guest_user_id: data.user_id,
+    guest_first_name: data.first_name,
+    guest_stay_id: data.stay_id
+  };
+  saveGuestSession(session);
+  setTableNumber(table_number);
+  return session;
+}
+
+export function getSession() {
+  return {
+    ...getGuestSession(),
+    table_number: getTableNumber()
+  };
+}
+
+/**
+ * Get the pending table number from localStorage
+ * This is used to store a scanned table number until the first order is placed
+ */
+export function getPendingTableNumber(): string | null {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    // Test localStorage availability first
+    if (!isLocalStorageAvailable()) {
+      console.warn('localStorage not available for getting pending table number');
+      return null;
+    }
+    
+    return localStorage.getItem('pending_table_number');
+  } catch (error) {
+    console.warn('Failed to get pending table number from localStorage:', error);
+    return null;
+  }
+}
+
+/**
+ * Set the pending table number in localStorage
+ * This temporarily stores the scanned table number until the first order is placed
+ */
+export function setPendingTableNumber(tableNumber: string): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    // Test localStorage availability first
+    if (!isLocalStorageAvailable()) {
+      throw new Error('localStorage not available (private mode or disabled)');
+    }
+    
+    // Safari-compatible localStorage write
+    localStorage.setItem('pending_table_number', tableNumber);
+    console.log('[Table Number] Saved pending table number:', tableNumber);
+  } catch (error) {
+    console.warn('Failed to save pending table number to localStorage:', error);
+    throw error; // Re-throw so calling code can handle it
+  }
+}
+
+/**
+ * Clear the pending table number from localStorage
+ * This should be called after successfully placing the first order
+ */
+export function clearPendingTableNumber(): void {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    // Test localStorage availability first
+    if (!isLocalStorageAvailable()) {
+      console.warn('localStorage not available for clearing pending table number');
+      return;
+    }
+    
+    localStorage.removeItem('pending_table_number');
+    console.log('[Table Number] Cleared pending table number');
+  } catch (error) {
+    console.warn('Failed to clear pending table number from localStorage:', error);
+  }
+}
+
+/**
+ * Check if a pending table number exists
+ */
+export function hasPendingTableNumber(): boolean {
+  const tableNumber = getPendingTableNumber();
+  return tableNumber !== null && tableNumber.trim() !== '';
 }
 
 /**

@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { CartItem, placeOrderInSupabase } from '@/services/orderService';
 import { Address, Order, OrderStatus } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
-import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
+import { getGuestSession, hasGuestSession, getTableNumber } from '@/utils/guestSession';
 
 export function usePlaceOrder(
   userId: string | undefined,
@@ -16,7 +16,7 @@ export function usePlaceOrder(
   const placeOrder = async (
     address: Address | null, 
     paymentMethod: string, 
-    tableNumberInput = 'Take Away',
+    providedTableNumber = 'Take Away',
     adminContext: { customerId: string, customerName: string } | null = null
   ): Promise<Order | null> => {
     // Keep existing logic to determine finalUserId and customerName
@@ -71,7 +71,7 @@ export function usePlaceOrder(
         address, 
         paymentMethod, 
         cart: cart.length, 
-        tableNumberInput,
+        providedTableNumber,
         adminContext
       });
       
@@ -101,14 +101,21 @@ export function usePlaceOrder(
       const finalCustomerName = customerName || profile?.name || null;
       console.log("Customer profile found:", profile);
       
+      // Get guest session and context for merging according to specification
+      const guestSession = getGuestSession();
+      const guestCtx = { tableNumber: getTableNumber() };
+      
       const insertedOrderData = await placeOrderInSupabase({
         userId: adminContext ? 
           // Admin creating order: use customer ID if it's a UUID, null if hotel guest
           (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId) ? adminContext.customerId : null) :
           // Regular user/guest: null for guests, userId for regular users
           ((guestUserId || stayId) ? null : finalUserId),
-        guestUserId: adminContext ? null : guestUserId, // Don't use admin's guest session for customer orders
-        guestFirstName: adminContext ? null : guestFirstName, // Don't use admin's guest info for customer orders
+        // Merge according to specification:
+        // guestUserId: guestSession?.guest_user_id
+        // guestFirstName: guestSession?.guest_first_name
+        guestUserId: adminContext ? null : guestSession?.guest_user_id,
+        guestFirstName: adminContext ? null : guestSession?.guest_first_name,
         stayId: adminContext ? 
           // Admin creating order: use stay_id if customer is hotel guest, null otherwise
           (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId) ? null : adminContext.customerId) :
@@ -117,7 +124,9 @@ export function usePlaceOrder(
         customerName: finalCustomerName,
         cartItems: cart as CartItem[],
         total: cartTotal,
-        tableNumber: tableNumberInput
+        // Merge according to specification:
+        // tableNumber: providedTableNumber || guestCtx.tableNumber || undefined
+        tableNumber: providedTableNumber || guestCtx.tableNumber || undefined
       });
 
       if (!insertedOrderData) {
@@ -139,7 +148,7 @@ export function usePlaceOrder(
         created_at: insertedOrderData.created_at,
         updated_at: insertedOrderData.updated_at,
         order_items: insertedOrderData.order_items,
-        table_number: insertedOrderData.table_number || tableNumberInput,
+        table_number: insertedOrderData.table_number || providedTableNumber,
         customer_name: insertedOrderData.customer_name,
         customer_name_from_profile: finalCustomerName,
         customer_email_from_profile: profile?.email || null
