@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Separator } from '@/components/ui/separator';
 import { formatThaiCurrency } from '@/lib/utils';
 import { useAppContext } from '@/context/AppContext';
+import { useGuestContext } from '@/context/GuestContext';
 import { ShoppingBag, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -31,9 +32,21 @@ export default function CheckoutPage() {
     adminCustomerContext,
     setAdminCustomerContext,
   } = useAppContext();
-  const [tableNumber, setTableNumber] = useState('Take Away');
+  const { tableNumber: scannedTableNumber, setTableNumber: setTableNumberCtx } = useGuestContext();
+  const [tableNumber, setTableNumber] = useState(scannedTableNumber ?? 'Take Away');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string,string>>({});
+
+  // Helper function to format table display
+  const formatTableDisplay = (value: string) => {
+    return value === 'Take Away' ? 'Take Away' : `Table ${value}`;
+  };
+
+  useEffect(() => {
+    if (scannedTableNumber && scannedTableNumber !== tableNumber) {
+      setTableNumber(scannedTableNumber);
+    }
+  }, [scannedTableNumber]);
 
   const validateOrder = () => {
     const errors: Record<string,string> = {};
@@ -134,9 +147,14 @@ export default function CheckoutPage() {
             </div>
             <div>
               <h2 className="text-lg font-semibold mb-2">Table Number</h2>
-              <Select value={tableNumber} onValueChange={setTableNumber}>
+              <Select value={tableNumber} onValueChange={(val) => {
+                setTableNumber(val);
+                setTableNumberCtx(val);
+              }}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select table number" />
+                  <SelectValue placeholder="Select table number">
+                    {tableNumber ? formatTableDisplay(tableNumber) : "Select table number"}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent 
                   side="top" 
@@ -151,7 +169,7 @@ export default function CheckoutPage() {
                       value={n} 
                       className="pl-8 pr-3 py-2 text-sm hover:bg-gray-100 rounded-md cursor-pointer transition-colors relative"
                     >
-                      {n}
+                      {n === 'Take Away' ? 'Take Away' : `Table ${n}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
