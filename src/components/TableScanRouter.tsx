@@ -27,28 +27,12 @@ const TableScanRouter = () => {
       const session = getGuestSession();
       console.log('[TableScanRouter] Current session:', session);
       
-      if (!session) {
-        console.log('[TableScanRouter] No session found, creating guest user');
-        try {
-          const newSession = await createGuestUser({ table_number: tableNum, first_name: 'Guest' });
-          console.log('[TableScanRouter] Guest user created successfully:', newSession);
-          
-          // Wait a bit to ensure session is saved before redirecting
-          setTimeout(() => {
-            console.log('[TableScanRouter] Redirecting to menu after guest user creation');
-            router.replace('/menu');
-          }, 100);
-        } catch (error) {
-          console.error('[TableScanRouter] Failed to create guest user:', error);
-          // If guest user creation fails, redirect with table number in URL
-          const fallbackUrl = `/register/unknown?table=${tableNum}`;
-          console.log('[TableScanRouter] Redirecting to fallback URL:', fallbackUrl);
-          router.replace(fallbackUrl);
-        }
-      } else {
-        console.log('[TableScanRouter] Session exists, skipping guest user creation');
-        router.replace('/menu');
-      }
+      // Always redirect to registration to get user's name
+      // Don't create guest user here - let registration handle it
+      console.log('[TableScanRouter] Redirecting to registration to get user name');
+      const registrationUrl = `/register/unknown?table=${tableNum}`;
+      console.log('[TableScanRouter] Registration URL:', registrationUrl);
+      router.replace(registrationUrl);
     };
     
     processTableScan();
