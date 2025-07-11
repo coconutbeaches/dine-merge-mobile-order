@@ -57,6 +57,22 @@ export default function CustomersDashboardPage() {
           });
         data = result.data;
         supabaseError = result.error;
+        
+        console.log('RPC function result:', {
+          data: data?.length || 0,
+          error: supabaseError,
+          sampleData: data?.slice(0, 3)
+        });
+        
+        // Check if we have guest families in the RPC result
+        if (data) {
+          const guestFamilies = data.filter(customer => customer.customer_type === 'guest_family');
+          console.log('Guest families from RPC:', guestFamilies.length);
+          if (guestFamilies.length === 0) {
+            console.log('No guest families from RPC, will use fallback method');
+            throw new Error('No guest families found, using fallback');
+          }
+        }
       } catch (rpcError) {
         console.log('New RPC function not available, using fallback method that includes guests');
         console.log('RPC Error details:', rpcError);
