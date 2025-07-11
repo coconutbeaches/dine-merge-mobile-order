@@ -51,21 +51,144 @@ const AdminOrderCreator = () => {
   const fetchCustomers = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .eq('archived', false)
-        .eq('deleted', false)
-        .order('name');
+      // Use the same logic as the customers page to ensure consistency
+      let data;
+      let supabaseError;
+      
+      try {
+        const result = await supabase
+          .rpc('get_all_customers_with_total_spent_grouped', {
+            p_limit: 100,
+            p_offset: 0,
+            p_include_archived: false // Only get non-archived customers
+          });
+        data = result.data;
+        supabaseError = result.error;
+        
+        // Check if we have guest families in the RPC result
+        if (data) {
+          const guestFamilies = data.filter(customer => customer.customer_type === 'guest_family');
+          if (guestFamilies.length === 0) {
+            throw new Error('No guest families found, using fallback');
+          }
+        }
+      } catch (rpcError) {
+        console.log('New RPC function not available, using fallback method that includes guests');
+        
+        // Fallback: Get both auth users and guest families manually
+        // 1. Get auth users from profiles
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            name,
+            email,
+            created_at,
+            archived,
+            deleted
+          `)
+          .limit(50);
 
-      if (error) {
-        throw error;
+        if (profilesError) throw profilesError;
+
+        // Get order totals for each profile
+        const profilesWithTotals = await Promise.all(
+          (profilesData || []).map(async (profile) => {
+            const { data: orderData } = await supabase
+              .from('orders')
+              .select('total_amount, created_at')
+              .eq('user_id', profile.id);
+
+            const totalSpent = orderData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+            const lastOrderDate = orderData?.length > 0 
+              ? Math.max(...orderData.map(o => new Date(o.created_at).getTime()))
+              : null;
+
+            return {
+              customer_id: profile.id,
+              name: profile.name || profile.email,
+              customer_type: 'auth_user' as const,
+              total_spent: totalSpent,
+              last_order_date: lastOrderDate ? new Date(lastOrderDate).toISOString() : null,
+              archived: profile.archived || false,
+              deleted: profile.deleted || false,
+              joined_at: profile.created_at
+            };
+          })
+        );
+
+        // 2. Get guest families by grouping orders by stay_id
+        const { data: guestOrders, error: guestError } = await supabase
+          .from('orders')
+          .select('stay_id, total_amount, created_at')
+          .not('guest_user_id', 'is', null)
+          .not('stay_id', 'is', null);
+
+        if (guestError) {
+          console.warn('Error fetching guest orders:', guestError);
+        }
+
+        // Group guest orders by stay_id
+        const guestFamilies: any[] = [];
+        if (guestOrders) {
+          const guestGroups = guestOrders.reduce((groups, order) => {
+            const stayId = order.stay_id;
+            if (!groups[stayId]) {
+              groups[stayId] = [];
+            }
+            groups[stayId].push(order);
+            return groups;
+          }, {} as Record<string, typeof guestOrders>);
+
+          Object.entries(guestGroups).forEach(([stayId, orders]) => {
+            const totalSpent = orders.reduce((sum, order) => sum + order.total_amount, 0);
+            const dates = orders.map(o => new Date(o.created_at).getTime());
+            const lastOrderDate = Math.max(...dates);
+            const joinedAt = Math.min(...dates);
+
+            guestFamilies.push({
+              customer_id: stayId,
+              name: stayId, // Will be formatted for display
+              customer_type: 'guest_family' as const,
+              total_spent: totalSpent,
+              last_order_date: new Date(lastOrderDate).toISOString(),
+              archived: false,
+              joined_at: new Date(joinedAt).toISOString()
+            });
+          });
+        }
+
+        // Combine auth users and guest families
+        data = [...profilesWithTotals, ...guestFamilies];
+        supabaseError = null;
       }
 
-      const formattedCustomers = data.map(customer => ({
-        id: customer.id,
+      if (supabaseError) {
+        throw new Error(supabaseError.message || 'Failed to fetch customers');
+      }
+
+      if (!data) {
+        setCustomers([]);
+        setFilteredCustomers([]);
+        return;
+      }
+
+      // Filter to exclude archived and deleted customers (same logic as customers page)
+      const filteredData = data.filter(customer => {
+        // Always exclude deleted customers
+        if (customer.deleted) return false;
+        
+        // Always exclude archived customers (no toggle in AdminOrderCreator)
+        if (customer.archived) return false;
+        
+        return true;
+      });
+
+      // Format customers for display
+      const formattedCustomers = filteredData.map(customer => ({
+        id: customer.customer_id,
         name: customer.name || 'Unnamed Customer',
-        email: customer.email
+        email: customer.customer_type === 'auth_user' ? customer.email : customer.name // Use stay_id as email for guest families
       }));
 
       setCustomers(formattedCustomers);
