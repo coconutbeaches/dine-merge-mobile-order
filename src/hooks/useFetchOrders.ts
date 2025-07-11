@@ -47,7 +47,7 @@ export const useFetchOrders = () => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const pageSize = 50;
+  const pageSize = 100; // Increase page size for better performance
 
   const fetchOrders = useCallback(async (reset = false) => {
     const currentPage = reset ? 0 : page;
@@ -60,6 +60,7 @@ export const useFetchOrders = () => {
     }
     
     try {
+        // Optimized query - select only essential columns for faster loading
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
           .select(`
@@ -70,7 +71,8 @@ export const useFetchOrders = () => {
             stay_id,
             total_amount,
             table_number,
-            created_at
+            created_at,
+            order_status
           `)
           .order('created_at', { ascending: false })
           .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1);

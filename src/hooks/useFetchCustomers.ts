@@ -7,18 +7,29 @@ import { toast } from 'sonner';
 const MAX_RETRIES = 3;
 // Delay between retries in milliseconds
 const RETRY_DELAY = 1000;
+// Cache for customer data to avoid refetching
+let customerCache: { data: GroupedCustomer[]; timestamp: number } | null = null;
+const CACHE_DURATION = 60000; // 1 minute cache
 
 export const useFetchCustomers = () => {
   const [customers, setCustomers] = useState<GroupedCustomer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchCustomers = useCallback(async (retryCount = 0): Promise<void> => {
+  const fetchCustomers = useCallback(async (retryCount = 0, forceRefresh = false): Promise<void> => {
+    // Check cache first unless force refresh is requested
+    if (!forceRefresh && customerCache && Date.now() - customerCache.timestamp < CACHE_DURATION) {
+      console.log('Using cached customer data');
+      setCustomers(customerCache.data);
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
     setError(null);
     
     try {
-      console.log('Fetching customers...');
+      console.log('Fetching customers from database...');
       const { data, error: supabaseError } = await supabase
         .rpc('get_customers_with_total_spent');
 
@@ -61,13 +72,21 @@ export const useFetchCustomers = () => {
         throw new Error('No data returned from server');
       }
 
-      setCustomers(data as GroupedCustomer[]);
-      console.log('Successfully fetched', data.length, 'grouped customers (auth users + guest families)');
-      console.log('Sample customer data:', data[0]);
+      const customerData = data as GroupedCustomer[];
+      setCustomers(customerData);
+      
+      // Update cache with fresh data
+      customerCache = {
+        data: customerData,
+        timestamp: Date.now()
+      };
+      
+      console.log('Successfully fetched', customerData.length, 'grouped customers (auth users + guest families)');
+      console.log('Sample customer data:', customerData[0]);
       
       // Count auth users vs guest families
-      const authUsers = data.filter(c => c.customer_type === 'auth_user').length;
-      const guestFamilies = data.filter(c => c.customer_type === 'guest_family').length;
+      const authUsers = customerData.filter(c => c.customer_type === 'auth_user').length;
+      const guestFamilies = customerData.filter(c => c.customer_type === 'guest_family').length;
       console.log(`Auth users: ${authUsers}, Guest families: ${guestFamilies}`);
     } catch (err: any) {
       console.error('Error in fetchCustomers:', err);

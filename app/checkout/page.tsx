@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,15 @@ export default function CheckoutPage() {
     }
   }, [scannedTableNumber]);
 
-  const validateOrder = () => {
+  // Memoize table numbers generation to avoid recalculation on each render
+  const tableNumbers = useMemo(() => {
+    const nums = ['Take Away'];
+    for (let i = 1; i <= 40; i++) nums.push(i.toString());
+    return nums;
+  }, []);
+
+  // Memoize validation function
+  const validateOrder = useCallback(() => {
     const errors: Record<string,string> = {};
     if (!currentUser && !hasGuestSession()) {
       errors.user = 'You must be logged in to place an order.';
@@ -57,9 +65,10 @@ export default function CheckoutPage() {
       errors.cart = 'Your cart is empty.';
     }
     return errors;
-  };
+  }, [currentUser, cart.length]);
 
-  const handlePlaceOrder = async () => {
+  // Optimize order placement with useCallback
+  const handlePlaceOrder = useCallback(async () => {
     const errors = validateOrder();
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
@@ -89,14 +98,7 @@ export default function CheckoutPage() {
     } finally {
       setIsPlacingOrder(false);
     }
-  };
-
-  const generateTableNumbers = () => {
-    const nums = ['Take Away'];
-    for (let i = 1; i <= 40; i++) nums.push(i.toString());
-    return nums;
-  };
-  const tableNumbers = generateTableNumbers();
+  }, [validateOrder, tableNumber, placeOrder, clearCart, setAdminCustomerContext, router]);
 
   if (cart.length === 0) {
     return (

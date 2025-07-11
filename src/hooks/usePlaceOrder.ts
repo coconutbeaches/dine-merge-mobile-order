@@ -76,13 +76,13 @@ export function usePlaceOrder(
         adminContext
       });
       
-      // For hotel guests, skip profile lookup since they don't have profiles
+      // Optimize profile lookup - skip if we already have customer name in admin context
       let profile = null;
       
       // Only fetch profile if:
-      // 1. Not a guest session, OR
-      // 2. Admin context with a UUID (regular user)
-      const shouldFetchProfile = !hasGuestSession() && (!adminContext || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId));
+      // 1. We don't already have customerName from admin context, AND
+      // 2. Not a guest session, OR admin context with a UUID (regular user)
+      const shouldFetchProfile = !customerName && !hasGuestSession() && (!adminContext || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId));
       
       if (shouldFetchProfile) {
         const { data: profileData, error: profileError } = await supabase
