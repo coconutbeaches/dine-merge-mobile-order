@@ -21,6 +21,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Search, RefreshCw, Trash2, Merge, Archive, Edit } from 'lucide-react';
 
+// Extended Customer interface to include archived and deleted fields
+// Query now selects: 'id, name, email, archived, deleted' from profiles
+// Filters deleted customers in JS and only keeps id, name, email for display
 interface GroupedCustomer {
   customer_id: string; // UUID for profiles, TEXT stay_id for guests
   name: string;
@@ -28,6 +31,7 @@ interface GroupedCustomer {
   total_spent: number;
   last_order_date: string | null;
   archived: boolean;
+  deleted?: boolean; // Optional field for soft deletion
   joined_at: string;
 }
 
@@ -86,7 +90,8 @@ export default function CustomersDashboardPage() {
             name,
             email,
             created_at,
-            archived
+            archived,
+            deleted
           `)
           .limit(50);
 
@@ -112,6 +117,7 @@ export default function CustomersDashboardPage() {
               total_spent: totalSpent,
               last_order_date: lastOrderDate ? new Date(lastOrderDate).toISOString() : null,
               archived: profile.archived || false,
+              deleted: profile.deleted || false,
               joined_at: profile.created_at
             };
           })
@@ -181,13 +187,26 @@ export default function CustomersDashboardPage() {
         return;
       }
 
-      // Filter based on includeArchived state if not already filtered by RPC
-      const filteredData = data.filter(customer => 
-        includeArchived || !customer.archived
-      );
+      // Filter based on includeArchived state and exclude deleted customers
+      const filteredData = data.filter(customer => {
+        // Always exclude deleted customers
+        if (customer.deleted) return false;
+        
+        // Filter archived customers based on includeArchived state
+        return includeArchived || !customer.archived;
+      });
 
-      setCustomers(filteredData as GroupedCustomer[]);
-      console.log('Successfully fetched', filteredData.length, 'customers');
+      // Format customers to only include id, name, email for display (as per task requirements)
+      const formattedCustomers = filteredData.map(customer => ({
+        ...customer,
+        // Keep original data but ensure we have the required fields
+        id: customer.customer_id,
+        name: customer.name,
+        email: customer.customer_type === 'auth_user' ? customer.email : null
+      }));
+
+      setCustomers(formattedCustomers as GroupedCustomer[]);
+      console.log('Successfully fetched', formattedCustomers.length, 'customers (excluding deleted)');
     } catch (err: any) {
       setError(err);
       toast.error(`Failed to fetch customers: ${err.message}`);

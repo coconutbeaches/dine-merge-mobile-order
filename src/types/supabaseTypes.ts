@@ -633,5 +633,6 @@ export interface GroupedCustomer {
   total_spent: number;
   last_order_date: string | null;
   archived: boolean;
+  deleted?: boolean; // Optional field for soft deletion
   joined_at: string;
 }

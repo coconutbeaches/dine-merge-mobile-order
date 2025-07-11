@@ -37,15 +37,18 @@ export const useFetchCustomers = () => {
           }
           
           // Convert profiles to GroupedCustomer format
-          const customersWithDummyData: GroupedCustomer[] = (fallbackData || []).map(profile => ({
-            customer_id: profile.id,
-            name: profile.name || 'Unnamed Customer',
-            customer_type: 'auth_user' as const,
-            total_spent: 0,
-            last_order_date: null,
-            archived: profile.archived || false,
-            joined_at: profile.created_at
-          }));
+          const customersWithDummyData: GroupedCustomer[] = (fallbackData || [])
+            .filter(profile => !profile.deleted) // Exclude deleted customers
+            .map(profile => ({
+              customer_id: profile.id,
+              name: profile.name || 'Unnamed Customer',
+              customer_type: 'auth_user' as const,
+              total_spent: 0,
+              last_order_date: null,
+              archived: profile.archived || false,
+              deleted: profile.deleted || false,
+              joined_at: profile.created_at
+            }));
           
           setCustomers(customersWithDummyData);
           console.log('Successfully fetched', customersWithDummyData.length, 'customers (fallback)');

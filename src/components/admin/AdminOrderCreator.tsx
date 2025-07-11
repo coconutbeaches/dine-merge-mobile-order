@@ -54,6 +54,8 @@ const AdminOrderCreator = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name, email')
+        .eq('archived', false)
+        .eq('deleted', false)
         .order('name');
 
       if (error) {

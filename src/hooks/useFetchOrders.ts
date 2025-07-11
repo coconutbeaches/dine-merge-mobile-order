@@ -87,6 +87,8 @@ export const useFetchOrders = () => {
             const { data, error: profilesError } = await supabase
                 .from('profiles')
                 .select('id, name, email')
+                .eq('archived', false)
+                .eq('deleted', false)
                 .in('id', userIds);
             if (profilesError) {
                 console.warn('Could not fetch profiles data:', profilesError);
