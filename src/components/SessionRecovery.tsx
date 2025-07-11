@@ -23,6 +23,12 @@ export function SessionRecovery({ children }: SessionRecoveryProps) {
       console.log('[SessionRecovery] Starting session recovery check...')
       console.log('[SessionRecovery] Current pathname:', pathname)
       
+      // Skip session recovery for admin and login pages
+      if (pathname.startsWith('/admin') || pathname.startsWith('/login')) {
+        console.log('[SessionRecovery] Skipping session recovery for admin/login pages')
+        return
+      }
+      
       // Check standalone mode
       const isStandalone = isStandaloneMode()
       logStandaloneStatus()

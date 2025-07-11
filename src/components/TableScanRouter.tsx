@@ -19,6 +19,12 @@ const TableScanRouter = () => {
     // Only run on client-side
     if (!isClient) return;
     
+    // Skip table scan routing for admin and login pages
+    if (window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/login')) {
+      console.log('[TableScanRouter] Skipping table scan for admin/login pages');
+      return;
+    }
+    
     const params = new URLSearchParams(window.location.search);
     const goto = params.get('goto');              // e.g. "table-7"
     if (!goto?.startsWith('table-')) return;      // nothing to do
