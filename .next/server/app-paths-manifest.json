@@ -1,8 +1,7 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/admin/customer-orders/[userId]/page": "app/admin/customer-orders/[userId]/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/menu/page": "app/menu/page.js",
-  "/register/[stay_id]/page": "app/register/[stay_id]/page.js",
-  "/admin/customers/page": "app/admin/customers/page.js"
+  "/page": "app/page.js",
+  "/admin/customers/page": "app/admin/customers/page.js",
+  "/admin/orders/page": "app/admin/orders/page.js",
+  "/admin/page": "app/admin/page.js"
 }
