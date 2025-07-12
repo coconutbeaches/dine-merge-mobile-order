@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { updateUserProfile } from '@/services/userProfileService';
 import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
+import { formatStayId } from '@/lib/utils';
 
 export default function Page() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const stayIdParam = searchParams.get('stay_id');
   const { currentUser, isLoggedIn, isLoading: isLoadingUserContext, logout, convertGuestToUser } = useAppContext();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -32,10 +35,41 @@ export default function Page() {
   const [guestSession, setGuestSession] = useState(null);
   const [familyMembers, setFamilyMembers] = useState([]);
   const [familyMemberOrderCounts, setFamilyMemberOrderCounts] = useState(new Map());
+  const [externalStayId, setExternalStayId] = useState(null);
 
   useEffect(() => {
     const checkAndSetupProfile = async () => {
-      // Check for hotel guest session first
+      // Check if there's a stay_id parameter in the URL (from admin clicking on guest family)
+      if (stayIdParam) {
+        setIsHotelGuest(true);
+        setExternalStayId(stayIdParam);
+        setGuestSession({ guest_stay_id: stayIdParam });
+        
+        // Fetch all family members for this stay_id
+        try {
+          const { data, error } = await supabase
+            .from('guest_users')
+            .select('*')
+            .eq('stay_id', stayIdParam)
+            .order('created_at', { ascending: true });
+          
+          if (error) {
+            console.error('Error fetching family members:', error);
+            toast.error('Failed to load family members');
+          } else {
+            setFamilyMembers(data || []);
+            
+            // Check which family members have orders
+            await checkFamilyMembersWithOrders(data || []);
+          }
+        } catch (error) {
+          console.error('Error fetching family members:', error);
+          toast.error('Failed to load family members');
+        }
+        return;
+      }
+      
+      // Check for hotel guest session (normal guest user flow)
       if (hasGuestSession()) {
         const session = getGuestSession();
         setIsHotelGuest(true);
@@ -82,7 +116,7 @@ export default function Page() {
     };
     
     checkAndSetupProfile();
-  }, [currentUser, isLoggedIn, isLoadingUserContext, router]);
+  }, [currentUser, isLoggedIn, isLoadingUserContext, router, stayIdParam]);
 
   // Hotel guest functions
   const checkFamilyMembersWithOrders = async (members) => {
@@ -289,7 +323,7 @@ export default function Page() {
               <div>
                 <CardTitle>Guests</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {guestSession?.guest_stay_id?.replace(/_/g, ' ')}
+                  {formatStayId(guestSession?.guest_stay_id || '')}
                 </p>
               </div>
               {!isEditing && (

@@ -16,7 +16,7 @@ const CustomerOrderHistory = () => {
   const params = useParams();
   const router = useRouter();
   const userId = params.userId as string;
-  const { orders, setOrders, customer, isLoading } = useCustomerOrders(userId);
+  const { orders, setOrders, customer, customerType, isLoading } = useCustomerOrders(userId);
   const { updateMultipleOrderStatuses, updateOrder } = useOrderActions(setOrders);
 
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
@@ -89,7 +89,7 @@ const CustomerOrderHistory = () => {
         </div>
 
         {customer && (
-          <CustomerInfo customer={customer} totalSpent={totalSpent} />
+          <CustomerInfo customer={customer} customerType={customerType} totalSpent={totalSpent} />
         )}
         
         <CustomerOrdersList orders={orders} onStatusClick={handleStatusClick} onOrderSave={handleOrderSave} />

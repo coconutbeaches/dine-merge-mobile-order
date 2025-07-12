@@ -72,18 +72,18 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
                 placeholder="Name"
                 value={item.product}
                 onChange={e => updateItem(item.id, 'product', e.target.value)}
-                className="flex-1"
+                className="flex-[2] min-w-0"
                 aria-label="Product name"
               />
-              <div className="w-24">
+              <div className="w-20 flex-shrink-0">
                 <div className="relative">
-                  <span className="absolute left-0 inset-y-0 flex items-center pl-3 text-gray-500">฿</span>
+                  <span className="absolute left-0 inset-y-0 flex items-center pl-2 text-gray-500 text-sm">฿</span>
                   <Input
                     type="number"
                     placeholder="Price"
                     value={item.price}
                     onChange={e => updateItem(item.id, 'price', Number(e.target.value))}
-                    className="pl-7 no-spinner"
+                    className="pl-6 no-spinner text-sm"
                   />
                 </div>
               </div>
