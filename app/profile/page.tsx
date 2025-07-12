@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
@@ -16,7 +16,7 @@ import { updateUserProfile } from '@/services/userProfileService';
 import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
 import { formatStayId } from '@/lib/utils';
 
-export default function Page() {
+function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const stayIdParam = searchParams.get('stay_id');
@@ -519,5 +519,17 @@ export default function Page() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={
+      <Layout title="" showBackButton>
+        <div className="page-container text-center py-10">Loading profile...</div>
+      </Layout>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }
