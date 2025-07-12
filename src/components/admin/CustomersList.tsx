@@ -93,7 +93,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 />
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:text-primary transition-colors"
+                className="cursor-pointer hover:text-primary transition-colors w-[200px]"
                 onClick={() => handleSort('name')}
               >
                 <div className="flex items-center gap-1">
@@ -104,10 +104,10 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 </div>
               </TableHead>
               <TableHead 
-                className="cursor-pointer hover:text-primary transition-colors text-left min-w-[80px] w-[80px]"
+                className="cursor-pointer hover:text-primary transition-colors text-left w-[70px]"
                 onClick={() => handleSort('customer_type')}
               >
-                <div className="flex items-center gap-1 justify-start ml-1">
+                <div className="flex items-center gap-1 justify-start">
                   Type
                   {sortKey === 'customer_type' && (
                     sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
@@ -115,7 +115,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 </div>
               </TableHead>
               <TableHead 
-                className="text-right cursor-pointer hover:text-primary transition-colors"
+                className="text-right cursor-pointer hover:text-primary transition-colors w-[100px]"
                 onClick={() => handleSort('total_spent')}
               >
                 <div className="flex items-center justify-end gap-1">
@@ -202,7 +202,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                     }
                   })()}
                 </TableCell>
-                <TableCell className="text-left w-[80px]">
+                <TableCell className="text-left w-[70px]">
                   <div className="flex justify-start gap-1 flex-wrap">
                     <Badge 
                       variant={customer.customer_type === 'auth_user' ? 'default' : 'secondary'}
@@ -217,7 +217,7 @@ const CustomersList: React.FC<CustomersListProps> = ({
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right w-[100px]">
                   {formatThaiCurrencyWithComma(customer.total_spent)}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground w-[140px]">
