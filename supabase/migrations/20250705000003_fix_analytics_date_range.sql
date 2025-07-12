@@ -1,5 +1,8 @@
 -- Fix the date range issue in orders_by_day_and_guest_type function
 -- The problem was that end_date was not inclusive of the full day
+-- First drop the existing function to avoid return type conflicts
+DROP FUNCTION IF EXISTS public.orders_by_day_and_guest_type(DATE, DATE);
+
 CREATE OR REPLACE FUNCTION public.orders_by_day_and_guest_type(start_date DATE, end_date DATE)
 RETURNS TABLE(
   order_date date,

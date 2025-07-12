@@ -1,4 +1,7 @@
 -- Fix the top_products_by_quantity function to work with the correct order_items structure
+-- First drop the existing function to avoid return type conflicts
+DROP FUNCTION IF EXISTS public.top_products_by_quantity(DATE, DATE);
+
 CREATE OR REPLACE FUNCTION public.top_products_by_quantity(
   start_date DATE,
   end_date   DATE
