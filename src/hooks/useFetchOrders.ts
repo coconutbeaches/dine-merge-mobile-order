@@ -23,17 +23,17 @@ const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder =
 
   const formattedStayId = formatStayId(order.stay_id, order.table_number);
 
-  // Since the database only has basic columns, we provide defaults for missing fields
+  // Use actual data from database with smart fallbacks
   return {
     ...order,
-    // Provide defaults for missing columns
-    customer_name: profile?.name || null, // Don't use guest_first_name here, let UI decide
+    // Prioritize customer name from order record, then profile, then guest name
+    customer_name: order.customer_name || profile?.name || order.guest_first_name || null,
     customer_email: profile?.email || null,
-    order_status: 'new' as OrderStatus, // Default status since column doesn't exist
-    order_items: [], // Default empty array since column doesn't exist
-    updated_at: order.created_at, // Use created_at as fallback
+    order_status: order.order_status || 'new' as OrderStatus, // Use actual status from database
+    order_items: order.order_items || [], // Use actual order items or default empty array
+    updated_at: order.updated_at || order.created_at, // Use updated_at if available, fallback to created_at
     customer_type: profile?.customer_type || 'hotel_guest', // Default type
-    special_instructions: null, // Default null since column doesn't exist
+    special_instructions: order.special_instructions || null, // Use actual special instructions
     // Add profile data for UI display
     customer_name_from_profile: profile?.name || null,
     customer_email_from_profile: profile?.email || null,
@@ -60,7 +60,7 @@ export const useFetchOrders = () => {
     }
     
     try {
-        // Optimized query - select only essential columns for faster loading
+        // Optimized query - select all necessary columns for complete functionality
         const { data: ordersData, error: ordersError } = await supabase
           .from('orders')
           .select(`
@@ -72,7 +72,11 @@ export const useFetchOrders = () => {
             total_amount,
             table_number,
             created_at,
-            order_status
+            updated_at,
+            order_status,
+            order_items,
+            special_instructions,
+            customer_name
           `)
           .order('created_at', { ascending: false })
           .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1);
