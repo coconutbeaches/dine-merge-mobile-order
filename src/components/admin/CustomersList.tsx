@@ -11,7 +11,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { User, ChevronUp, ChevronDown } from 'lucide-react';
+import { User, ChevronUp, ChevronDown, Archive, ArchiveRestore } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
@@ -154,7 +154,13 @@ const CustomersList: React.FC<CustomersListProps> = ({
             {customers.map((customer) => (
               <TableRow 
                 key={`${customer.customer_id}-${customer.customer_type}`} 
-                className={recentlyUpdatedId === customer.customer_id ? 'animate-pulse bg-muted/20' : ''}
+                className={`${
+                  recentlyUpdatedId === customer.customer_id 
+                    ? 'animate-pulse bg-muted/20' 
+                    : customer.archived 
+                      ? 'opacity-60 bg-muted/10' 
+                      : ''
+                }`}
               >
                 <TableCell>
                   <Checkbox
@@ -198,13 +204,18 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   })()}
                 </TableCell>
                 <TableCell className="text-left w-[80px]">
-                  <div className="flex justify-start">
+                  <div className="flex justify-start gap-1 flex-wrap">
                     <Badge 
                       variant={customer.customer_type === 'auth_user' ? 'default' : 'secondary'}
                       className="text-xs"
                     >
                       {customer.customer_type === 'auth_user' ? 'User' : 'Guest'}
                     </Badge>
+                    {customer.archived && (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        Archived
+                      </Badge>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -216,7 +227,21 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 <TableCell className="hidden lg:table-cell">
                   {customer.joined_at ? format(new Date(customer.joined_at), 'MMM d') : '—'}
                 </TableCell>
-                
+                <TableCell className="w-[50px]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onArchiveCustomer(customer, !customer.archived)}
+                    className="h-8 w-8 p-0"
+                    title={customer.archived ? 'Unarchive customer' : 'Archive customer'}
+                  >
+                    {customer.archived ? (
+                      <ArchiveRestore className="h-4 w-4" />
+                    ) : (
+                      <Archive className="h-4 w-4" />
+                    )}
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

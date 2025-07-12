@@ -87,14 +87,15 @@ const OrdersList = ({
       {/* Orders rows */}
       {orders.map((order) => {
         // For guest orders, prioritize family account name (stay_id) over individual guest name
+        // For authenticated users, prefer profile name even if stay_id exists
         let customerDisplayName;
         
-if (order.customer_name_from_profile || order.customer_name) {
+if ((order.formattedStayId || order.stay_id) && !order.customer_name_from_profile) {
+          // Prefer formattedStayId when present, but only for guest-only orders (no profile name)
+          customerDisplayName = order.formattedStayId || formatStayId(order.stay_id);
+        } else if (order.customer_name_from_profile || order.customer_name) {
           // Authenticated user with profile or admin-placed order with customer name
           customerDisplayName = order.customer_name_from_profile || order.customer_name;
-        } else if (order.formattedStayId || order.stay_id) {
-          // Prefer formattedStayId when present
-          customerDisplayName = order.formattedStayId || formatStayId(order.stay_id);
         } else {
           // Fallback
           customerDisplayName = `Order #${order.id}`;

@@ -5,7 +5,7 @@ import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import CustomersList from '@/components/admin/CustomersList';
 import EditCustomerDialog from '@/components/admin/EditCustomerDialog';
-import { updateUserProfile, mergeCustomers } from '@/services/userProfileService';
+import { updateUserProfile, mergeCustomers, archiveGuestFamily } from '@/services/userProfileService';
 import { toast } from 'sonner';
 import MergeCustomersDialog from '@/components/admin/MergeCustomersDialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -149,6 +149,13 @@ export default function CustomersDashboardPage() {
             return groups;
           }, {} as Record<string, typeof guestOrders>);
 
+          // Get archived guest families
+          const { data: archivedGuestFamilies } = await supabase
+            .from('guest_family_archives')
+            .select('stay_id');
+          
+          const archivedStayIds = new Set(archivedGuestFamilies?.map(g => g.stay_id) || []);
+
           Object.entries(guestGroups).forEach(([stayId, orders]) => {
             const totalSpent = orders.reduce((sum, order) => sum + order.total_amount, 0);
             const dates = orders.map(o => new Date(o.created_at).getTime());
@@ -161,7 +168,7 @@ export default function CustomersDashboardPage() {
               customer_type: 'guest_family' as const,
               total_spent: totalSpent,
               last_order_date: new Date(lastOrderDate).toISOString(),
-              archived: false,
+              archived: archivedStayIds.has(stayId),
               joined_at: new Date(joinedAt).toISOString()
             });
           });
@@ -425,21 +432,26 @@ export default function CustomersDashboardPage() {
   };
 
   const handleArchiveCustomer = async (customer: GroupedCustomer, isArchived: boolean) => {
-    if (customer.customer_type === 'guest_family') {
-      toast.info('Guest families cannot be archived directly.');
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ archived: isArchived })
-        .eq('id', customer.customer_id);
+      if (customer.customer_type === 'guest_family') {
+        const { error } = await archiveGuestFamily(customer.customer_id, isArchived);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ archived: isArchived })
+          .eq('id', customer.customer_id);
+        if (error) throw error;
+      }
 
-      if (error) throw error;
+      // Update local customers state to flip archived
+      setCustomers(prev => prev.map(c => 
+        c.customer_id === customer.customer_id 
+          ? { ...c, archived: isArchived }
+          : c
+      ));
 
       toast.success(isArchived ? 'Customer archived successfully!' : 'Customer unarchived successfully!');
-      fetchCustomers(); // Refetch to update the list
     } catch (error: any) {
       console.error('Error archiving customer:', error);
       toast.error(`Failed to archive customer: ${error.message}`);
@@ -504,20 +516,16 @@ export default function CustomersDashboardPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Switch
-                    id="show-archived"
-                    checked={includeArchived}
-                    onCheckedChange={setIncludeArchived}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  {includeArchived ? "Archived Customers Visible" : "Archived Customers Hidden"}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-archived"
+                checked={includeArchived}
+                onCheckedChange={setIncludeArchived}
+              />
+              <Label htmlFor="show-archived" className="text-sm font-medium">
+                Include archived
+              </Label>
+            </div>
             <Button variant="ghost" size="icon" onClick={fetchCustomers} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="sr-only">Refresh</span>

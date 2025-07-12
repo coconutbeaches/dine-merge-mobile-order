@@ -216,3 +216,12 @@ export const deleteProfilePicture = async (
     };
   }
 };
+
+export async function archiveGuestFamily(stayId: string, archive = true) {
+  if (archive) {
+    const { data, error } = await supabase.from('guest_family_archives').upsert({ stay_id: stayId });
+    return { error, data };
+  }
+  const { data, error } = await supabase.from('guest_family_archives').delete().eq('stay_id', stayId);
+  return { error, data };
+}

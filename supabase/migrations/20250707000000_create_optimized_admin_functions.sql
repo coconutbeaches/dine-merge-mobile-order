@@ -52,7 +52,7 @@ AS $$
     guest_totals.total_spent::numeric(10,2) as total_spent,
     guest_totals.last_order_date,
     guest_totals.joined_at,
-    false as archived
+    COALESCE(gfa.stay_id IS NOT NULL, false) AS archived
   FROM (
     SELECT 
       o.stay_id,
@@ -65,6 +65,8 @@ AS $$
       AND o.stay_id IS NOT NULL
     GROUP BY o.stay_id
   ) guest_totals
+  LEFT JOIN public.guest_family_archives gfa ON gfa.stay_id = guest_totals.stay_id
+  WHERE (p_include_archived OR gfa.stay_id IS NULL)
     
   ORDER BY last_order_date DESC NULLS LAST, name
   LIMIT p_limit
