@@ -11,7 +11,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { User, ChevronUp, ChevronDown, Archive, ArchiveRestore } from 'lucide-react';
+import { User, ChevronUp, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
@@ -147,7 +147,6 @@ const CustomersList: React.FC<CustomersListProps> = ({
                   )}
                 </div>
               </TableHead>
-              <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -226,21 +225,6 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 </TableCell>
                 <TableCell className="hidden lg:table-cell">
                   {customer.joined_at ? format(new Date(customer.joined_at), 'MMM d') : '—'}
-                </TableCell>
-                <TableCell className="w-[50px]">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onArchiveCustomer(customer, !customer.archived)}
-                    className="h-8 w-8 p-0"
-                    title={customer.archived ? 'Unarchive customer' : 'Archive customer'}
-                  >
-                    {customer.archived ? (
-                      <ArchiveRestore className="h-4 w-4" />
-                    ) : (
-                      <Archive className="h-4 w-4" />
-                    )}
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}
