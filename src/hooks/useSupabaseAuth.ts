@@ -18,23 +18,29 @@ export const useSupabaseAuth = (onProfileFetch: (userId: string) => Promise<void
     let authSubscription: { unsubscribe: () => void } | null = null;
     let refreshInterval: NodeJS.Timeout | null = null;
 
-    const handleAuthChange = async (event: string, session: Session | null) => {
-      if (!isMounted) return;
-      console.log('[useSupabaseAuth] Auth state change:', event, session);
-      setSupabaseSession(session ?? null);
-      setSupabaseUser(session?.user ?? null);
+  const handleAuthChange = async (event: string, session: Session | null) => {
+    if (!isMounted) return;
+    console.log('[useSupabaseAuth] Auth state change:', event, session);
+    const timestamp = Date.now();
+    console.log(`[useSupabaseAuth] ${timestamp} - Starting auth change processing`);
+    
+    setSupabaseSession(session ?? null);
+    setSupabaseUser(session?.user ?? null);
+    console.log(`[useSupabaseAuth] ${Date.now()} - Session and user state updated, about to fetch profile`);
 
-      if (session?.user) {
-        await onProfileFetchRef.current(session.user.id);
-      } else {
-        await onProfileFetchRef.current('');
-      }
+    if (session?.user) {
+      console.log(`[useSupabaseAuth] ${Date.now()} - Calling onProfileFetch for user: ${session.user.id}`);
+      await onProfileFetchRef.current(session.user.id);
+      console.log(`[useSupabaseAuth] ${Date.now()} - Profile fetch completed`);
+    } else {
+      await onProfileFetchRef.current('');
+    }
 
-      if (isMounted) {
-        setIsLoading(false);
-        console.log('[useSupabaseAuth] Loading complete.');
-      }
-    };
+    if (isMounted) {
+      setIsLoading(false);
+      console.log(`[useSupabaseAuth] ${Date.now()} - Loading complete (total time: ${Date.now() - timestamp}ms)`);
+    }
+  };
 
     // Check for session in standalone mode
     const checkStandaloneSession = async () => {

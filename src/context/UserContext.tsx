@@ -29,9 +29,20 @@ interface UserProviderProps { children: ReactNode }
 export const UserProvider = ({ children }: UserProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const fetchProfileAndSet = useCallback(async (userId: string) => {
-    if (!userId) { setCurrentUser(null); return; }
+    const timestamp = Date.now();
+    console.log(`[UserContext] ${timestamp} - fetchProfileAndSet called with userId: ${userId}`);
+    
+    if (!userId) { 
+      console.log(`[UserContext] ${Date.now()} - No userId provided, setting currentUser to null`);
+      setCurrentUser(null); 
+      return; 
+    }
+    
+    console.log(`[UserContext] ${Date.now()} - About to fetch profile for userId: ${userId}`);
     const profile = await fetchUserProfile(userId);
+    console.log(`[UserContext] ${Date.now()} - Profile fetched, setting currentUser:`, profile);
     setCurrentUser(profile);
+    console.log(`[UserContext] ${Date.now()} - fetchProfileAndSet completed (total time: ${Date.now() - timestamp}ms)`);
   }, []);
 
   const { supabaseUser, supabaseSession, isLoading } = useSupabaseAuth(fetchProfileAndSet);

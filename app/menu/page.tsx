@@ -33,9 +33,14 @@ interface Product {
 function MenuIndexContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isLoggedIn, currentUser, setAdminCustomerContext, adminCustomerContext } = useAppContext();
+  const { isLoggedIn, currentUser, setAdminCustomerContext, adminCustomerContext, isLoading: userLoading } = useAppContext();
 
   const { toast } = useToast();
+  
+  // Log user state changes for race condition analysis
+  useEffect(() => {
+    console.log(`[MenuPage] ${Date.now()} - isLoggedIn: ${isLoggedIn}, currentUser: ${currentUser ? 'present' : 'null'}, isLoading: ${userLoading}`);
+  }, [isLoggedIn, currentUser, userLoading]);
 
   // Guest session state
   const [guestSession, setGuestSession] = useState<ReturnType<typeof getGuestSession>>(null);
@@ -54,11 +59,13 @@ function MenuIndexContent() {
       
       if (session) {
         setGuestSession(session);
-      } else if (!isLoggedIn) {
-        // No guest session AND not logged in - redirect to registration
+      } else if (!isLoggedIn && !userLoading) {
+        // No guest session AND not logged in (and not loading) - redirect to registration
         const redirectUrl = getRegistrationUrl();
-        console.log('MenuPage: No guest session and not logged in. Redirecting to registration:', redirectUrl);
+        console.log(`[MenuPage] ${Date.now()} - No guest session and not logged in (userLoading: ${userLoading}). Redirecting to registration:`, redirectUrl);
         router.replace(redirectUrl);
+      } else if (!isLoggedIn && userLoading) {
+        console.log(`[MenuPage] ${Date.now()} - Not logged in but still loading user data (userLoading: ${userLoading}). Waiting...`);
       }
     };
     
@@ -69,7 +76,7 @@ function MenuIndexContent() {
     } else {
       checkSession();
     }
-  }, [router, isLoggedIn]); // Run once on mount and when login status changes
+  }, [router, isLoggedIn, userLoading]); // Run once on mount and when login status or loading changes
 
   useEffect(() => {
     const customerId = searchParams?.get('customerId');

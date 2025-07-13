@@ -20,6 +20,11 @@ const Header: React.FC<HeaderProps> = ({
   const pathname = usePathname();
   const { cart, isLoggedIn, currentUser, cartIsLoading } = useAppContext(); // Include currentUser to check admin role
   const [isClient, setIsClient] = useState(false);
+  
+  // Log isLoggedIn state changes for race condition analysis
+  useEffect(() => {
+    console.log(`[Header] ${Date.now()} - isLoggedIn: ${isLoggedIn}, currentUser: ${currentUser ? 'present' : 'null'}`);
+  }, [isLoggedIn, currentUser]);
 
   // Ensure this only runs on the client
   useEffect(() => {

@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { saveGuestSession, hasGuestSession, logStandaloneStatus, isStandaloneMode, recoverGuestSessionInStandalone, createGuestUser, getTableNumber } from '@/utils/guestSession'
+import { saveGuestSession, hasGuestSession, getGuestSession, logStandaloneStatus, isStandaloneMode, recoverGuestSessionInStandalone, createGuestUser, getTableNumber } from '@/utils/guestSession'
 import { cn } from '@/lib/utils'
 import { NAME_PROMPT_WIDTH } from '@/lib/constants'
 
@@ -125,9 +125,18 @@ export default function RegisterPage({ params }: RegisterPageProps) {
       
       // Standard guest session check
       try {
-        if (hasGuestSession()) {
-          console.log('Guest session already exists, redirecting to menu')
-          router.replace('/menu')
+        const existingSession = getGuestSession();
+        if (existingSession) {
+          console.log('Found existing guest session:', existingSession);
+          
+          // Check if this is the same stay_id - if so, allow registration for different family member
+          if (existingSession.guest_stay_id === stay_id) {
+            console.log('Same stay_id found, allowing new family member registration');
+            // Don't redirect, allow new family member to register with different name
+          } else {
+            console.log('Different stay_id found, redirecting to menu');
+            router.replace('/menu');
+          }
         }
       } catch (error) {
         console.warn('localStorage not available:', error)
