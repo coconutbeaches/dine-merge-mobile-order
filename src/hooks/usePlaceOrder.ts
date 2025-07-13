@@ -171,6 +171,7 @@ export function usePlaceOrder(
       return newOrderForLocalState;
     } catch (error) {
       console.error('Error in placeOrder:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       toast.error("Failed to place order. Please try again.");
       return null;
     }
