@@ -28,11 +28,8 @@ const DailySalesSummary = () => {
 
         // Get today's date in local timezone
         const today = new Date();
-        const startOfDay = new Date(today);
-        startOfDay.setHours(0, 0, 0, 0);
-        
-        const endOfDay = new Date(today);
-        endOfDay.setHours(23, 59, 59, 999);
+        const startOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0));
+        const endOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999));
 
         // Fetch today's orders
         const { data: orders, error: fetchError } = await supabase
@@ -52,6 +49,9 @@ const DailySalesSummary = () => {
           .lte('created_at', endOfDay.toISOString())
           .neq('order_status', 'cancelled'); // Exclude cancelled orders
 
+        console.log('Fetched orders:', orders);
+        console.log('Fetch error:', fetchError);
+
         if (fetchError) {
           throw fetchError;
         }
@@ -69,15 +69,28 @@ const DailySalesSummary = () => {
           totalSales += amount;
           orderCount++;
 
-          // Determine if this is a walkin customer
-          const isWalkin = order.stay_id?.toLowerCase().startsWith('walkin');
-          
+          // Determine customer type
+          let isWalkin = false;
+          let isHotelGuest = false;
+
+          if (order.stay_id?.toLowerCase().startsWith('walkin') || order.table_number === 'Take Away') {
+            isWalkin = true;
+          } else if (order.stay_id?.toLowerCase().startsWith('a') || order.user_id) {
+            isHotelGuest = true;
+          } else if (order.table_number && !isNaN(Number(order.table_number))) { // Numeric table number without 'walkin' or 'A' stay_id
+            isWalkin = true; // Assume numeric table numbers are walk-ins unless explicitly hotel guest
+          }
+
           if (isWalkin) {
             walkinSales += amount;
             walkinCount++;
-          } else {
+          } else if (isHotelGuest) {
             hotelGuestSales += amount;
             hotelGuestCount++;
+          } else {
+            // Fallback for uncategorized orders, perhaps add to walkin as a default
+            walkinSales += amount;
+            walkinCount++;
           }
         });
 

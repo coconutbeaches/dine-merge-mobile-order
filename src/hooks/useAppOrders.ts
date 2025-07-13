@@ -16,6 +16,10 @@ export function useAppOrders(
     tableNumber?: string
   ): Promise<Order | null> => {
     try {
+      console.log("🔍 DEBUGGING: AppContext adminCustomerContext:", adminCustomerContext);
+      console.log("🔍 DEBUGGING: Current user ID:", currentUser?.id);
+      console.log("🔍 DEBUGGING: Effective user ID:", effectiveUserId);
+      
       console.log("AppContext: Placing order with:", {
         effectiveUserId,
         adminContext: adminCustomerContext,

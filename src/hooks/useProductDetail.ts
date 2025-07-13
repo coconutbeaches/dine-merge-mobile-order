@@ -74,5 +74,6 @@ export const useProductDetail = (id: string | undefined) => {
     },
     enabled: !!id,
     retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes for product details
   });
 };

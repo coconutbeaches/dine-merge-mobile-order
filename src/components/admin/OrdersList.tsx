@@ -89,16 +89,30 @@ const OrdersList = ({
         // For guest orders, prioritize family account name (stay_id) over individual guest name
         // For authenticated users, prefer profile name even if stay_id exists
         let customerDisplayName;
+        let baseName;
         
 if ((order.formattedStayId || order.stay_id) && !order.customer_name_from_profile) {
           // Prefer formattedStayId when present, but only for guest-only orders (no profile name)
-          customerDisplayName = order.formattedStayId || formatStayId(order.stay_id);
+          baseName = (order.formattedStayId || formatStayId(order.stay_id)).replace(/_/g, ' ');
         } else if (order.customer_name_from_profile || order.customer_name) {
           // Authenticated user with profile or admin-placed order with customer name
-          customerDisplayName = order.customer_name_from_profile || order.customer_name;
+          baseName = (order.customer_name_from_profile || order.customer_name).replace(/_/g, ' ');
         } else {
           // Fallback
-          customerDisplayName = `Order #${order.id}`;
+          baseName = `Order #${order.id}`.replace(/_/g, ' ');
+        }
+
+        // Apply new logic for name formatting
+        if (baseName.match(/^-\d+$/)) {
+          customerDisplayName = "Walkin";
+        } else if (baseName.endsWith("-Take Away")) {
+          customerDisplayName = "Walkin";
+        } else if (baseName.match(/^walkin-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/)) {
+          customerDisplayName = "Walkin";
+        } else if (baseName.match(/-\d+$/)) {
+          customerDisplayName = baseName.replace(/-\d+$/, '');
+        } else {
+          customerDisplayName = baseName;
         }
 
 

@@ -26,6 +26,8 @@ export async function fetchUserProfile(userId: string): Promise<User | null> {
         name: data.name || data.email.split('@')[0],
         phone: data.phone || "",
         role: data.role || 'customer',
+        customer_type: data.role === 'admin' ? 'admin' : (data.stay_id ? 'guest' : 'auth_user'),
+        stay_id: data.stay_id || null,
         addresses: [],
         orderHistory: [],
       };

@@ -24,7 +24,8 @@ DROP FUNCTION IF EXISTS public.get_grouped_customers_with_total_spent();
 
 -- Create enhanced grouped customers function with archiving support
 CREATE FUNCTION public.get_grouped_customers_with_total_spent(
-  include_archived BOOLEAN DEFAULT FALSE
+  include_archived BOOLEAN DEFAULT FALSE,
+  p_debug BOOLEAN DEFAULT FALSE
 )
 RETURNS TABLE (
   customer_id text,  -- UUID for auth users, stay_id for guest families
@@ -37,7 +38,7 @@ RETURNS TABLE (
 )
 LANGUAGE sql
 SECURITY DEFINER
-AS $$
+AS $
   -- Get authenticated users from profiles
   SELECT 
     p.id::text as customer_id,
@@ -70,8 +71,7 @@ AS $$
     public.orders o
     LEFT JOIN public.guest_family_archives gfa ON o.stay_id = gfa.stay_id
   WHERE 
-    o.guest_user_id IS NOT NULL 
-    AND o.stay_id IS NOT NULL
+    (p_debug OR o.stay_id IS NOT NULL)
     AND (
       (NOT include_archived AND gfa.stay_id IS NULL) OR 
       include_archived
@@ -80,7 +80,7 @@ AS $$
     o.stay_id, gfa.stay_id
     
   ORDER BY name;
-$$;
+$;
 
 -- Create backward-compatible function alias
 CREATE FUNCTION public.get_customers_with_total_spent(

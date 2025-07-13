@@ -33,7 +33,7 @@ interface Product {
 function MenuIndexContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isLoggedIn, currentUser, setAdminCustomerContext, adminCustomerContext } = useAppContext();
+  const { isLoggedIn, currentUser, isLoading, setAdminCustomerContext, adminCustomerContext } = useAppContext();
 
   const { toast } = useToast();
 
@@ -49,15 +49,24 @@ function MenuIndexContent() {
     const hasGotoParam = urlParams.has('goto');
     
     const checkSession = () => {
+      // Don't make decisions while auth is still loading
+      if (isLoading) {
+        console.log('MenuPage: Auth still loading, waiting...');
+        return;
+      }
+      
       // Read guest session from localStorage
       const session = getGuestSession();
       
       if (session) {
         setGuestSession(session);
-      } else if (!isLoggedIn) {
-        // No guest session AND not logged in - redirect to registration
+        console.log('MenuPage: Guest session found, allowing access');
+      } else if (currentUser?.role === 'admin') {
+        console.log('MenuPage: Admin user detected, allowing access to menu without guest session');
+      } else if (!isLoggedIn && !currentUser) {
+        // No guest session AND not logged in AND not an admin user - redirect to registration
         const redirectUrl = getRegistrationUrl();
-        console.log('MenuPage: No guest session and not logged in. Redirecting to registration:', redirectUrl);
+        console.log('MenuPage: No guest session and not authenticated. Redirecting to registration:', redirectUrl);
         router.replace(redirectUrl);
       }
     };
@@ -69,7 +78,7 @@ function MenuIndexContent() {
     } else {
       checkSession();
     }
-  }, [router, isLoggedIn]); // Run once on mount and when login status changes
+  }, [router, isLoggedIn, currentUser, isLoading]); // Run once on mount and when auth state changes
 
   useEffect(() => {
     const customerId = searchParams?.get('customerId');
@@ -98,14 +107,18 @@ function MenuIndexContent() {
             }
 
             if (data) {
-              setAdminCustomerContext({ customerId: customerId, customerName: data.name || 'Unknown Customer' });
+              const contextData = { customerId: customerId, customerName: data.name || 'Unknown Customer' };
+              console.log('🔍 DEBUGGING: Setting adminCustomerContext for regular user:', contextData);
+              setAdminCustomerContext(contextData);
             }
           };
           fetchCustomerDetails();
         } else {
           // For hotel guests (stay_id), use the stay_id as the customer name with spaces
           const customerName = customerId.replace(/_/g, ' ');
-          setAdminCustomerContext({ customerId: customerId, customerName: customerName });
+          const contextData = { customerId: customerId, customerName: customerName };
+          console.log('🔍 DEBUGGING: Setting adminCustomerContext for hotel guest:', contextData);
+          setAdminCustomerContext(contextData);
         }
       } else {
         // Clear adminCustomerContext if no customerId is in the URL

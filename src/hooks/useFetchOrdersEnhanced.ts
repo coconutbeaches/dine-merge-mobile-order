@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ExtendedOrder } from '@/src/types/app';
 import { formatStayId } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface CursorInfo {
   created_at: string;
@@ -23,6 +24,7 @@ export const useFetchOrdersEnhanced = (filters: FilterOptions = {}) => {
   const [hasMore, setHasMore] = useState(true);
   const [cursor, setCursor] = useState<CursorInfo | null>(null);
   const pageSize = 100;
+  const queryClient = useQueryClient();
 
   // Track filters to determine when to reset pagination
   const filtersRef = useRef<FilterOptions>(filters);
@@ -114,46 +116,81 @@ export const useFetchOrdersEnhanced = (filters: FilterOptions = {}) => {
     resetAndFetch();
   }, []);
 
-  // Enhanced real-time subscription with selective columns and patching
+  // Row-level real-time subscription with broadcast throttling
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let broadcastTimeout: NodeJS.Timeout;
+    let pendingUpdates = new Map<string, ExtendedOrder>();
+    
+    const processPendingUpdates = () => {
+      if (pendingUpdates.size === 0) return;
+      
+      const updates = Array.from(pendingUpdates.values());
+      pendingUpdates.clear();
+      
+      // Batch update React Query cache
+      queryClient.setQueryData(['orders', 'enhanced'], (oldData: ExtendedOrder[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        let newData = [...oldData];
+        
+        updates.forEach(update => {
+          const existingIndex = newData.findIndex(order => order.id === update.id);
+          if (existingIndex !== -1) {
+            newData[existingIndex] = update;
+          } else {
+            newData = [update, ...newData];
+          }
+        });
+        
+        return newData;
+      });
+      
+      // Update local state
+      setOrders(prev => {
+        let newOrders = [...prev];
+        
+        updates.forEach(update => {
+          const existingIndex = newOrders.findIndex(order => order.id === update.id);
+          if (existingIndex !== -1) {
+            newOrders[existingIndex] = update;
+          } else {
+            newOrders = [update, ...newOrders];
+          }
+        });
+        
+        return newOrders;
+      });
+      
+      console.log(`[Enhanced] Processed ${updates.length} broadcast updates`);
+    };
     
     const channel = supabase
-      .channel('orders-enhanced-selective')
+      .channel('orders-enhanced-row-level')
       .on(
         'postgres_changes',
         { 
           event: 'INSERT', 
           schema: 'public', 
-          table: 'orders' 
+          table: 'orders'
         },
         (payload) => {
           console.log('Real-time order INSERT:', payload);
           
-          // For inserts, add the new order to the beginning of the list
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            setOrders(prev => {
-              // Check if order already exists to avoid duplicates
-              const existingIndex = prev.findIndex(order => order.id === payload.new.id);
-              if (existingIndex !== -1) {
-                return prev;
-              }
-              
-              // Transform the new order
-              const newOrder: ExtendedOrder = {
-                ...payload.new,
-                formattedStayId: formatStayId(payload.new.stay_id, payload.new.table_number),
-                customer_name: payload.new.customer_name || payload.new.guest_first_name,
-                customer_email: null,
-                customer_type: payload.new.guest_user_id ? 'guest' : 'registered',
-                customer_name_from_profile: null,
-                customer_email_from_profile: null
-              };
-              
-              return [newOrder, ...prev];
-            });
-          }, 500);
+          const newOrder: ExtendedOrder = {
+            ...payload.new,
+            formattedStayId: formatStayId(payload.new.stay_id, payload.new.table_number),
+            customer_name: payload.new.customer_name || payload.new.guest_first_name,
+            customer_email: null,
+            customer_type: payload.new.guest_user_id ? 'guest' : 'registered',
+            customer_name_from_profile: null,
+            customer_email_from_profile: null
+          };
+          
+          pendingUpdates.set(payload.new.id, newOrder);
+          
+          // Broadcast throttling - batch updates every 300ms
+          clearTimeout(broadcastTimeout);
+          broadcastTimeout = setTimeout(processPendingUpdates, 300);
         }
       )
       .on(
@@ -161,33 +198,27 @@ export const useFetchOrdersEnhanced = (filters: FilterOptions = {}) => {
         { 
           event: 'UPDATE', 
           schema: 'public', 
-          table: 'orders' 
+          table: 'orders',
+          filter: 'order_status=neq.old'
         },
         (payload) => {
-          console.log('Real-time order UPDATE:', payload);
+          console.log('Real-time order UPDATE (status changed):', payload);
           
-          // For updates, patch the existing order
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            setOrders(prev => {
-              const orderIndex = prev.findIndex(order => order.id === payload.new.id);
-              if (orderIndex === -1) {
-                return prev;
-              }
-              
-              const updatedOrders = [...prev];
-              updatedOrders[orderIndex] = {
-                ...updatedOrders[orderIndex],
-                ...payload.new,
-                formattedStayId: formatStayId(payload.new.stay_id, payload.new.table_number),
-                customer_name: payload.new.customer_name || payload.new.guest_first_name || updatedOrders[orderIndex].customer_name,
-                customer_email: updatedOrders[orderIndex].customer_email,
-                customer_type: payload.new.guest_user_id ? 'guest' : 'registered',
-              };
-              
-              return updatedOrders;
-            });
-          }, 500);
+          const existingOrder = orders.find(order => order.id === payload.new.id);
+          const updatedOrder: ExtendedOrder = {
+            ...(existingOrder || {}),
+            ...payload.new,
+            formattedStayId: formatStayId(payload.new.stay_id, payload.new.table_number),
+            customer_name: payload.new.customer_name || payload.new.guest_first_name || existingOrder?.customer_name,
+            customer_email: existingOrder?.customer_email || null,
+            customer_type: payload.new.guest_user_id ? 'guest' : 'registered',
+          };
+          
+          pendingUpdates.set(payload.new.id, updatedOrder);
+          
+          // Broadcast throttling - batch updates every 300ms
+          clearTimeout(broadcastTimeout);
+          broadcastTimeout = setTimeout(processPendingUpdates, 300);
         }
       )
       .on(
@@ -195,22 +226,25 @@ export const useFetchOrdersEnhanced = (filters: FilterOptions = {}) => {
         { 
           event: 'DELETE', 
           schema: 'public', 
-          table: 'orders' 
+          table: 'orders'
         },
         (payload) => {
           console.log('Real-time order DELETE:', payload);
           
-          // For deletes, remove the order from the list
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            setOrders(prev => prev.filter(order => order.id !== payload.old.id));
-          }, 500);
+          // For deletes, update immediately
+          setOrders(prev => prev.filter(order => order.id !== payload.old.id));
+          
+          // Update React Query cache
+          queryClient.setQueryData(['orders', 'enhanced'], (oldData: ExtendedOrder[] | undefined) => {
+            if (!oldData) return oldData;
+            return oldData.filter(order => order.id !== payload.old.id);
+          });
         }
       )
       .subscribe();
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(broadcastTimeout);
       supabase.removeChannel(channel);
     };
   }, []);

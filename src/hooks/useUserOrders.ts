@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderStatus, SupabaseOrderStatus } from '@/types/app';
 import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 export const useUserOrders = (userId: string | undefined) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   // Load user orders with profile information
   const loadUserOrders = async (userId: string) => {
@@ -72,14 +73,56 @@ export const useUserOrders = (userId: string | undefined) => {
     if (userId) {
       loadUserOrders(userId);
       
+      let broadcastTimeout: NodeJS.Timeout;
+      let pendingUpdates = new Map<string, Order>();
+      
+      const processPendingUpdates = () => {
+        if (pendingUpdates.size === 0) return;
+        
+        const updates = Array.from(pendingUpdates.values());
+        pendingUpdates.clear();
+        
+        // Update React Query cache
+        queryClient.setQueryData(['userOrders', userId], (oldData: Order[] | undefined) => {
+          if (!oldData) return oldData;
+          
+          let newData = [...oldData];
+          updates.forEach(update => {
+            const existingIndex = newData.findIndex(order => order.id === update.id);
+            if (existingIndex !== -1) {
+              newData[existingIndex] = update;
+            } else {
+              newData = [update, ...newData];
+            }
+          });
+          return newData;
+        });
+        
+        // Update local state
+        setOrders(prevOrders => {
+          let newOrders = [...prevOrders];
+          updates.forEach(update => {
+            const existingIndex = newOrders.findIndex(order => order.id === update.id);
+            if (existingIndex !== -1) {
+              newOrders[existingIndex] = update;
+            } else {
+              newOrders = [update, ...newOrders];
+            }
+          });
+          return newOrders;
+        });
+        
+        console.log(`[UserOrders] Processed ${updates.length} broadcast updates`);
+      };
+      
       const channel = supabase
-        .channel(`orders-${userId}`)
+        .channel(`orders-${userId}-row-level`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}` },
+          { event: 'INSERT', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}` },
           async (payload) => {
-            console.log("Real-time order update in orders hook:", payload);
-
+            console.log("Real-time order INSERT:", payload);
+            
             const enrichAndTransformOrder = async (order: any): Promise<Order> => {
               let profileData = null;
               if (order.user_id) {
@@ -105,29 +148,73 @@ export const useUserOrders = (userId: string | undefined) => {
                 customer_email_from_profile: profileData?.email || order.customer_email_from_profile || null
               } as Order;
             };
-
-            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-              const transformedOrder = await enrichAndTransformOrder(payload.new);
-              setOrders(prevOrders => {
-                const index = prevOrders.findIndex(o => o.id === transformedOrder.id);
-                if (index !== -1) {
-                  const newOrders = [...prevOrders];
-                  newOrders[index] = transformedOrder;
-                  return newOrders;
+            
+            const transformedOrder = await enrichAndTransformOrder(payload.new);
+            pendingUpdates.set(payload.new.id, transformedOrder);
+            
+            clearTimeout(broadcastTimeout);
+            broadcastTimeout = setTimeout(processPendingUpdates, 300);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}.and.order_status=neq.old` },
+          async (payload) => {
+            console.log("Real-time order UPDATE (status changed):", payload);
+            
+            const enrichAndTransformOrder = async (order: any): Promise<Order> => {
+              let profileData = null;
+              if (order.user_id) {
+                const { data: pData, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('name, email')
+                  .eq('id', order.user_id)
+                  .maybeSingle();
+                  
+                if (profileError) {
+                  console.warn('Could not fetch profile data for realtime update:', profileError);
                 } else {
-                  return [transformedOrder, ...prevOrders];
+                  profileData = pData;
                 }
-              });
-            } else if (payload.eventType === 'DELETE') {
-              if (payload.old.id) {
-                setOrders(prevOrders => prevOrders.filter(o => o.id !== payload.old.id));
               }
-            }
+              
+              const appOrderStatus = mapSupabaseToOrderStatus(order.order_status as SupabaseOrderStatus);
+              
+              return {
+                ...order,
+                order_status: appOrderStatus,
+                customer_name_from_profile: profileData?.name || order.customer_name_from_profile || null,
+                customer_email_from_profile: profileData?.email || order.customer_email_from_profile || null
+              } as Order;
+            };
+            
+            const transformedOrder = await enrichAndTransformOrder(payload.new);
+            pendingUpdates.set(payload.new.id, transformedOrder);
+            
+            clearTimeout(broadcastTimeout);
+            broadcastTimeout = setTimeout(processPendingUpdates, 300);
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: 'DELETE', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}` },
+          (payload) => {
+            console.log("Real-time order DELETE:", payload);
+            
+            // For deletes, update immediately
+            setOrders(prevOrders => prevOrders.filter(o => o.id !== payload.old.id));
+            
+            // Update React Query cache
+            queryClient.setQueryData(['userOrders', userId], (oldData: Order[] | undefined) => {
+              if (!oldData) return oldData;
+              return oldData.filter(order => order.id !== payload.old.id);
+            });
           }
         )
         .subscribe();
 
       return () => {
+        clearTimeout(broadcastTimeout);
         supabase.removeChannel(channel);
       };
     } else {

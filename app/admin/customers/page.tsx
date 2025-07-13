@@ -52,12 +52,14 @@ export default function CustomersDashboardPage() {
       let data;
       let supabaseError;
       
+      console.log('Attempting to fetch customers using RPC...');
       try {
         const result = await supabase
           .rpc('get_all_customers_with_total_spent_grouped', {
+            p_include_archived: includeArchived,
             p_limit: 100,
             p_offset: 0,
-            p_include_archived: includeArchived
+            
           });
         data = result.data;
         supabaseError = result.error;
@@ -68,17 +70,17 @@ export default function CustomersDashboardPage() {
           sampleData: data?.slice(0, 3)
         });
         
-        // Check if we have guest families in the RPC result
-        if (data) {
+        // If RPC function succeeded, use its data even if no guest families
+        if (data && !supabaseError) {
           const guestFamilies = data.filter(customer => customer.customer_type === 'guest_family');
           console.log('Guest families from RPC:', guestFamilies.length);
-          if (guestFamilies.length === 0) {
-            console.log('No guest families from RPC, will use fallback method');
-            throw new Error('No guest families found, using fallback');
-          }
+          console.log('Using optimized RPC function result');
+        } else if (supabaseError) {
+          console.error('RPC function returned an error, falling back:', supabaseError);
+          throw supabaseError; // Explicitly throw to trigger fallback
         }
-      } catch (rpcError) {
-        console.log('New RPC function not available, using fallback method that includes guests');
+      } catch (rpcError: any) {
+        console.log('New RPC function not available or failed, using fallback method that includes guests');
         console.log('RPC Error details:', rpcError);
         
         // Fallback: Get both auth users and guest families manually

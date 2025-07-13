@@ -59,9 +59,10 @@ export const useOrderActions = (
         )
       );
       
-      // Invalidate relevant queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['productOrders'] });
+      // Invalidate specific queries instead of broad invalidation
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['productOrders'] });
       
       toast.success(`Order #${orderId} status updated to ${newStatus}`);
     } catch (error: any) {
@@ -100,6 +101,13 @@ export const useOrderActions = (
             : order
         )
       );
+      
+      // Invalidate specific queries for each order
+      orderIds.forEach(orderId => {
+        queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      
       toast.success(`Bulk status set to ${newStatus} for ${orderIds.length} orders`);
     } catch (e: any) {
       toast.error("Bulk update failed: " + e.message);
@@ -124,6 +132,12 @@ export const useOrderActions = (
         prevOrders.filter(order => !selectedOrders.includes(order.id))
       );
       setSelectedOrders([]);
+      
+      // Invalidate specific queries for deleted orders
+      selectedOrders.forEach(orderId => {
+        queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
       
       toast.success(`Deleted ${selectedOrders.length} orders`);
     } catch (error: any) {
@@ -158,6 +172,11 @@ export const useOrderActions = (
           order.id === id ? { ...updatedOrder } : order
         )
       );
+      
+      // Invalidate specific order query after update
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      
       toast.success(`Order ${id} updated successfully`);
     } catch (error: any) {
       console.error('Error updating order:', error);
