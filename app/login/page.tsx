@@ -16,7 +16,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams?.get('returnTo') || '/';
-  const { loginOrSignup } = useAppContext();
+  const { loginOrSignup, loginAsGuest } = useAppContext();
   const { toast } = useToast();
 
   const [name, setName] = useState('');
@@ -44,7 +44,11 @@ function LoginContent() {
           description: 'Your account has been created successfully.',
         });
       }
-      router.push(returnTo);
+      // Check if user is admin and redirect accordingly
+      // Note: We'll need to wait for the user context to update
+      setTimeout(() => {
+        router.push(returnTo);
+      }, 100);
     } else {
       toast({
         title: 'Error',

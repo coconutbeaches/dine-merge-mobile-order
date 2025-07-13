@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getGuestSession } from '@/utils/guestSession';
 import { useGuestContext } from '@/context/GuestContext';
+import { useAppContext } from '@/context/AppContext';
 
 const TableScanRouter = () => {
   const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const { setTableNumber } = useGuestContext();
+  const { currentUser, isLoggedIn } = useAppContext();
 
   // Ensure this only runs on the client
   useEffect(() => {
@@ -22,6 +24,12 @@ const TableScanRouter = () => {
     // Skip table scan routing for admin and login pages
     if (window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/login')) {
       console.log('[TableScanRouter] Skipping table scan for admin/login pages');
+      return;
+    }
+    
+    // Skip table scan routing for logged in admin users
+    if (isLoggedIn && currentUser?.role === 'admin') {
+      console.log('[TableScanRouter] Skipping table scan for logged in admin user');
       return;
     }
     
@@ -55,7 +63,7 @@ const TableScanRouter = () => {
     };
     
     processTableScan();
-  }, [router, setTableNumber, isClient]);
+  }, [router, setTableNumber, isClient, currentUser, isLoggedIn]);
   
   return null;
 };

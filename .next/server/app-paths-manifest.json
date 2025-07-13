@@ -1,10 +1,10 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/menu/page": "app/menu/page.js",
-  "/register/[stay_id]/page": "app/register/[stay_id]/page.js",
-  "/page": "app/page.js",
-  "/login/page": "app/login/page.js",
-  "/admin/orders/[orderId]/page": "app/admin/orders/[orderId]/page.js",
   "/menu/item/[id]/page": "app/menu/item/[id]/page.js",
-  "/admin/products/page": "app/admin/products/page.js"
+  "/admin/orders/[orderId]/page": "app/admin/orders/[orderId]/page.js",
+  "/register/[stay_id]/page": "app/register/[stay_id]/page.js",
+  "/login/page": "app/login/page.js",
+  "/admin/products/page": "app/admin/products/page.js",
+  "/page": "app/page.js",
+  "/menu/page": "app/menu/page.js"
 }
