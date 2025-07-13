@@ -104,23 +104,23 @@ const DailySalesSummary = () => {
     return (
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-4 rounded-lg border">
+          <div className="flex justify-around gap-2">
+            <div className="text-center p-2 rounded-lg border">
               <div className="animate-pulse">
-                <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                <div className="h-8 bg-gray-200 rounded w-24 mx-auto mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-16 mx-auto"></div>
               </div>
             </div>
-            <div className="text-center p-4 rounded-lg border">
+            <div className="text-center p-2 rounded-lg border">
               <div className="animate-pulse">
-                <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                <div className="h-8 bg-gray-200 rounded w-24 mx-auto mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-16 mx-auto"></div>
               </div>
             </div>
-            <div className="text-center p-4 rounded-lg border">
+            <div className="text-center p-2 rounded-lg border">
               <div className="animate-pulse">
-                <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-2"></div>
-                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                <div className="h-8 bg-gray-200 rounded w-24 mx-auto mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-16 mx-auto"></div>
               </div>
             </div>
           </div>
@@ -146,33 +146,33 @@ const DailySalesSummary = () => {
   return (
     <Card className="mb-6">
       <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="flex justify-around gap-2">
           {/* Total Sales */}
-          <div className="text-center p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-black">
+          <div className="text-center p-2 rounded-lg border">
+            <div className="text-lg font-bold text-black">
               {formatThaiCurrencyWithComma(salesData.totalSales)}
             </div>
-            <div className="text-sm font-medium mt-1">
+            <div className="text-xs font-medium mt-1">
               Total
             </div>
           </div>
 
           {/* Walkin Sales */}
-          <div className="text-center p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-black">
+          <div className="text-center p-2 rounded-lg border">
+            <div className="text-lg font-bold text-black">
               {formatThaiCurrencyWithComma(salesData.walkinSales)}
             </div>
-            <div className="text-sm font-medium mt-1">
+            <div className="text-xs font-medium mt-1">
               Walkin
             </div>
           </div>
 
           {/* Hotel Guest Sales */}
-          <div className="text-center p-4 rounded-lg border">
-            <div className="text-2xl font-bold text-black">
+          <div className="text-center p-2 rounded-lg border">
+            <div className="text-lg font-bold text-black">
               {formatThaiCurrencyWithComma(salesData.hotelGuestSales)}
             </div>
-            <div className="text-sm font-medium mt-1">
+            <div className="text-xs font-medium mt-1">
               Hotel Guest
             </div>
           </div>
