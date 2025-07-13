@@ -10,6 +10,7 @@ import { orderStatusOptions } from '@/utils/orderDashboardUtils';
 import { OrderStatus } from '@/types/supabaseTypes';
 import OrdersDashboardHeader from '@/components/admin/OrdersDashboardHeader';
 import StatusTabs from '@/components/admin/StatusTabs';
+import DailySalesSummary from '@/src/components/admin/DailySalesSummary';
 
 const ALL_TAB = "all";
 
@@ -145,6 +146,8 @@ function OrdersDashboardContent() {
           onTabChange={handleTabChange}
           tabOptions={tabOptions}
         />
+
+        <DailySalesSummary />
 
         <Card>
           <CardContent className="p-0">
