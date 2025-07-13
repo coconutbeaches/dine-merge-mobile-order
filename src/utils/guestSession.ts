@@ -187,6 +187,39 @@ export async function createGuestUser({ table_number, first_name = 'Guest', stay
     finalStayId 
   });
   
+  // Performance optimization: Check if user already exists to avoid duplicate inserts
+  if (stay_id) {
+    try {
+      const { data: existingUser, error: existingError } = await supabase
+        .from('guest_users')
+        .select('user_id, first_name, stay_id')
+        .eq('stay_id', finalStayId)
+        .eq('first_name', first_name)
+        .single();
+      
+      if (existingUser && !existingError) {
+        console.log('[createGuestUser] User already exists, returning existing session:', existingUser);
+        const session = {
+          guest_user_id: existingUser.user_id,
+          guest_first_name: existingUser.first_name,
+          guest_stay_id: existingUser.stay_id
+        };
+        
+        try {
+          saveGuestSession(session);
+          setTableNumber(table_number);
+          console.log('[createGuestUser] Session saved successfully:', session);
+        } catch (storageError) {
+          console.warn('[createGuestUser] Failed to save session to localStorage:', storageError);
+        }
+        
+        return session;
+      }
+    } catch (checkError) {
+      console.log('[createGuestUser] Error checking existing user (proceeding with insert):', checkError);
+    }
+  }
+  
   // Insert the guest user with final stay_id to avoid update query
   const { data, error } = await supabase.from('guest_users').insert({
     user_id: randomId,
@@ -197,6 +230,38 @@ export async function createGuestUser({ table_number, first_name = 'Guest', stay
   
   if (error) {
     console.error('[createGuestUser] Insert error:', error);
+    // Handle common duplicate key errors gracefully
+    if (error.code === '23505') { // PostgreSQL duplicate key error
+      console.log('[createGuestUser] Duplicate key error, attempting to fetch existing user');
+      try {
+        const { data: existingUser } = await supabase
+          .from('guest_users')
+          .select('user_id, first_name, stay_id')
+          .eq('stay_id', finalStayId)
+          .eq('first_name', first_name)
+          .single();
+        
+        if (existingUser) {
+          const session = {
+            guest_user_id: existingUser.user_id,
+            guest_first_name: existingUser.first_name,
+            guest_stay_id: existingUser.stay_id
+          };
+          
+          try {
+            saveGuestSession(session);
+            setTableNumber(table_number);
+            console.log('[createGuestUser] Session saved successfully:', session);
+          } catch (storageError) {
+            console.warn('[createGuestUser] Failed to save session to localStorage:', storageError);
+          }
+          
+          return session;
+        }
+      } catch (fetchError) {
+        console.error('[createGuestUser] Failed to fetch existing user after duplicate key error:', fetchError);
+      }
+    }
     throw error;
   }
   
