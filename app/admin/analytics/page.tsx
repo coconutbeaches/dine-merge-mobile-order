@@ -69,7 +69,7 @@ const OrdersTooltip = (props: TooltipProps<number, string>) => {
       {sorted?.map((item) => (
         <div key={item.dataKey} className="grid grid-cols-2 gap-4">
           <div className="text-left">
-            {item.name === 'hotel_guest' ? 'Guest' : 'Out'}
+            {item.name === 'hotel_guest' ? 'Hotel Guest' : 'Walkin'}
           </div>
           <div className="text-right">
             {formatAmount(item.value || 0)}
@@ -234,12 +234,12 @@ export default function AnalyticsPage() {
                   ? formatThaiCurrencyWithComma(total)
                   : total.toLocaleString()}
                 <span className="ml-2 text-sm font-normal">
-                  Guest:{" "}
+                  Hotel Guest:{" "}
                   {metric === "revenue"
                     ? formatThaiCurrency(guestTotal)
                     : guestTotal.toLocaleString()}{" "}
                   <span className="ml-2">
-                    Out:{" "}
+                    Walkin:{" "}
                     {metric === "revenue"
                       ? formatThaiCurrency(outTotal)
                       : outTotal.toLocaleString()}

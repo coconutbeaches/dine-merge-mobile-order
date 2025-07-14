@@ -82,6 +82,7 @@ AS $$
     ))
     -- Status filter
     AND (p_status IS NULL OR o.order_status::text = p_status)
+    AND o.order_status::text != 'cancelled' -- Exclude cancelled orders by default
     -- Date filters
     AND (p_start IS NULL OR o.created_at >= p_start)
     AND (p_end IS NULL OR o.created_at <= p_end)

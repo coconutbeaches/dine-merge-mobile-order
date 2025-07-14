@@ -14,10 +14,17 @@ export const metadata = {
     ]
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: '/icons/favicon.ico',
+    shortcut: '/icons/favicon-16x16.png',
     apple: [
+      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
       { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    other: [
+      { rel: 'icon', type: 'image/png', sizes: '32x32', url: '/icons/favicon-32x32.png' },
+      { rel: 'icon', type: 'image/png', sizes: '16x16', url: '/icons/favicon-16x16.png' },
+      { rel: 'mask-icon', url: '/icons/safari-pinned-tab.svg', color: '#5bbad5' },
     ],
   },
   other: {
