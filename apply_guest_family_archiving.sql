@@ -39,6 +39,25 @@ RETURNS TABLE (
 LANGUAGE sql
 SECURITY DEFINER
 AS $
+  IF p_debug THEN
+    RETURN QUERY
+    SELECT
+      id::text as customer_id,
+      customer_name as name,
+      CASE
+        WHEN user_id IS NOT NULL THEN 'auth_user'
+        WHEN guest_user_id IS NOT NULL THEN 'guest_user'
+        WHEN stay_id IS NOT NULL THEN 'guest_family'
+        ELSE 'unknown'
+      END as customer_type,
+      total_amount as total_spent,
+      created_at as last_order_date,
+      created_at as joined_at,
+      FALSE as archived
+    FROM
+      public.orders;
+  END IF;
+
   -- Get authenticated users from profiles
   SELECT 
     p.id::text as customer_id,

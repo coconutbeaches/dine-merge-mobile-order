@@ -58,7 +58,12 @@ AS $$
       ELSE 'unknown'
     END as customer_type,
     -- Compute formatted_stay_id in SQL
-    COALESCE(o.stay_id, '') || '-' || COALESCE(o.table_number, '') as formatted_stay_id,
+    CASE
+      WHEN o.stay_id IS NOT NULL AND LOWER(o.stay_id) LIKE 'walkin-%' THEN COALESCE(o.stay_id, '') || '-' || COALESCE(o.table_number, '')
+      WHEN o.stay_id IS NULL AND o.table_number IS NOT NULL AND o.table_number = 'Take Away' THEN 'Take Away'
+      WHEN o.stay_id IS NOT NULL THEN REPLACE(o.stay_id, '_', ' ')
+      ELSE COALESCE(o.table_number, '')
+    END as formatted_stay_id,
     -- Add profile data for UI display
     p.name as customer_name_from_profile,
     p.email as customer_email_from_profile

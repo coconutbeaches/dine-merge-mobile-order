@@ -65,6 +65,7 @@ const DailySalesSummary = () => {
         let hotelGuestCount = 0;
 
         orders?.forEach(order => {
+          console.log('Processing order:', order);
           const amount = parseFloat(order.total_amount || '0');
           totalSales += amount;
           orderCount++;
@@ -73,22 +74,31 @@ const DailySalesSummary = () => {
           let isWalkin = false;
           let isHotelGuest = false;
 
-          if (order.stay_id?.toLowerCase().startsWith('walkin') || order.table_number === 'Take Away') {
-            isWalkin = true;
-          } else if (order.stay_id?.toLowerCase().startsWith('a') || order.user_id) {
+          // Rule 1: If it has a user_id, it's a hotel guest (authenticated user)
+          if (order.user_id) {
             isHotelGuest = true;
-          } else if (order.table_number && !isNaN(Number(order.table_number))) { // Numeric table number without 'walkin' or 'A' stay_id
-            isWalkin = true; // Assume numeric table numbers are walk-ins unless explicitly hotel guest
+          }
+          // Rule 2: If it has a stay_id that is NOT a 'walkin-' pattern, it's a hotel guest (guest family)
+          else if (order.stay_id && !order.stay_id.toLowerCase().startsWith('walkin')) {
+            isHotelGuest = true;
+          }
+          // Rule 3: If it's not a hotel guest by the above rules, check if it's a walk-in
+          else if (order.stay_id?.toLowerCase().startsWith('walkin') || order.table_number === 'Take Away' || (order.table_number && !isNaN(Number(order.table_number)))) {
+            isWalkin = true;
           }
 
-          if (isWalkin) {
-            walkinSales += amount;
-            walkinCount++;
-          } else if (isHotelGuest) {
+          console.log(`Order ID: ${order.id}, Amount: ${amount}, stay_id: ${order.stay_id}, user_id: ${order.user_id}, isWalkin: ${isWalkin}, isHotelGuest: ${isHotelGuest}`);
+
+          // Now, apply the amounts based on the determined type
+          if (isHotelGuest) {
             hotelGuestSales += amount;
             hotelGuestCount++;
+          } else if (isWalkin) {
+            walkinSales += amount;
+            walkinCount++;
           } else {
-            // Fallback for uncategorized orders, perhaps add to walkin as a default
+            // Fallback for uncategorized orders (should ideally not happen if logic is comprehensive)
+            // Add to walkin as a default
             walkinSales += amount;
             walkinCount++;
           }

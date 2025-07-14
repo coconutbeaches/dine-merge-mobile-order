@@ -1,5 +1,7 @@
 'use client'
 
+'use client'
+
 import { usePathname } from 'next/navigation'
 import './globals.css'
 import { Providers } from './providers'
