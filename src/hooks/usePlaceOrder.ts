@@ -20,9 +20,17 @@ export function usePlaceOrder(
     providedTableNumber = 'Take Away',
     adminContext: { customerId: string, customerName: string } | null = null
   ): Promise<Order | null> => {
+    // DEBUG: Log adminContext at the start
+    console.log('🔍 DEBUGGING: adminContext received in placeOrder:', adminContext);
+    console.log('🔍 DEBUGGING: userId from hook:', userId);
+    
     // Keep existing logic to determine finalUserId and customerName
     let finalUserId = adminContext?.customerId || userId;
     let customerName = adminContext?.customerName;
+    
+    // DEBUG: Log determined values
+    console.log('🔍 DEBUGGING: finalUserId determined:', finalUserId);
+    console.log('🔍 DEBUGGING: customerName determined:', customerName);
     
     // Introduce guestUserId/guestFirstName/stayId variables when hasGuestSession() is true and adminContext not provided
     let guestUserId = null;
@@ -106,12 +114,12 @@ export function usePlaceOrder(
       const guestSession = getGuestSession();
       const guestCtx = { tableNumber: typeof window !== 'undefined' ? getTableNumber() : null };
       
-      const insertedOrderData = await placeOrderInSupabase({
+      const orderParams = {
         userId: adminContext ? 
           // Admin creating order: use customer ID if it's a UUID, null if hotel guest
           (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId) ? adminContext.customerId : null) :
           // Regular user/guest: null for guests, userId for regular users
-          ((guestUserId || stayId) ? null : finalUserId),
+          ((guestUserId || stayId) ? null : userId),
         // Merge according to specification:
         // guestUserId: guestSession?.guest_user_id
         // guestFirstName: guestSession?.guest_first_name
@@ -128,7 +136,11 @@ export function usePlaceOrder(
         // Merge according to specification:
         // tableNumber: providedTableNumber || guestCtx.tableNumber || undefined
         tableNumber: providedTableNumber || guestCtx.tableNumber || undefined
-      });
+      };
+      
+      console.log('🔍 DEBUGGING: Parameters being sent to placeOrderInSupabase:', orderParams);
+      
+      const insertedOrderData = await placeOrderInSupabase(orderParams);
 
       if (!insertedOrderData) {
         console.error("Failed to insert order in Supabase");
@@ -171,6 +183,7 @@ export function usePlaceOrder(
       return newOrderForLocalState;
     } catch (error) {
       console.error('Error in placeOrder:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       toast.error("Failed to place order. Please try again.");
       return null;
     }

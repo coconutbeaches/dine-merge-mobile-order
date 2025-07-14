@@ -5,6 +5,7 @@ import { Order as BaseOrder } from '@/types/supabaseTypes';
 import { OrderStatus, ExtendedOrder } from '@/src/types/app';
 import { toast } from 'sonner';
 import { formatStayId } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder => {
   const profile = profilesData?.find(p => p.id === order.user_id);
@@ -48,6 +49,7 @@ export const useFetchOrders = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 100; // Increase page size for better performance
+  const queryClient = useQueryClient();
 
   const fetchOrders = useCallback(async (reset = false) => {
     const currentPage = reset ? 0 : page;
@@ -143,31 +145,129 @@ export const useFetchOrders = () => {
     resetAndFetch();
   }, []);
     
-  // Set up real-time subscription with debouncing
+  // Row-level real-time subscription with broadcast throttling
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    let broadcastTimeout: NodeJS.Timeout;
+    let pendingUpdates = new Map<string, ExtendedOrder>();
+    
+    const processPendingUpdates = () => {
+      if (pendingUpdates.size === 0) return;
+      
+      const updates = Array.from(pendingUpdates.values());
+      pendingUpdates.clear();
+      
+      // Update React Query cache
+      queryClient.setQueryData(['orders', 'dashboard'], (oldData: ExtendedOrder[] | undefined) => {
+        if (!oldData) return oldData;
+        
+        let newData = [...oldData];
+        updates.forEach(update => {
+          const existingIndex = newData.findIndex(order => order.id === update.id);
+          if (existingIndex !== -1) {
+            newData[existingIndex] = update;
+          } else {
+            newData = [update, ...newData];
+          }
+        });
+        return newData;
+      });
+      
+      // Update local state
+      setOrders(prev => {
+        let newOrders = [...prev];
+        updates.forEach(update => {
+          const existingIndex = newOrders.findIndex(order => order.id === update.id);
+          if (existingIndex !== -1) {
+            newOrders[existingIndex] = update;
+          } else {
+            newOrders = [update, ...newOrders];
+          }
+        });
+        return newOrders;
+      });
+      
+      console.log(`[Dashboard] Processed ${updates.length} broadcast updates`);
+    };
     
     const channel = supabase
-      .channel('orders-dashboard-refactored')
+      .channel('orders-dashboard-row-level')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
+        { event: 'INSERT', schema: 'public', table: 'orders' },
+        async (payload) => {
+          console.log('Real-time order INSERT:', payload);
+          
+          // Fetch profile data if needed
+          let profileData = null;
+          if (payload.new.user_id) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('id, name, email')
+              .eq('id', payload.new.user_id)
+              .single();
+            profileData = data;
+          }
+          
+          const newOrder = transformOrder(payload.new, profileData ? [profileData] : null);
+          pendingUpdates.set(payload.new.id, newOrder);
+          
+          clearTimeout(broadcastTimeout);
+          broadcastTimeout = setTimeout(processPendingUpdates, 300);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: 'order_status=neq.old' },
+        async (payload) => {
+          console.log('Real-time order UPDATE (status changed):', payload);
+          
+          const existingOrder = orders.find(order => order.id === payload.new.id);
+          
+          // Fetch profile data if needed
+          let profileData = null;
+          if (payload.new.user_id) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('id, name, email')
+              .eq('id', payload.new.user_id)
+              .single();
+            profileData = data;
+          }
+          
+          const updatedOrder = transformOrder({
+            ...(existingOrder || {}),
+            ...payload.new
+          }, profileData ? [profileData] : null);
+          
+          pendingUpdates.set(payload.new.id, updatedOrder);
+          
+          clearTimeout(broadcastTimeout);
+          broadcastTimeout = setTimeout(processPendingUpdates, 300);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'orders' },
         (payload) => {
-          console.log("Real-time order update:", payload);
-          // Debounce refetch to avoid too many calls
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            resetAndFetch();
-          }, 1000);
+          console.log('Real-time order DELETE:', payload);
+          
+          // For deletes, update immediately
+          setOrders(prev => prev.filter(order => order.id !== payload.old.id));
+          
+          // Update React Query cache
+          queryClient.setQueryData(['orders', 'dashboard'], (oldData: ExtendedOrder[] | undefined) => {
+            if (!oldData) return oldData;
+            return oldData.filter(order => order.id !== payload.old.id);
+          });
         }
       )
       .subscribe();
 
     return () => {
-      clearTimeout(timeoutId);
+      clearTimeout(broadcastTimeout);
       supabase.removeChannel(channel);
     };
-  }, [resetAndFetch]);
+  }, [orders, queryClient]);
 
   return { 
     orders, 

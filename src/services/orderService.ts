@@ -84,7 +84,7 @@ export const placeOrderInSupabase = async (
     customerName?: string | null;
     cartItems: CartItem[];
     total: number;
-    tableNumber: string;
+    tableNumber?: string;
   }
 ) => {
   try {
@@ -119,6 +119,7 @@ export const placeOrderInSupabase = async (
     return data;
   } catch (error) {
     console.error('Error placing order in Supabase:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     throw error;
   }
 };
@@ -152,7 +153,6 @@ export const createCustomOrder = async (
     total_amount: total,
     order_status: 'completed',
     created_at: finalDateTime,
-    updated_at: new Date().toISOString(),
   };
   
   if (isUUID) {

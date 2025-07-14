@@ -159,7 +159,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
       return failureCount < 2;
     },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 5000),
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 30 * 1000, // 30 seconds for specific orders
     cacheTime: 1000 * 60 * 10, // 10 minutes
   });
 

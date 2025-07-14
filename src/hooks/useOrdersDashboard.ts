@@ -1,10 +1,10 @@
 
-import { useFetchOrders } from './useFetchOrders';
+import { useFetchOrdersOptimized } from './useFetchOrdersOptimized';
 import { useOrderActions } from './useOrderActions';
 import { useOrderSelection } from './useOrderSelection';
 
 export const useOrdersDashboard = () => {
-  const { orders, setOrders, isLoading, isLoadingMore, hasMore, fetchOrders, loadMore } = useFetchOrders();
+const { orders, setOrders, isLoading, isLoadingMore, hasMore, fetchOrders, loadMore } = useFetchOrdersOptimized();
   const { 
     selectedOrders, 
     setSelectedOrders, 

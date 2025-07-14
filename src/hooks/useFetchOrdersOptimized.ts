@@ -1,60 +1,68 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ExtendedOrder } from '@/src/types/app';
 
 interface OptimizedOrder {
-  id: string;
+  id: number;
   user_id: string | null;
   guest_user_id: string | null;
   guest_first_name: string | null;
   stay_id: string | null;
+  table_number: string | null;
   total_amount: number;
   created_at: string;
+  updated_at: string;
+  order_status: string;
+  order_items: any[];
+  special_instructions: string | null;
   customer_name: string;
   customer_email: string | null;
   customer_type: string;
-  // Add UI-expected fields with defaults
-  order_status: 'new';
-  order_items: any[];
-  updated_at: string;
-  special_instructions: null;
-  customer_name_from_profile: string;
+  formatted_stay_id: string;
+  customer_name_from_profile: string | null;
   customer_email_from_profile: string | null;
 }
 
 export const useFetchOrdersOptimized = () => {
-  const [orders, setOrders] = useState<OptimizedOrder[]>([]);
+  const [orders, setOrders] = useState<ExtendedOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  const pageSize = 50; // Smaller page size for faster loading
+  const pageSize = 100; // Increase page size for better performance
 
   const fetchOrders = useCallback(async (reset = false) => {
     const currentPage = reset ? 0 : page;
-    setIsLoading(true);
+    const isInitialLoad = reset || currentPage === 0;
+    
+    if (isInitialLoad) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
     
     try {
       const { data, error } = await supabase
-        .rpc('get_orders_with_customer_info', {
+        .rpc('rpc_admin_get_orders', {
           p_limit: pageSize,
-          p_offset: currentPage * pageSize
+          p_offset: currentPage * pageSize,
+          p_search: null,
+          p_status: null,
+          p_start: null,
+          p_end: null
         });
 
       if (error) throw error;
 
       if (data) {
         // Transform data to match UI expectations
-        const transformedOrders: OptimizedOrder[] = data.map(order => ({
+        const transformedOrders: ExtendedOrder[] = data.map(order => ({
           ...order,
-          order_status: 'new' as const,
-          order_items: [],
-          updated_at: order.created_at,
-          special_instructions: null,
-          customer_name_from_profile: order.customer_name,
-          customer_email_from_profile: order.customer_email
+          formattedStayId: order.formatted_stay_id
         }));
 
-        if (reset) {
+        if (isInitialLoad) {
           setOrders(transformedOrders);
           setPage(1);
         } else {
@@ -69,7 +77,11 @@ export const useFetchOrdersOptimized = () => {
       console.error('Error fetching orders:', error);
       toast.error('Failed to fetch orders');
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) {
+        setIsLoading(false);
+      } else {
+        setIsLoadingMore(false);
+      }
     }
   }, [page, pageSize]);
 
@@ -80,10 +92,10 @@ export const useFetchOrdersOptimized = () => {
   }, [fetchOrders]);
 
   const loadMore = useCallback(() => {
-    if (!isLoading && hasMore) {
+    if (!isLoadingMore && hasMore) {
       fetchOrders(false);
     }
-  }, [fetchOrders, isLoading, hasMore]);
+  }, [fetchOrders, isLoadingMore, hasMore]);
 
   useEffect(() => {
     resetAndFetch();
@@ -119,6 +131,7 @@ export const useFetchOrdersOptimized = () => {
     orders, 
     setOrders, 
     isLoading, 
+    isLoadingMore,
     fetchOrders: resetAndFetch,
     loadMore,
     hasMore

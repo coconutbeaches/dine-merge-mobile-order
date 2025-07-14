@@ -24,7 +24,7 @@ export const useOrdersByDate = (
       if (error) throw new Error(error.message)
       return data as OrdersByDate[]
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes for analytics data
+    staleTime: 30 * 1000, // 30 seconds for order data
     gcTime: 10 * 60 * 1000, // 10 minutes
     enabled: Boolean(startDate && endDate),
   })
