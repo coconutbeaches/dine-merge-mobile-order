@@ -37,46 +37,37 @@ function MenuIndexContent() {
 
   const { toast } = useToast();
   
-  // Log user state changes for race condition analysis
-  useEffect(() => {
-    console.log(`[MenuPage] ${Date.now()} - isLoggedIn: ${isLoggedIn}, currentUser: ${currentUser ? 'present' : 'null'}, isLoading: ${userLoading}`);
-  }, [isLoggedIn, currentUser, userLoading]);
-
-  // Guest session state
-  const [guestSession, setGuestSession] = useState<ReturnType<typeof getGuestSession>>(null);
+  // Guest session state - initialize immediately to avoid loading delays
+  const [guestSession, setGuestSession] = useState<ReturnType<typeof getGuestSession>>(() => {
+    if (typeof window !== 'undefined') {
+      return getGuestSession();
+    }
+    return null;
+  });
   
   // Track previous customerId to avoid infinite loops
   const prevCustomerIdRef = useRef<string | null>(null);
 
+  // Simplified session check with early return for better performance
   useEffect(() => {
-    // Check if there's a goto parameter, which means TableScanRouter might still be processing
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasGotoParam = urlParams.has('goto');
+    if (userLoading) return; // Wait for auth to complete
     
-    const checkSession = () => {
-      // Read guest session from localStorage
-      const session = getGuestSession();
-      
-      if (session) {
-        setGuestSession(session);
-      } else if (!isLoggedIn && !userLoading) {
-        // No guest session AND not logged in (and not loading) - redirect to registration
-        const redirectUrl = getRegistrationUrl();
-        console.log(`[MenuPage] ${Date.now()} - No guest session and not logged in (userLoading: ${userLoading}). Redirecting to registration:`, redirectUrl);
-        router.replace(redirectUrl);
-      } else if (!isLoggedIn && userLoading) {
-        console.log(`[MenuPage] ${Date.now()} - Not logged in but still loading user data (userLoading: ${userLoading}). Waiting...`);
-      }
-    };
-    
-    // If there's a goto parameter, wait a bit for TableScanRouter to process
-    if (hasGotoParam) {
-      console.log('MenuPage: Detected goto parameter, waiting for TableScanRouter...');
-      setTimeout(checkSession, 200);
-    } else {
-      checkSession();
+    // If user is admin, they don't need guest session logic
+    if (currentUser?.role === 'admin') {
+      return;
     }
-  }, [router, isLoggedIn, userLoading]); // Run once on mount and when login status or loading changes
+    
+    const session = getGuestSession();
+    if (session) {
+      setGuestSession(session);
+    } else if (!isLoggedIn) {
+      // No guest session AND not logged in - redirect to registration
+      // TEMPORARILY DISABLED FOR DEBUGGING
+      console.log('[MenuPage] Would redirect to registration, but disabled for debugging');
+      // const redirectUrl = getRegistrationUrl();
+      // router.replace(redirectUrl);
+    }
+  }, [isLoggedIn, userLoading, router, currentUser]);
 
   useEffect(() => {
     const customerId = searchParams?.get('customerId');
@@ -121,33 +112,53 @@ function MenuIndexContent() {
     }
   }, [searchParams, setAdminCustomerContext, toast]);
 
-  // Optimized queries with better caching and stale time
+  // Optimized queries with better caching and stale time - run in parallel
   const { data: categories, isLoading: catLoading, error: catError } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
+      console.log('[MenuPage] Starting categories query...');
+      const startTime = Date.now();
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('sort_order', { ascending: true });
-      if (error) throw error;
+      const endTime = Date.now();
+      console.log(`[MenuPage] Categories query completed in ${endTime - startTime}ms`);
+      if (error) {
+        console.error('[MenuPage] Categories query error:', error);
+        throw error;
+      }
+      console.log(`[MenuPage] Categories data:`, data);
       return data as Category[];
     },
     staleTime: 10 * 60 * 1000, // 10 minutes - categories rarely change
     gcTime: 30 * 60 * 1000, // 30 minutes
+    retry: 1, // Reduce retry attempts for faster failure
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   const { data: products, isLoading: prodLoading, error: prodError } = useQuery({
     queryKey: ['menu-products'],
     queryFn: async () => {
+      console.log('[MenuPage] Starting products query...');
+      const startTime = Date.now();
       const { data, error } = await supabase
         .from('products')
         .select('id, name, image_url, price, category_id')
         .order('sort_order', { ascending: true });
-      if (error) throw error;
+      const endTime = Date.now();
+      console.log(`[MenuPage] Products query completed in ${endTime - startTime}ms`);
+      if (error) {
+        console.error('[MenuPage] Products query error:', error);
+        throw error;
+      }
+      console.log(`[MenuPage] Products data length:`, data?.length);
       return data as Product[];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
+    retry: 1, // Reduce retry attempts for faster failure
+    refetchOnWindowFocus: false, // Don't refetch on window focus
   });
 
   // Memoized categories with products for better performance

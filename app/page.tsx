@@ -3,22 +3,32 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import TableScanRouter from '@/src/components/TableScanRouter';
+import { useAppContext } from '@/context/AppContext';
 
 export default function HomePage() {
   const router = useRouter();
+  const { currentUser, isLoading } = useAppContext();
 
   useEffect(() => {
+    // Wait for authentication to complete
+    if (isLoading) return;
+    
     // Only redirect to menu if there are no QR parameters to handle
     // TableScanRouter will handle ?goto=table-X parameters
     const params = new URLSearchParams(window.location.search);
     const goto = params.get('goto');
     
     if (!goto?.startsWith('table-')) {
-      // No QR code parameter, redirect to menu
-      router.push('/menu');
+      // Check if user is admin and redirect accordingly
+      if (currentUser?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        // No QR code parameter, redirect to menu
+        router.push('/menu');
+      }
     }
     // If there is a QR parameter, let TableScanRouter handle it
-  }, [router]);
+  }, [router, currentUser, isLoading]);
 
   return (
     <>
