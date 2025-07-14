@@ -100,3 +100,41 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Authentication Flow
+
+This application supports both authenticated users and guest users through a dual authentication system:
+
+### User Types
+
+1. **Authenticated Users**: Users who sign up/login with email and password via Supabase Auth
+2. **Guest Users**: Users who register as guests with just their name and stay information
+
+### Authentication Logic
+
+The authentication state is managed through the `UserContext` with the following key logic:
+
+- `isLoggedIn`: Returns `true` if either a Supabase session exists OR a current user exists (handles both auth types)
+- `authReady`: Indicates when the initial authentication state has been loaded
+- `currentUser`: Contains user data for both authenticated and guest users
+
+### Guest User Flow
+
+1. Guest users register with name and stay information
+2. Guest data is stored in the `guests` table with RLS policies
+3. Multiple family members can register for the same stay_id
+4. Guest sessions are maintained locally and can be converted to full user accounts
+
+### Database Schema
+
+The `guests` table supports:
+- Multiple guests per stay_id (family members)
+- `table_number` field for restaurant table assignment
+- RLS policies that allow guest registration and data access
+
+### Recent Fixes
+
+- **Root Cause**: Guest users weren't properly authenticated due to strict AND logic in `isLoggedIn`
+- **Resolution**: Changed authentication logic to use OR instead of AND
+- **Impact**: Guest users can now properly access authenticated features
+- **Database**: Added migration to fix guests table schema and RLS policies
