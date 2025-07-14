@@ -1,0 +1,190 @@
+import { SupabaseClient } from '@supabase/supabase-js';
+
+// Optional Sentry import
+let Sentry: any = null;
+try {
+  Sentry = require('@sentry/browser');
+} catch (e) {
+  console.warn('Sentry not available for error tracking');
+}
+
+interface SessionManagerOptions {
+  timeout?: number;
+  retries?: number;
+  enableExponentialBackoff?: boolean;
+}
+
+class SessionRetryExhaustedError extends Error {
+  constructor(message: string, public lastError: Error) {
+    super(message);
+    this.name = 'SessionRetryExhaustedError';
+  }
+}
+
+interface ErrorContext {
+  userAgent: string;
+  networkState: 'online' | 'offline' | 'unknown';
+  timestamp: string;
+  attempt: number;
+  totalRetries: number;
+}
+
+function getNetworkState(): 'online' | 'offline' | 'unknown' {
+  if (typeof navigator !== 'undefined' && 'onLine' in navigator) {
+    return navigator.onLine ? 'online' : 'offline';
+  }
+  return 'unknown';
+}
+
+function createErrorContext(attempt: number, totalRetries: number): ErrorContext {
+  return {
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+    networkState: getNetworkState(),
+    timestamp: new Date().toISOString(),
+    attempt,
+    totalRetries
+  };
+}
+
+function logError(error: Error, context: ErrorContext, operation: string) {
+  const errorMessage = `SessionManager ${operation} failed`;
+  const errorDetails = {
+    error: error.message,
+    stack: error.stack,
+    ...context
+  };
+
+  // Log to Sentry if available
+  if (typeof Sentry !== 'undefined' && Sentry.captureException) {
+    Sentry.captureException(error, {
+      tags: {
+        operation,
+        attempt: context.attempt.toString(),
+        networkState: context.networkState
+      },
+      extra: errorDetails
+    });
+  }
+
+  // Always log to console with full context
+  console.error(errorMessage, errorDetails);
+}
+
+export { SessionRetryExhaustedError };
+
+export async function getSessionWithTimeout(
+  sb: SupabaseClient, 
+  options: SessionManagerOptions = {}
+) {
+  const { timeout: ms = 3000, retries = 1, enableExponentialBackoff = false } = options;
+  
+  const sessionStartTime = Date.now();
+  console.log(`[getSessionWithTimeout] ${sessionStartTime} - Starting session check with options:`, options);
+  
+  let lastError: Error | null = null;
+  
+  // Exponential backoff retry logic: 250ms → 750ms → 1.5s
+  const getRetryDelay = (attempt: number): number => {
+    if (!enableExponentialBackoff) {
+      return 1000 * attempt; // Original linear backoff
+    }
+    
+    switch (attempt) {
+      case 1: return 250;
+      case 2: return 750;
+      case 3: return 1500;
+      default: return 1500;
+    }
+  };
+  
+  const maxAttempts = enableExponentialBackoff ? 3 : retries;
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const context = createErrorContext(attempt, maxAttempts);
+    const attemptStartTime = Date.now();
+    console.log(`[getSessionWithTimeout] ${attemptStartTime} - Attempt ${attempt}/${maxAttempts}`);
+    
+    // Check if we're offline and abort retries
+    if (getNetworkState() === 'offline') {
+      const offlineError = new Error('Cannot retry session check while offline');
+      logError(offlineError, context, 'getSession');
+      throw new SessionRetryExhaustedError(
+        'Session check failed: device is offline',
+        offlineError
+      );
+    }
+    
+    try {
+      console.log(`[getSessionWithTimeout] ${Date.now()} - Calling sb.auth.getSession()`);
+      const timeout = new Promise<null>((_, reject) =>
+        setTimeout(() => reject(new Error('Session check timeout')), ms)
+      );
+      
+      const result = await Promise.race([sb.auth.getSession(), timeout]);
+      
+      // If we get here, the session check succeeded
+      console.log(`[getSessionWithTimeout] ${Date.now()} - Session check succeeded (attempt ${attempt}, total time: ${Date.now() - sessionStartTime}ms)`);
+      console.log(`[getSessionWithTimeout] ${Date.now()} - Result:`, result);
+      return result;
+      
+    } catch (e) {
+      const error = e as Error;
+      lastError = error;
+      
+      console.log(`[getSessionWithTimeout] ${Date.now()} - Session check failed (attempt ${attempt}):`, error.message);
+      
+      // Log the initial session check failure
+      logError(error, context, 'getSession');
+      
+      // Try to refresh the session as a fallback
+      try {
+        console.log(`[getSessionWithTimeout] ${Date.now()} - Trying to refresh session`);
+        const { data, error: refreshError } = await sb.auth.refreshSession();
+        if (refreshError) {
+          throw refreshError;
+        }
+        
+        // If refresh succeeded, return the data
+        console.log(`[getSessionWithTimeout] ${Date.now()} - Session refresh succeeded (attempt ${attempt}, total time: ${Date.now() - sessionStartTime}ms)`);
+        return data;
+        
+      } catch (refreshErr) {
+        const refreshError = refreshErr as Error;
+        console.log(`[getSessionWithTimeout] ${Date.now()} - Session refresh failed (attempt ${attempt}):`, refreshError.message);
+        logError(refreshError, context, 'refreshSession');
+        
+        // If this is not the last attempt, continue to retry
+        if (attempt < maxAttempts) {
+          // Check again for offline state before retrying
+          if (getNetworkState() === 'offline') {
+            const offlineError = new Error('Device went offline during retry');
+            logError(offlineError, context, 'getSession');
+            throw new SessionRetryExhaustedError(
+              'Session check failed: device went offline during retry',
+              offlineError
+            );
+          }
+          
+          // Add exponential backoff delay before retrying
+          const delay = getRetryDelay(attempt);
+          console.log(`[getSessionWithTimeout] ${Date.now()} - Waiting ${delay}ms before retry`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        // If this was the last attempt, throw a retry exhausted error
+        console.log(`[getSessionWithTimeout] ${Date.now()} - All retry attempts exhausted (total time: ${Date.now() - sessionStartTime}ms)`);
+        throw new SessionRetryExhaustedError(
+          `Session check failed after ${maxAttempts} attempts`,
+          refreshError
+        );
+      }
+    }
+  }
+  
+  // This should never be reached, but just in case
+  throw new SessionRetryExhaustedError(
+    'Session check failed after all retries',
+    lastError || new Error('Unknown error')
+  );
+}

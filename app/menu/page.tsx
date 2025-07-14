@@ -33,7 +33,7 @@ interface Product {
 function MenuIndexContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isLoggedIn, currentUser, setAdminCustomerContext, adminCustomerContext, isLoading: userLoading } = useAppContext();
+  const { isLoggedIn, currentUser, setAdminCustomerContext, adminCustomerContext, isLoading: userLoading, authReady } = useAppContext();
 
   const { toast } = useToast();
   
@@ -53,7 +53,7 @@ function MenuIndexContent() {
     if (userLoading) return; // Wait for auth to complete
     
     // If user is admin, they don't need guest session logic
-    if (currentUser?.role === 'admin') {
+    if (authReady && currentUser?.role === 'admin') {
       return;
     }
     
@@ -254,7 +254,7 @@ function MenuIndexContent() {
           </div>
         )}
 
-        {currentUser?.role === 'admin' && adminCustomerContext && (
+        {authReady && currentUser?.role === 'admin' && adminCustomerContext && (
           <CustomOrderSection customerId={adminCustomerContext.customerId} customerName={adminCustomerContext.customerName} />
         )}
 

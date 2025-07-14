@@ -1,6 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { User } from '../types';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { fetchUserProfile, updateUserProfile } from '@/services/userProfileService';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -9,6 +8,8 @@ interface UserContextType {
   isLoggedIn: boolean;
   authReady: boolean;
   isLoading: boolean;
+  error: string | null;
+  retryAuth: () => void;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (updatedUser: User) => void;
@@ -29,6 +30,10 @@ interface UserProviderProps { children: ReactNode }
 
 export const UserProvider = ({ children }: UserProviderProps) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [supabaseSession, setSupabaseSession] = useState<any>(null);
+  
   const fetchProfileAndSet = useCallback(async (userId: string) => {
     const timestamp = Date.now();
     console.log(`[UserContext] ${timestamp} - fetchProfileAndSet called with userId: ${userId}`);
@@ -39,14 +44,91 @@ export const UserProvider = ({ children }: UserProviderProps) => {
       return; 
     }
     
-    console.log(`[UserContext] ${Date.now()} - About to fetch profile for userId: ${userId}`);
-    const profile = await fetchUserProfile(userId);
-    console.log(`[UserContext] ${Date.now()} - Profile fetched, setting currentUser:`, profile);
-    setCurrentUser(profile);
-    console.log(`[UserContext] ${Date.now()} - fetchProfileAndSet completed (total time: ${Date.now() - timestamp}ms)`);
+    try {
+      console.log(`[UserContext] ${Date.now()} - About to fetch profile for userId: ${userId}`);
+      const profile = await fetchUserProfile(userId);
+      console.log(`[UserContext] ${Date.now()} - Profile fetched, setting currentUser:`, profile);
+      setCurrentUser(profile);
+      console.log(`[UserContext] ${Date.now()} - fetchProfileAndSet completed (total time: ${Date.now() - timestamp}ms)`);
+    } catch (err) {
+      console.error('[UserContext] Error fetching profile:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch user profile');
+    }
   }, []);
 
-  const { supabaseUser, supabaseSession, isLoading } = useSupabaseAuth(fetchProfileAndSet);
+  const initializeAuth = useCallback(async () => {
+    const initStartTime = Date.now();
+    console.log(`[UserContext.initializeAuth] ${initStartTime} - Starting initializeAuth`);
+    
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      console.log(`[UserContext.initializeAuth] ${Date.now()} - About to call supabase.auth.getSession()`);
+      
+      // Fast, direct call to supabase.auth.getSession()
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) console.error(error);
+      
+      console.log(`[UserContext.initializeAuth] ${Date.now()} - getSession completed, session:`, session);
+      
+      setSupabaseSession(session ?? null);
+      
+      if (session?.user) {
+        console.log(`[UserContext.initializeAuth] ${Date.now()} - Session user found, fetching profile`);
+        await fetchProfileAndSet(session.user.id);
+      } else {
+        console.log(`[UserContext.initializeAuth] ${Date.now()} - No session user, setting currentUser to null`);
+        setCurrentUser(null);
+      }
+      
+      console.log(`[UserContext.initializeAuth] ${Date.now()} - initializeAuth completed (total time: ${Date.now() - initStartTime}ms)`);
+    } catch (error) {
+      console.error(`[UserContext.initializeAuth] ${Date.now()} - Session initialization failed:`, error);
+      setError(error instanceof Error ? error.message : 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+      console.log(`[UserContext.initializeAuth] ${Date.now()} - setIsLoading(false) called, initializeAuth finished (total time: ${Date.now() - initStartTime}ms)`);
+    }
+  }, [fetchProfileAndSet]);
+  
+  const retryAuth = useCallback(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      
+      const authStateChangeTime = Date.now();
+      console.log(`[supabase.auth.onAuthStateChange] ${authStateChangeTime} - Auth state change event: ${event}`);
+      console.log(`[supabase.auth.onAuthStateChange] ${authStateChangeTime} - Session:`, session);
+      
+      setSupabaseSession(session);
+      
+      if (session?.user) {
+        console.log(`[supabase.auth.onAuthStateChange] ${Date.now()} - Session user found, fetching profile`);
+        await fetchProfileAndSet(session.user.id);
+      } else {
+        console.log(`[supabase.auth.onAuthStateChange] ${Date.now()} - No session user, setting currentUser to null`);
+        setCurrentUser(null);
+      }
+      
+      console.log(`[supabase.auth.onAuthStateChange] ${Date.now()} - Auth state change processing completed (total time: ${Date.now() - authStateChangeTime}ms)`);
+    });
+    
+    if (isMounted) {
+      initializeAuth();
+    }
+    
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, [initializeAuth]);
 
   const updateUser = (updatedUser: User) => {
     setCurrentUser(updatedUser);
@@ -152,18 +234,18 @@ export const UserProvider = ({ children }: UserProviderProps) => {
   // Memoize computed values to prevent unnecessary re-renders
   const value = useMemo(() => ({
     currentUser,
-    // Fix 1: Change isLoggedIn logic to use OR instead of AND
     isLoggedIn: !!supabaseSession || !!currentUser,
-    // Fix 2: Add authReady flag that indicates initial auth load has completed
     authReady: !isLoading,
     isLoading,
+    error,
+    retryAuth,
     login,
     logout,
     updateUser,
     loginOrSignup,
     loginAsGuest,
     convertGuestToUser
-  }), [currentUser, supabaseSession, isLoading, login, logout, updateUser, loginOrSignup, loginAsGuest, convertGuestToUser]);
+  }), [currentUser, supabaseSession, isLoading, error, retryAuth, login, logout, updateUser, loginOrSignup, loginAsGuest, convertGuestToUser]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };

@@ -22,7 +22,10 @@ function useAppContextValue() {
   const {
     currentUser,
     isLoggedIn,
+    authReady,
     isLoading,
+    error,
+    retryAuth,
     login,
     logout,
     updateUser,
@@ -52,7 +55,10 @@ function useAppContextValue() {
     // User operations
     currentUser,
     isLoggedIn,
+    authReady,
     isLoading,
+    error,
+    retryAuth,
     login,
     logout,
     updateUser,

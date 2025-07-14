@@ -1,0 +1,115 @@
+#!/usr/bin/env node
+
+/**
+ * Test script to verify the enhanced SessionManager retry functionality
+ */
+
+// Mock the navigator object for testing
+global.navigator = {
+  onLine: true, // Start as online
+  userAgent: 'Test Agent'
+};
+
+// Mock setTimeout for testing
+const originalSetTimeout = setTimeout;
+let timeoutCalls = [];
+global.setTimeout = (fn, delay) => {
+  timeoutCalls.push({ fn, delay });
+  return originalSetTimeout(fn, delay);
+};
+
+// Mock Supabase client
+const mockSupabaseClient = {
+  auth: {
+    getSession: jest.fn(),
+    refreshSession: jest.fn()
+  }
+};
+
+// Test the retry logic
+async function testRetryLogic() {
+  // Reset timeout calls
+  timeoutCalls = [];
+  
+  // Import the SessionManager
+  const { getSessionWithTimeout, SessionRetryExhaustedError } = require('./utils/sessionManager');
+  
+  console.log('Testing exponential backoff retry logic...');
+  
+  // Test case 1: All calls fail, exponential backoff should be used
+  console.log('\n1. Testing exponential backoff timing:');
+  mockSupabaseClient.auth.getSession.mockRejectedValue(new Error('Session timeout'));
+  mockSupabaseClient.auth.refreshSession.mockRejectedValue(new Error('Refresh failed'));
+  
+  try {
+    await getSessionWithTimeout(mockSupabaseClient, { enableExponentialBackoff: true });
+  } catch (error) {
+    console.log('✓ Error caught as expected:', error.message);
+    console.log('✓ Should be SessionRetryExhaustedError:', error instanceof SessionRetryExhaustedError);
+    console.log('✓ Retry delays used:', timeoutCalls.map(call => call.delay));
+    console.log('✓ Expected: [250, 750, 1500]');
+  }
+  
+  // Test case 2: Offline detection
+  console.log('\n2. Testing offline detection:');
+  global.navigator.onLine = false;
+  timeoutCalls = [];
+  
+  try {
+    await getSessionWithTimeout(mockSupabaseClient, { enableExponentialBackoff: true });
+  } catch (error) {
+    console.log('✓ Offline error caught:', error.message);
+    console.log('✓ Should be SessionRetryExhaustedError:', error instanceof SessionRetryExhaustedError);
+    console.log('✓ No retry delays should be used when offline:', timeoutCalls.length === 0);
+  }
+  
+  // Test case 3: Success on retry
+  console.log('\n3. Testing success on second attempt:');
+  global.navigator.onLine = true;
+  timeoutCalls = [];
+  
+  mockSupabaseClient.auth.getSession
+    .mockRejectedValueOnce(new Error('First call fails'))
+    .mockResolvedValueOnce({ session: { user: { id: 'test' } } });
+  
+  try {
+    const result = await getSessionWithTimeout(mockSupabaseClient, { enableExponentialBackoff: true });
+    console.log('✓ Success on retry:', result.session.user.id);
+    console.log('✓ Only one retry delay used:', timeoutCalls.length === 1);
+    console.log('✓ First retry delay:', timeoutCalls[0]?.delay);
+  } catch (error) {
+    console.log('✗ Unexpected error:', error.message);
+  }
+  
+  console.log('\n✓ All tests completed!');
+}
+
+// Run the test if this file is executed directly
+if (require.main === module) {
+  // Set up jest mocks
+  global.jest = {
+    fn: () => {
+      const mockFn = (...args) => mockFn.mock.results[mockFn.mock.calls.length - 1]?.value;
+      mockFn.mock = { calls: [], results: [] };
+      mockFn.mockRejectedValue = (value) => {
+        mockFn.mock.results.push({ value: Promise.reject(value) });
+        return mockFn;
+      };
+      mockFn.mockResolvedValue = (value) => {
+        mockFn.mock.results.push({ value: Promise.resolve(value) });
+        return mockFn;
+      };
+      mockFn.mockRejectedValueOnce = (value) => {
+        mockFn.mock.results.push({ value: Promise.reject(value) });
+        return mockFn;
+      };
+      mockFn.mockResolvedValueOnce = (value) => {
+        mockFn.mock.results.push({ value: Promise.resolve(value) });
+        return mockFn;
+      };
+      return mockFn;
+    }
+  };
+  
+  testRetryLogic().catch(console.error);
+}

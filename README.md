@@ -103,7 +103,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 
 ## Authentication Flow
 
-This application supports both authenticated users and guest users through a dual authentication system:
+This application supports both authenticated users and guest users through a dual authentication system with robust error handling and retry mechanisms.
 
 ### User Types
 
@@ -117,6 +117,7 @@ The authentication state is managed through the `UserContext` with the following
 - `isLoggedIn`: Returns `true` if either a Supabase session exists OR a current user exists (handles both auth types)
 - `authReady`: Indicates when the initial authentication state has been loaded
 - `currentUser`: Contains user data for both authenticated and guest users
+- `retryAuth`: Function to retry authentication initialization on failures
 
 ### Guest User Flow
 
@@ -125,6 +126,28 @@ The authentication state is managed through the `UserContext` with the following
 3. Multiple family members can register for the same stay_id
 4. Guest sessions are maintained locally and can be converted to full user accounts
 
+### Route Protection
+
+The application uses several route protection components:
+
+- **RouteGuard**: Generic route protection with configurable auth requirements
+- **AuthRoute**: Protects routes that require any authenticated user (regular or guest)
+- **AdminRoute**: Protects routes that require admin-level access
+
+All route guards feature:
+- Graceful loading states with spinners
+- Error handling with retry functionality
+- Automatic redirects for unauthorized access
+- Prevention of infinite redirect loops
+
+### Error Handling & Retry
+
+The authentication system includes robust error handling:
+- Automatic retry on authentication failures
+- Clear error messages for users
+- Retry buttons for manual recovery
+- Graceful degradation on network issues
+
 ### Database Schema
 
 The `guests` table supports:
@@ -132,9 +155,9 @@ The `guests` table supports:
 - `table_number` field for restaurant table assignment
 - RLS policies that allow guest registration and data access
 
-### Recent Fixes
+### Recent Improvements
 
-- **Root Cause**: Guest users weren't properly authenticated due to strict AND logic in `isLoggedIn`
-- **Resolution**: Changed authentication logic to use OR instead of AND
-- **Impact**: Guest users can now properly access authenticated features
-- **Database**: Added migration to fix guests table schema and RLS policies
+- **Simplified Error Handling**: Removed complex `shouldShowRetryButton` logic in favor of always showing retry options
+- **Consistent UX**: All authentication errors now show clear retry options
+- **Better User Experience**: Streamlined authentication flow with better loading states
+- **Robust Recovery**: Authentication failures are automatically retryable

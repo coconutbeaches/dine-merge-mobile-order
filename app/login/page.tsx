@@ -26,6 +26,9 @@ function LoginContent() {
 
   const handleLoginOrSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    const continueButtonClickTime = Date.now();
+    console.log(`[Login Continue Button] ${continueButtonClickTime} - Continue button clicked`);
+    
     if (!email || !password) {
       toast({
         title: 'Error',
@@ -34,9 +37,15 @@ function LoginContent() {
       });
       return;
     }
+    
     setIsLoading(true);
+    console.log(`[Login Continue Button] ${Date.now()} - Starting login/signup process`);
+    
     const result = await loginOrSignup(email, password, name);
+    
+    console.log(`[Login Continue Button] ${Date.now()} - Login/signup completed:`, result);
     setIsLoading(false);
+    
     if (result.success) {
       if (result.a_new_user_was_created) {
         toast({
@@ -44,6 +53,7 @@ function LoginContent() {
           description: 'Your account has been created successfully.',
         });
       }
+      console.log(`[Login Continue Button] ${Date.now()} - Redirecting to: ${returnTo}`);
       router.push(returnTo);
     } else {
       toast({

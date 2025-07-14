@@ -122,13 +122,23 @@
   "suites": [],
   "errors": [
     {
-      "message": "Error: Process from config.webServer exited early.",
-      "stack": "Error: Process from config.webServer exited early."
+      "message": "SyntaxError: /Users/tyler/Projects/dine-merge-mobile-order/tests/service-worker.spec.js: Unexpected token, expected \",\" (110:53)\n\n\u001b[0m \u001b[90m 108 |\u001b[39m     \n \u001b[90m 109 |\u001b[39m     \u001b[90m// Should not show browser's default offline page\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 110 |\u001b[39m     expect(bodyContent)\u001b[33m.\u001b[39mnot\u001b[33m.\u001b[39mtoContain(\u001b[32m'This site can'\u001b[39mt be reached\u001b[32m');\u001b[39m\n \u001b[90m     |\u001b[39m                                                      \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 111 |\u001b[39m     \n \u001b[90m 112 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m'✓ Offline functionality works'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 113 |\u001b[39m     \u001b[0m",
+      "stack": "SyntaxError: /Users/tyler/Projects/dine-merge-mobile-order/tests/service-worker.spec.js: Unexpected token, expected \",\" (110:53)\n\n\u001b[0m \u001b[90m 108 |\u001b[39m     \n \u001b[90m 109 |\u001b[39m     \u001b[90m// Should not show browser's default offline page\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 110 |\u001b[39m     expect(bodyContent)\u001b[33m.\u001b[39mnot\u001b[33m.\u001b[39mtoContain(\u001b[32m'This site can'\u001b[39mt be reached\u001b[32m');\u001b[39m\n \u001b[90m     |\u001b[39m                                                      \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 111 |\u001b[39m     \n \u001b[90m 112 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m'✓ Offline functionality works'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 113 |\u001b[39m     \u001b[0m",
+      "location": {
+        "file": "/Users/tyler/Projects/dine-merge-mobile-order/tests/service-worker.spec.js",
+        "line": 110,
+        "column": 53
+      },
+      "snippet": "\u001b[90m   at \u001b[39mservice-worker.spec.js:110\n\n\u001b[0m \u001b[90m 108 |\u001b[39m     \n \u001b[90m 109 |\u001b[39m     \u001b[90m// Should not show browser's default offline page\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 110 |\u001b[39m     expect(bodyContent)\u001b[33m.\u001b[39mnot\u001b[33m.\u001b[39mtoContain(\u001b[32m'This site can'\u001b[39mt be reached\u001b[32m');\u001b[39m\n \u001b[90m     |\u001b[39m                                                     \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 111 |\u001b[39m     \n \u001b[90m 112 |\u001b[39m     console\u001b[33m.\u001b[39mlog(\u001b[32m'✓ Offline functionality works'\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 113 |\u001b[39m     \u001b[0m"
+    },
+    {
+      "message": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments.",
+      "stack": "Error: No tests found.\nMake sure that arguments are regular expressions matching test files.\nYou may need to escape symbols like \"$\" or \"*\" and quote the arguments."
     }
   ],
   "stats": {
-    "startTime": "2025-07-10T14:11:36.381Z",
-    "duration": 8129.223999999999,
+    "startTime": "2025-07-14T03:50:17.083Z",
+    "duration": 66.60000000000002,
     "expected": 0,
     "skipped": 0,
     "unexpected": 0,

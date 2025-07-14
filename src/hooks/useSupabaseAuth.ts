@@ -82,10 +82,20 @@ export const useSupabaseAuth = (onProfileFetch: (userId: string) => Promise<void
     (async () => {
       console.log('[useSupabaseAuth] Performing initial session check and setting up listener...');
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session check timeout')), 10000); // 10 second timeout
+        });
+        
+        console.log(`[useSupabaseAuth] ${Date.now()} - BEFORE supabase.auth.getSession() call`);
+        const sessionPromise = supabase.auth.getSession();
+        
+        const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+        console.log(`[useSupabaseAuth] ${Date.now()} - AFTER supabase.auth.getSession() call completed`);
         if (error) {
           console.error("[useSupabaseAuth] Error getting initial session:", error);
         }
+        console.log('[useSupabaseAuth] Session check completed, session:', !!session);
         await handleAuthChange('INITIAL_SESSION', session);
 
         // Set up auth state change listener after initial check
@@ -106,10 +116,19 @@ export const useSupabaseAuth = (onProfileFetch: (userId: string) => Promise<void
       }
     })();
 
+    // Fallback timeout - if auth is still loading after 15 seconds, force complete
+    const fallbackTimeout = setTimeout(() => {
+      if (isMounted) {
+        console.warn('[useSupabaseAuth] Fallback timeout reached, forcing auth complete');
+        setIsLoading(false);
+      }
+    }, 15000);
+
     return () => {
       isMounted = false;
       if (authSubscription) authSubscription.unsubscribe();
       if (refreshInterval) clearInterval(refreshInterval);
+      if (fallbackTimeout) clearTimeout(fallbackTimeout);
     };
   }, []); // Empty dependency array since we use ref for onProfileFetch
 

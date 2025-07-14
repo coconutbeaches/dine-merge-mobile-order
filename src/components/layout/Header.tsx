@@ -18,7 +18,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { cart, isLoggedIn, currentUser, cartIsLoading } = useAppContext(); // Include currentUser to check admin role
+  const { cart, isLoggedIn, currentUser, cartIsLoading, authReady } = useAppContext(); // Include currentUser to check admin role
   const [isClient, setIsClient] = useState(false);
   
   // Log isLoggedIn state changes for race condition analysis
@@ -65,11 +65,15 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Right side: Admin Settings, Cart and Profile/Login buttons */}
         <div className="flex items-center space-x-1">
-          {currentUser?.role === 'admin' && (
+          {authReady && currentUser?.role === 'admin' && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push('/admin')}
+              onClick={() => {
+                const settingsClickTime = Date.now();
+                console.log(`[Header Settings Cog] ${settingsClickTime} - Admin settings cog clicked, navigating to /admin`);
+                router.push('/admin');
+              }}
               className="flex items-center"
             >
               <Settings className="h-[2.18rem] w-[2.18rem]" />
@@ -84,8 +88,9 @@ const Header: React.FC<HeaderProps> = ({
             )}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => {
-            // Unified user-icon routing logic - only run on client
+            // Unified user-icon routing logic - only run on client and after auth is ready
             if (!isClient) return;
+            if (!authReady) return;          // new guard
             
             const isGuest = isHotelGuest();
             
