@@ -16,7 +16,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams?.get('returnTo') || '/';
-  const { loginOrSignup } = useAppContext();
+  const { loginOrSignup, loginAsGuest } = useAppContext();
   const { toast } = useToast();
 
   const [name, setName] = useState('');

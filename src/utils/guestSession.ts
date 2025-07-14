@@ -191,8 +191,8 @@ export async function createGuestUser({ table_number, first_name = 'Guest', stay
   if (stay_id) {
     try {
       const { data: existingUser, error: existingError } = await supabase
-        .from('guest_users')
-        .select('user_id, first_name, stay_id')
+        .from('guests')
+        .select('id as user_id, first_name, stay_id')
         .eq('stay_id', finalStayId)
         .eq('first_name', first_name)
         .single();
@@ -221,8 +221,8 @@ export async function createGuestUser({ table_number, first_name = 'Guest', stay
   }
   
   // Insert the guest user with final stay_id to avoid update query
-  const { data, error } = await supabase.from('guest_users').insert({
-    user_id: randomId,
+  const { data, error } = await supabase.from('guests').insert({
+    id: randomId,
     first_name,
     stay_id: finalStayId,
     table_number
@@ -235,8 +235,8 @@ export async function createGuestUser({ table_number, first_name = 'Guest', stay
       console.log('[createGuestUser] Duplicate key error, attempting to fetch existing user');
       try {
         const { data: existingUser } = await supabase
-          .from('guest_users')
-          .select('user_id, first_name, stay_id')
+          .from('guests')
+          .select('id as user_id, first_name, stay_id')
           .eq('stay_id', finalStayId)
           .eq('first_name', first_name)
           .single();
@@ -274,7 +274,7 @@ export async function createGuestUser({ table_number, first_name = 'Guest', stay
   console.log('[createGuestUser] User inserted successfully:', insertedUser);
   
   const session = {
-    guest_user_id: insertedUser.user_id,
+    guest_user_id: insertedUser.id,
     guest_first_name: insertedUser.first_name,
     guest_stay_id: insertedUser.stay_id
   };

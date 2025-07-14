@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo } from 'react';
 import { User } from '../types';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { fetchUserProfile, updateUserProfile } from '@/services/userProfileService';
@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface UserContextType {
   currentUser: User | null;
   isLoggedIn: boolean;
+  authReady: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -148,9 +149,13 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     }
   };
 
-  const value = {
+  // Memoize computed values to prevent unnecessary re-renders
+  const value = useMemo(() => ({
     currentUser,
-    isLoggedIn: !!currentUser && !!supabaseSession,
+    // Fix 1: Change isLoggedIn logic to use OR instead of AND
+    isLoggedIn: !!supabaseSession || !!currentUser,
+    // Fix 2: Add authReady flag that indicates initial auth load has completed
+    authReady: !isLoading,
     isLoading,
     login,
     logout,
@@ -158,7 +163,7 @@ export const UserProvider = ({ children }: UserProviderProps) => {
     loginOrSignup,
     loginAsGuest,
     convertGuestToUser
-  };
+  }), [currentUser, supabaseSession, isLoading, login, logout, updateUser, loginOrSignup, loginAsGuest, convertGuestToUser]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 };
