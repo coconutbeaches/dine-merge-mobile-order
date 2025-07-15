@@ -62,9 +62,10 @@ const OrderConfirmationById = () => {
     let displayCustomerName = customerName;
     if (isWalkIn) {
       displayCustomerName = `Walkin ${customerName}`;
-    } else if (order.stay_id) {
-      // Hotel guest with stay_id
-      displayCustomerName = `${order.stay_id} ${customerName}`;
+    } else {
+      // All non-walkin customers are hotel guests and should have stay_id
+      const stayId = order.stay_id || 'Guest';
+      displayCustomerName = `${stayId} ${customerName}`;
     }
 
     const message = `${tableNumber} // ${displayCustomerName}
