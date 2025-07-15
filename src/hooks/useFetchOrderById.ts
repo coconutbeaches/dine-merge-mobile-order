@@ -135,6 +135,7 @@ export const useFetchOrderById = (orderId: string | undefined) => {
         customer_email_from_profile: profileData?.email || undefined,
         order_items: enrichedItems,
         formattedStayId,
+        stay_id: orderData.stay_id || undefined,
       };
       
       return enrichedData;

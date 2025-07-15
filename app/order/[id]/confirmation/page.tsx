@@ -64,8 +64,9 @@ const OrderConfirmationById = () => {
       displayCustomerName = `Walkin ${customerName}`;
     } else {
       // All non-walkin customers are hotel guests and should have stay_id
-      const stayId = order.stay_id || 'Guest';
-      displayCustomerName = `${stayId} ${customerName}`;
+      // Use formatted stay_id (underscores replaced with spaces)
+      const formattedStayId = order.stay_id ? order.stay_id.replace(/_/g, ' ') : 'Guest';
+      displayCustomerName = `${formattedStayId} ${customerName}`;
     }
 
     const message = `${tableNumber} // ${displayCustomerName}
