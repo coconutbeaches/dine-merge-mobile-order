@@ -55,10 +55,20 @@ const OrderConfirmationById = () => {
     const tableNumber = order.table_number || 'Takeaway';
     const formattedTotal = formatThaiCurrency(order.total_amount);
 
-    const message = `*Order: #${order.id}*
+    // Check if this is a walk-in customer
+    const isWalkIn = order.stay_id && order.stay_id.toLowerCase().includes('walkin');
+    
+    // Format customer name based on type
+    let displayCustomerName = customerName;
+    if (isWalkIn) {
+      displayCustomerName = `Walkin ${customerName}`;
+    } else if (order.stay_id) {
+      // Hotel guest with stay_id
+      displayCustomerName = `${order.stay_id} ${customerName}`;
+    }
 
-*Customer:* ${customerName}
-*Table:* ${tableNumber}
+    const message = `${tableNumber} // ${displayCustomerName}
+*Order: #${order.id}*
 
 *Items:*
 ${itemsDetails}
