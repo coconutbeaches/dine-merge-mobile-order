@@ -12,7 +12,7 @@ async function debugA4Natascha() {
   const { data: a4Orders, error: ordersError } = await supabase
     .from('orders')
     .select('id, stay_id, guest_first_name, total_amount, created_at, table_number')
-    .eq('stay_id', 'A4_Natascha');
+    .eq('stay_id', 'A3_Natascha');
     
   if (ordersError) {
     console.error('❌ Error fetching A4 orders:', ordersError);

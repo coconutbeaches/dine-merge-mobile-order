@@ -1,7 +1,7 @@
 const { supabase } = require('./src/integrations/supabase/client');
 
 async function checkOrders() {
-  const customerId = 'A4_Natascha';
+  const customerId = 'A3_Natascha';
   
   // Check orders with stay_id
   const { data: stayIdOrders, error: stayIdError } = await supabase

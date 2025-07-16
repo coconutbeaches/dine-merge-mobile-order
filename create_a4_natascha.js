@@ -9,7 +9,7 @@ async function createA4Natascha() {
   console.log('🏨 Creating A4_Natascha guest family...\n');
   
   try {
-    const stayId = 'A4_Natascha';
+    const stayId = 'A3_Natascha';
     const guestUserId = `guest_${stayId}_${Date.now()}`;
     const guestFirstName = 'Coconut';
     
@@ -70,7 +70,7 @@ async function createA4Natascha() {
       table_number: 'A4',
       order_items: JSON.stringify([
         { 
-          name: 'Pad Thai', 
+          name: 'Pad Thai',
           price: 300, 
           quantity: 1,
           options: []

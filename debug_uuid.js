@@ -1,4 +1,4 @@
-const customerId = 'A4_Natascha';
+const customerId = 'A3_Natascha';
 const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId);
 console.log('customerId:', customerId);
 console.log('isUUID:', isUUID);
