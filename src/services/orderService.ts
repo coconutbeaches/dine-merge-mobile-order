@@ -134,7 +134,8 @@ export const createCustomOrder = async (
   customerId: string | null,
   customerName: string | null,
   items: CustomOrderItem[],
-  orderDate: string
+  orderDate: string,
+  tableNumber?: string
 ) => {
   const total = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -153,6 +154,7 @@ export const createCustomOrder = async (
     total_amount: total,
     order_status: 'completed',
     created_at: finalDateTime,
+    table_number: tableNumber || null,
   };
   
   if (isUUID) {

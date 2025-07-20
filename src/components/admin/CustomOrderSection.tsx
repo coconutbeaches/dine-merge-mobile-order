@@ -23,6 +23,7 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
   const [items, setItems] = useState<(CustomOrderItem & { id: string })[]>([]);
   const [orderDate, setOrderDate] = useState<string>(new Date().toISOString().slice(0,10));
   const [orderTime, setOrderTime] = useState<string>(new Date().toTimeString().slice(0,5));
+  const [tableNumber, setTableNumber] = useState<string>('');
   const [showForm, setShowForm] = useState(false);
 
   const addItem = () => {
@@ -43,9 +44,10 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
       const dateTimeString = `${orderDate}T${orderTime}:00`;
       const dateTime = new Date(dateTimeString);
       
-      await createCustomOrder(customerId, customerName, items.map(({id, ...rest}) => rest), dateTime.toISOString());
+      await createCustomOrder(customerId, customerName, items.map(({id, ...rest}) => rest), dateTime.toISOString(), tableNumber);
       toast.success('Custom order created');
       setItems([]);
+      setTableNumber('');
       setShowForm(false);
     } catch (e:any) {
       console.error(e);
@@ -102,7 +104,8 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
             </div>
           ))}
         </div>
-        <div className="flex items-center gap-2 pt-4">
+<div className="flex items-center gap-2 pt-4">
+          <Input type="text" placeholder="Table Number" value={tableNumber} onChange={e => setTableNumber(e.target.value)} className="w-24" />
           <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="w-36 hide-calendar-icon" />
           <Input type="time" value={orderTime} onChange={e => setOrderTime(e.target.value)} className="w-24" />
           <Button onClick={submit} disabled={items.length === 0} className="bg-black text-white hover:bg-gray-800">Order</Button>

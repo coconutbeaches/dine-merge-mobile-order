@@ -41,7 +41,7 @@ export default function CustomersDashboardPage() {
   const [sortKey, setSortKey] = useState<keyof GroupedCustomer>('last_order_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [showWalkins, setShowWalkins] = useState(true);
+  const [showWalkins, setShowWalkins] = useState(false);
   
   // Helper function to determine if a customer is a walkin
   const isWalkinCustomer = (customer: GroupedCustomer): boolean => {
