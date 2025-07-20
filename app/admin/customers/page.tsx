@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, RefreshCw, Trash2, Merge, Archive, Edit } from 'lucide-react';
+import { Search, RefreshCw, Trash2, Merge, Archive, Edit, Users } from 'lucide-react';
 
 // Extended Customer interface to include archived and deleted fields
 // Query now selects: 'id, name, email, archived, deleted' from profiles
@@ -41,6 +41,15 @@ export default function CustomersDashboardPage() {
   const [sortKey, setSortKey] = useState<keyof GroupedCustomer>('last_order_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [showWalkins, setShowWalkins] = useState(true);
+  
+  // Helper function to determine if a customer is a walkin
+  const isWalkinCustomer = (customer: GroupedCustomer): boolean => {
+    if (customer.customer_type === 'guest_family') {
+      return customer.customer_id?.toLowerCase().includes('walkin') || false;
+    }
+    return false;
+  };
   
   const fetchCustomers = async () => {
     setIsLoading(true);
@@ -299,13 +308,20 @@ export default function CustomersDashboardPage() {
     if (!customers || !Array.isArray(customers)) return [];
     
     let filtered = customers;
+    
+    // Apply search filter
     if (search.trim()) {
       const s = search.trim().toLowerCase();
-      filtered = customers.filter(customer => {
+      filtered = filtered.filter(customer => {
         const name = (customer?.name || "").toLowerCase();
         const customerId = (customer?.customer_id || "").toLowerCase();
         return name.includes(s) || customerId.includes(s); // Search by name or customer_id
       });
+    }
+    
+    // Apply walkin filter
+    if (!showWalkins) {
+      filtered = filtered.filter(customer => !isWalkinCustomer(customer));
     }
     
     const sorted = [...filtered].sort((a, b) => {
@@ -344,7 +360,7 @@ export default function CustomersDashboardPage() {
     });
     
     return sorted;
-  }, [customers, search, sortKey, sortDirection]);
+  }, [customers, search, sortKey, sortDirection, showWalkins, isWalkinCustomer]);
 
   const stats = useMemo(() => {
     if (!customers || !Array.isArray(customers)) {
@@ -528,6 +544,15 @@ export default function CustomersDashboardPage() {
             >
               <Archive className="mr-2 h-4 w-4" />
               {includeArchived ? "Hide Archived" : "Show Archived"}
+            </Button>
+            <Button 
+              variant={showWalkins ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowWalkins(!showWalkins)}
+              className={showWalkins ? "bg-black text-white hover:bg-gray-800" : ""}
+            >
+              <Users className="mr-2 h-4 w-4" />
+              {showWalkins ? "Hide Walkins" : "Show Walkins"}
             </Button>
             <Button variant="ghost" size="icon" onClick={fetchCustomers} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
