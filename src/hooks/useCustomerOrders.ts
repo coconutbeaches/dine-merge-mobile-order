@@ -32,54 +32,68 @@ export const useCustomerOrders = (customerId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (customerId) {
-      // Determine if this is a UUID (auth user) or stay_id (guest family)
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId);
-      const detectedCustomerType = isUUID ? 'auth_user' : 'guest_family';
-      setCustomerType(detectedCustomerType);
-      
-      Promise.all([
-        fetchCustomerDetails(customerId, detectedCustomerType),
-        fetchCustomerOrders(customerId, detectedCustomerType)
-      ]).finally(() => setIsLoading(false));
-      
-      // Setup real-time subscription for this customer's orders
-      // For guest families, we need to listen for stay_id changes
-      const filter = detectedCustomerType === 'auth_user' 
-        ? `user_id=eq.${customerId}` 
-        : `stay_id=eq.${customerId}`;
-        
-      const channel = supabase
-        .channel(`customer-orders-${customerId}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'orders', filter },
-          (payload) => {
-            setOrders(prevOrders => {
-              const newOrder = payload.new as Order;
-              const oldOrder = payload.old as Order;
-
-              switch (payload.eventType) {
-                case 'INSERT':
-                  return [transformSupabaseOrder(newOrder, customer), ...prevOrders];
-                case 'UPDATE':
-                  return prevOrders.map(order =>
-                    order.id === newOrder.id ? transformSupabaseOrder(newOrder, customer) : order
-                  );
-                case 'DELETE':
-                  return prevOrders.filter(order => order.id !== oldOrder.id);
-                default:
-                  return prevOrders;
-              }
-            });
-          }
-        )
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(channel);
-      };
+    if (!customerId) {
+      setIsLoading(false);
+      return;
     }
+
+    // Determine if this is a UUID (auth user) or stay_id (guest family)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(customerId);
+    const detectedCustomerType = isUUID ? 'auth_user' : 'guest_family';
+    setCustomerType(detectedCustomerType);
+    
+    const fetchData = async () => {
+      try {
+        await Promise.all([
+          fetchCustomerDetails(customerId, detectedCustomerType),
+          fetchCustomerOrders(customerId, detectedCustomerType)
+        ]);
+      } catch (error) {
+        console.error('Error fetching customer data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+    
+    // Setup real-time subscription for this customer's orders
+    // For guest families, we need to listen for stay_id changes
+    const filter = detectedCustomerType === 'auth_user' 
+      ? `user_id=eq.${customerId}` 
+      : `stay_id=eq.${customerId}`;
+      
+    const channel = supabase
+      .channel(`customer-orders-${customerId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter },
+        (payload) => {
+          setOrders(prevOrders => {
+            const newOrder = payload.new as Order;
+            const oldOrder = payload.old as Order;
+
+            switch (payload.eventType) {
+              case 'INSERT':
+                // Use null for profileData in real-time updates, the UI will handle display
+                return [transformSupabaseOrder(newOrder, null), ...prevOrders];
+              case 'UPDATE':
+                return prevOrders.map(order =>
+                  order.id === newOrder.id ? transformSupabaseOrder(newOrder, null) : order
+                );
+              case 'DELETE':
+                return prevOrders.filter(order => order.id !== oldOrder.id);
+              default:
+                return prevOrders;
+            }
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [customerId]);
 
   const fetchCustomerDetails = async (customerId: string, customerType: 'auth_user' | 'guest_family') => {
