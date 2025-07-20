@@ -17,8 +17,6 @@ import {
 } from "@/components/ui/tooltip";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Search, RefreshCw, Trash2, Merge, Archive, Edit } from 'lucide-react';
 
 // Extended Customer interface to include archived and deleted fields
@@ -522,16 +520,15 @@ export default function CustomersDashboardPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="show-archived"
-                checked={includeArchived}
-                onCheckedChange={setIncludeArchived}
-              />
-              <Label htmlFor="show-archived" className="text-sm font-medium">
-                Include archived
-              </Label>
-            </div>
+            <Button 
+              variant={includeArchived ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIncludeArchived(!includeArchived)}
+              className={includeArchived ? "bg-black text-white hover:bg-gray-800" : ""}
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              {includeArchived ? "Hide Archived" : "Show Archived"}
+            </Button>
             <Button variant="ghost" size="icon" onClick={fetchCustomers} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               <span className="sr-only">Refresh</span>
