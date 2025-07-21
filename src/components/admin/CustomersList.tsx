@@ -171,8 +171,8 @@ const CustomersList: React.FC<CustomersListProps> = ({
                 <TableCell className="font-medium">
                   {(() => {
                     if (customer.customer_type === 'guest_family') {
-                      // For hotel guests: show formatted stay_id using formatStayId with table_number
-                      const formattedName = formatStayId(customer.customer_id, (customer as any).table_number);
+                      // For hotel guests: show formatted stay_id using formatStayId with table_number and guest_first_name
+                      const formattedName = formatStayId(customer.customer_id, (customer as any).table_number, (customer as any).guest_first_name);
                       return (
                         <div>
                           <Link href={`/admin/customer-orders/${customer.customer_id}`} className="text-sm font-semibold hover:underline block">

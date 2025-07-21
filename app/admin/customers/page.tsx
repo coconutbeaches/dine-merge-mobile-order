@@ -135,7 +135,7 @@ export default function CustomersDashboardPage() {
         // 2. Get guest families by grouping orders by stay_id
         const { data: guestOrders, error: guestError } = await supabase
           .from('orders')
-          .select('stay_id, total_amount, created_at, table_number')
+          .select('stay_id, total_amount, created_at, table_number, guest_first_name')
           .not('guest_user_id', 'is', null)
           .not('stay_id', 'is', null);
 
@@ -173,6 +173,9 @@ export default function CustomersDashboardPage() {
             
             // Get the table number from the first order (all orders for the same stay_id should have the same table_number)
             const tableNumber = orders[0]?.table_number;
+            
+            // Get the guest first name from the first order that has one
+            const guestFirstName = orders.find(order => order.guest_first_name)?.guest_first_name;
 
             guestFamilies.push({
               customer_id: stayId,
@@ -182,7 +185,8 @@ export default function CustomersDashboardPage() {
               last_order_date: new Date(lastOrderDate).toISOString(),
               archived: archivedStayIds.has(stayId),
               joined_at: new Date(joinedAt).toISOString(),
-              table_number: tableNumber // Add table number for formatting
+              table_number: tableNumber, // Add table number for formatting
+              guest_first_name: guestFirstName // Add guest first name for walk-ins
             });
           });
         }

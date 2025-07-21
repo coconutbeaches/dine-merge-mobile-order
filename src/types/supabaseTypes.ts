@@ -363,6 +363,8 @@ export type Database = {
           last_order_date: string
           archived: boolean
           joined_at: string
+          guest_first_name: string | null
+          table_number: string | null
         }[]
       }
       get_customers_with_total_spent: {
@@ -635,4 +637,6 @@ export interface GroupedCustomer {
   archived: boolean;
   deleted?: boolean; // Optional field for soft deletion
   joined_at: string;
+  guest_first_name?: string | null; // For walk-in customers
+  table_number?: string | null; // For guest customers
 }
