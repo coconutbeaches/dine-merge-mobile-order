@@ -173,6 +173,11 @@ export const createCustomOrder = async (
 
   if (error) {
     console.error('Error creating custom order:', error);
+    console.error('Order data that failed:', JSON.stringify(orderData, null, 2));
+    console.error('Error code:', error.code);
+    console.error('Error message:', error.message);
+    console.error('Error details:', error.details);
+    console.error('Error hint:', error.hint);
     throw error;
   }
 
