@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderStatus, SupabaseOrderStatus } from '@/types/app';
 import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
 import { toast } from 'sonner';
+import { unsubscribeChannel } from '@/utils/supabaseChannelCleanup';
 
 export const useUserOrders = (userId: string | undefined) => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -158,8 +159,13 @@ export const useUserOrders = (userId: string | undefined) => {
         )
         .on(
           'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}.and.order_status=neq.old` },
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}` },
           async (payload) => {
+            // Ignore updates where order_status hasn't changed
+            if (payload.new.order_status === payload.old.order_status) {
+              return;
+            }
+            
             console.log("Real-time order UPDATE (status changed):", payload);
             
             const enrichAndTransformOrder = async (order: any): Promise<Order> => {
@@ -215,7 +221,7 @@ export const useUserOrders = (userId: string | undefined) => {
 
       return () => {
         clearTimeout(broadcastTimeout);
-        supabase.removeChannel(channel);
+        unsubscribeChannel(`orders-${userId}-row-level`);
       };
     } else {
       setOrders([]);

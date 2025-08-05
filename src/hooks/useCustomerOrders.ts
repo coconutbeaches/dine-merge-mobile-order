@@ -8,6 +8,7 @@ import {
 } from '@/types/app';
 import { mapSupabaseToOrderStatus } from '@/utils/orderDashboardUtils';
 import { formatStayId } from '@/lib/utils';
+import { unsubscribeChannel } from '@/utils/supabaseChannelCleanup';
 
 // Helper function to transform a single Supabase order
 const transformSupabaseOrder = (order: any, profileData: Profile | null): Order => {
@@ -92,7 +93,7 @@ export const useCustomerOrders = (customerId: string | undefined) => {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      unsubscribeChannel(`customer-orders-${customerId}`);
     };
   }, [customerId]);
 

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { ExtendedOrder } from '@/src/types/app';
 import { formatStayId } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import { unsubscribeChannel } from '@/utils/supabaseChannelCleanup';
 
 interface CursorInfo {
   created_at: string;
@@ -198,10 +199,14 @@ export const useFetchOrdersEnhanced = (filters: FilterOptions = {}) => {
         { 
           event: 'UPDATE', 
           schema: 'public', 
-          table: 'orders',
-          filter: 'order_status=neq.old'
+          table: 'orders'
         },
         (payload) => {
+          // Ignore updates where order_status hasn't changed
+          if (payload.new.order_status === payload.old.order_status) {
+            return;
+          }
+          
           console.log('Real-time order UPDATE (status changed):', payload);
           
           const existingOrder = orders.find(order => order.id === payload.new.id);
@@ -245,7 +250,7 @@ export const useFetchOrdersEnhanced = (filters: FilterOptions = {}) => {
 
     return () => {
       clearTimeout(broadcastTimeout);
-      supabase.removeChannel(channel);
+      unsubscribeChannel('orders-enhanced-row-level');
     };
   }, []);
 

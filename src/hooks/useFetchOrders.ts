@@ -6,6 +6,7 @@ import { OrderStatus, ExtendedOrder } from '@/src/types/app';
 import { toast } from 'sonner';
 import { formatStayId } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import { unsubscribeChannel } from '@/utils/supabaseChannelCleanup';
 
 const transformOrder = (order: any, profilesData: any[] | null): ExtendedOrder => {
   const profile = profilesData?.find(p => p.id === order.user_id);
@@ -217,8 +218,13 @@ export const useFetchOrders = () => {
       )
       .on(
         'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders', filter: 'order_status=neq.old' },
+        { event: 'UPDATE', schema: 'public', table: 'orders' },
         async (payload) => {
+          // Ignore updates where order_status hasn't changed
+          if (payload.new.order_status === payload.old.order_status) {
+            return;
+          }
+          
           console.log('Real-time order UPDATE (status changed):', payload);
           
           const existingOrder = orders.find(order => order.id === payload.new.id);
@@ -265,7 +271,7 @@ export const useFetchOrders = () => {
 
     return () => {
       clearTimeout(broadcastTimeout);
-      supabase.removeChannel(channel);
+      unsubscribeChannel('orders-dashboard-row-level');
     };
   }, [orders, queryClient]);
 
