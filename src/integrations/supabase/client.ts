@@ -47,5 +47,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
         document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
       },
     } : undefined,
+  },
+  realtime: {
+    connect: true,
+    params: { eventsPerSecond: 10 },
+    retryAttempts: 6,
+    timeout: 40000
   }
 });

@@ -1,7 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ExtendedOrder } from '@/src/types/app';
+import { getOrdersChannel } from '@/services/ordersChannelSingleton';
+
+interface FilterOptions {
+  search?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
 
 interface OptimizedOrder {
   id: number;
@@ -31,26 +39,28 @@ export const useFetchOrdersOptimized = () => {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
   const pageSize = 100; // Increase page size for better performance
+  const filtersRef = useRef<FilterOptions>({});
 
-  const fetchOrders = useCallback(async (reset = false) => {
+  const fetchOrders = useCallback(async (reset = false, customFilters?: FilterOptions) => {
     const currentPage = reset ? 0 : page;
     const isInitialLoad = reset || currentPage === 0;
-    
+    const filters = customFilters || filtersRef.current;
+
     if (isInitialLoad) {
       setIsLoading(true);
     } else {
       setIsLoadingMore(true);
     }
-    
+
     try {
       const { data, error } = await supabase
         .rpc('rpc_admin_get_orders', {
           p_limit: pageSize,
           p_offset: currentPage * pageSize,
-          p_search: null,
-          p_status: null,
-          p_start: null,
-          p_end: null
+          p_search: filters.search || null,
+          p_status: filters.status || null,
+          p_start: filters.startDate ? new Date(filters.startDate).toISOString() : null,
+          p_end: filters.endDate ? new Date(filters.endDate).toISOString() : null
         });
 
       if (error) throw error;
@@ -101,39 +111,64 @@ export const useFetchOrdersOptimized = () => {
     resetAndFetch();
   }, []);
 
-  // Set up real-time subscription with debouncing
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    const channel = supabase
-      .channel('orders-optimized')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => {
-          console.log('Real-time order update detected');
-          // Debounce refetch to avoid too many calls
-          clearTimeout(timeoutId);
-          timeoutId = setTimeout(() => {
-            resetAndFetch();
-          }, 1000);
-        }
-      )
-      .subscribe();
+  // Set up real-time subscription using singleton channel
+useEffect(() => {
+    supabase.realtime.on('open', () => {
+      console.log('Realtime connection open');
+    });
+
+    supabase.realtime.on('close', () => {
+      console.log('Realtime connection closed');
+      toast('Realtime disconnected – attempting to reconnect…');
+      startExponentialBackoff();
+    });
+
+    supabase.realtime.on('error', (error) => {
+      console.error('Realtime connection error:', error);
+      toast('Realtime connection error. Check your connection.');
+    });
+
+    const { subscribe } = getOrdersChannel();
+
+    const unsubscribe = subscribe(() => {
+      console.log('Real-time order update detected');
+      resetAndFetch();
+    });
 
     return () => {
-      clearTimeout(timeoutId);
-      supabase.removeChannel(channel);
+      unsubscribe();
     };
   }, [resetAndFetch]);
 
-  return { 
-    orders, 
-    setOrders, 
-    isLoading, 
+  function startExponentialBackoff() {
+    let attempt = 0;
+    const maxAttempts = 6;
+
+    const interval = setInterval(() => {
+      attempt += 1;
+      if (attempt >= maxAttempts) {
+        clearInterval(interval);
+        console.error('Max reconnect attempts reached. Please try again later.');
+        return;
+      }
+      fetchOrders();
+      loadMore();
+    }, Math.min(1000 * 2 ** attempt, 30000));
+  }
+
+  const setFilters = (newFilters: FilterOptions) => {
+    filtersRef.current = newFilters;
+    resetAndFetch();
+  };
+
+  return {
+    orders,
+    setOrders,
+    isLoading,
     isLoadingMore,
     fetchOrders: resetAndFetch,
     loadMore,
-    hasMore
+    hasMore,
+    setFilters
   };
 };

@@ -109,7 +109,39 @@ export const useFetchCustomers = () => {
 
   useEffect(() => {
     fetchCustomers();
+    
+    // Set up realtime connection reliability
+    supabase.realtime.on('open', () => {
+      console.log('Realtime connection open for customers');
+    });
+
+    supabase.realtime.on('close', () => {
+      console.log('Realtime connection closed for customers');
+      toast('Realtime disconnected – attempting to reconnect…');
+      startExponentialBackoffCustomers();
+    });
+
+    supabase.realtime.on('error', (error) => {
+      console.error('Realtime connection error for customers:', error);
+      toast('Realtime connection error. Check your connection.');
+    });
+    
   }, [fetchCustomers]);
+
+  function startExponentialBackoffCustomers() {
+    let attempt = 0;
+    const maxAttempts = 6;
+
+    const interval = setInterval(() => {
+      attempt += 1;
+      if (attempt >= maxAttempts) {
+        clearInterval(interval);
+        console.error('Max reconnect attempts reached for customers. Please try again later.');
+        return;
+      }
+      fetchCustomers();
+    }, Math.min(1000 * 2 ** attempt, 30000));
+  }
 
   return { 
     customers, 
