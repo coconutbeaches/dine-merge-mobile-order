@@ -7,6 +7,7 @@ import CustomersList from '@/components/admin/CustomersList';
 import EditCustomerDialog from '@/components/admin/EditCustomerDialog';
 import { updateUserProfile, mergeCustomers, archiveGuestFamily } from '@/services/userProfileService';
 import { toast } from 'sonner';
+import { getCustomersChannel } from '@/services/customersChannelSingleton';
 import MergeCustomersDialog from '@/components/admin/MergeCustomersDialog';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -55,9 +56,34 @@ export default function CustomersDashboardPage() {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Fetching customers using basic approach...');
+      console.log('Fetching customers with total_spent calculations...');
       
-      // Get auth users from profiles
+      // Try to use the RPC function first
+      try {
+        const { data: rpcData, error: rpcError } = await supabase
+          .rpc('get_customers_with_total_spent', { include_archived: includeArchived });
+        
+        if (!rpcError && rpcData) {
+          // Transform RPC data to GroupedCustomer format
+          const customersWithTotals = rpcData.map((customer: any) => ({
+            customer_id: customer.id,
+            name: customer.name || customer.email || 'Unnamed Customer',
+            customer_type: 'auth_user' as const,
+            total_spent: Number(customer.total_spent) || 0,
+            last_order_date: customer.last_order_date,
+            archived: customer.archived || false,
+            joined_at: customer.created_at
+          }));
+          
+          setCustomers(customersWithTotals as GroupedCustomer[]);
+          console.log('Successfully fetched', customersWithTotals.length, 'customers with total_spent from RPC');
+          return;
+        }
+      } catch (rpcErr) {
+        console.log('RPC function not available, falling back to manual calculation');
+      }
+      
+      // Fallback: Get auth users from profiles and calculate total_spent manually
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
@@ -73,13 +99,43 @@ export default function CustomersDashboardPage() {
 
       if (profilesError) throw profilesError;
 
-      // Transform profiles to GroupedCustomer format with basic data
+      // Get order totals for each customer
+      const profileIds = profilesData?.map(p => p.id) || [];
+      const { data: orderTotals, error: orderError } = await supabase
+        .from('orders')
+        .select('user_id, total_amount, created_at')
+        .in('user_id', profileIds);
+      
+      if (orderError) {
+        console.warn('Could not fetch order totals:', orderError);
+      }
+      
+      // Calculate totals and last order dates
+      const customerTotals = new Map();
+      const lastOrderDates = new Map();
+      
+      if (orderTotals) {
+        orderTotals.forEach(order => {
+          const userId = order.user_id;
+          const amount = Number(order.total_amount) || 0;
+          const orderDate = new Date(order.created_at);
+          
+          customerTotals.set(userId, (customerTotals.get(userId) || 0) + amount);
+          
+          const currentLastDate = lastOrderDates.get(userId);
+          if (!currentLastDate || orderDate > currentLastDate) {
+            lastOrderDates.set(userId, orderDate);
+          }
+        });
+      }
+
+      // Transform profiles to GroupedCustomer format with calculated totals
       const profilesWithBasicData = (profilesData || []).map(profile => ({
         customer_id: profile.id,
         name: profile.name || profile.email || 'Unnamed Customer',
         customer_type: 'auth_user' as const,
-        total_spent: 0, // Simplified - just show 0 for now to get dashboard working
-        last_order_date: null,
+        total_spent: customerTotals.get(profile.id) || 0,
+        last_order_date: lastOrderDates.get(profile.id)?.toISOString() || null,
         archived: profile.archived || false,
         deleted: profile.deleted || false,
         joined_at: profile.created_at
@@ -170,9 +226,35 @@ export default function CustomersDashboardPage() {
     }
   };
   
-  useEffect(() => {
+useEffect(() = 3e {
     fetchCustomers();
-  }, []); // Fetch on initial load
+    
+    const customersChannel = getCustomersChannel();
+    const unsubscribe = customersChannel.subscribe((payload) => {
+      const { user_id, total_amount, created_at } = payload.new;
+      console.log('[CustomersPage] Order INSERT received:', { user_id, total_amount, created_at });
+      
+      setCustomers((prevCustomers) => prevCustomers.map(customer => {
+        if (customer.customer_id === user_id) {
+          const updatedSpent = Number(customer.total_spent) + Number(total_amount);
+          const orderDate = created_at;
+          
+          // Update both total_spent and last_order_date
+          const updatedCustomer = {
+            ...customer,
+            total_spent: updatedSpent,
+            last_order_date: orderDate || customer.last_order_date
+          };
+          
+          console.log('[CustomersPage] Updated customer:', updatedCustomer.name, 'new total:', updatedSpent);
+          return updatedCustomer;
+        }
+        return customer;
+      }));
+    });
+    
+    return () = 3e unsubscribe();
+  }, []); // Fetch on initial load and set up realtime
 
   useEffect(() => {
     fetchCustomers(); // Refetch when includeArchived changes

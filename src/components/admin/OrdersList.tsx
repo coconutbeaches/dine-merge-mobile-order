@@ -72,7 +72,7 @@ const OrdersList = ({
   };
 
   return (
-    <div>
+    <div data-testid="orders-list">
       {/* Header row for select all */}
       <div className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b bg-muted/50 text-sm font-medium text-muted-foreground">
         <div className="col-span-1 flex items-center min-w-[32px]">
@@ -113,6 +113,8 @@ const OrdersList = ({
         return (
           <div
             key={order.id}
+            data-testid="order-row"
+            data-order-id={order.id}
             className="grid grid-cols-12 gap-x-1 md:gap-x-3 p-3 items-center border-b last:border-b-0 hover:bg-muted/20 text-sm"
           >
             {/* Checkbox */}
