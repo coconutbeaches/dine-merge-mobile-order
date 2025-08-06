@@ -7,6 +7,7 @@ import { OrderProvider } from './OrderContext';
 import { GuestProvider } from './GuestContext';
 import ClientOnlyWrapper from '@/components/ClientOnlyWrapper';
 import { cleanupAllChannels } from '@/utils/supabaseChannelCleanup';
+import { realtimeMonitoring } from '@/services/realtimeMonitoring'; // Initializes realtime monitoring automatically
 
 interface AppContextProviderProps {
   children: ReactNode;
