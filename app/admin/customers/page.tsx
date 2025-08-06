@@ -226,7 +226,7 @@ export default function CustomersDashboardPage() {
     }
   };
   
-useEffect(() = 3e {
+  useEffect(() => {
     fetchCustomers();
     
     const customersChannel = getCustomersChannel();
@@ -253,7 +253,7 @@ useEffect(() = 3e {
       }));
     });
     
-    return () = 3e unsubscribe();
+    return () => unsubscribe();
   }, []); // Fetch on initial load and set up realtime
 
   useEffect(() => {
