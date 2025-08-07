@@ -111,50 +111,22 @@ export const useFetchOrdersOptimized = () => {
     resetAndFetch();
   }, []);
 
-  // Set up real-time subscription using singleton channel
-useEffect(() => {
-    supabase.realtime.on('open', () => {
-      console.log('Realtime connection open');
-    });
-
-    supabase.realtime.on('close', () => {
-      console.log('Realtime connection closed');
-      toast('Realtime disconnected – attempting to reconnect…');
-      startExponentialBackoff();
-    });
-
-    supabase.realtime.on('error', (error) => {
-      console.error('Realtime connection error:', error);
-      toast('Realtime connection error. Check your connection.');
-    });
-
+  // Set up lightweight real-time subscription using singleton channel
+  useEffect(() => {
     const { subscribe } = getOrdersChannel();
 
     const unsubscribe = subscribe(() => {
-      console.log('Real-time order update detected');
-      resetAndFetch();
+      console.log('[OrdersOptimized] Real-time order update detected');
+      // Debounced refetch to avoid excessive calls
+      setTimeout(() => {
+        resetAndFetch();
+      }, 1000);
     });
 
     return () => {
       unsubscribe();
     };
   }, [resetAndFetch]);
-
-  function startExponentialBackoff() {
-    let attempt = 0;
-    const maxAttempts = 6;
-
-    const interval = setInterval(() => {
-      attempt += 1;
-      if (attempt >= maxAttempts) {
-        clearInterval(interval);
-        console.error('Max reconnect attempts reached. Please try again later.');
-        return;
-      }
-      fetchOrders();
-      loadMore();
-    }, Math.min(1000 * 2 ** attempt, 30000));
-  }
 
   const setFilters = (newFilters: FilterOptions) => {
     filtersRef.current = newFilters;

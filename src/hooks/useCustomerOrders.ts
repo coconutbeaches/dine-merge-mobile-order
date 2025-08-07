@@ -58,43 +58,19 @@ export const useCustomerOrders = (customerId: string | undefined) => {
 
     fetchData();
     
-    // Setup real-time subscription for this customer's orders
-    // For guest families, we need to listen for stay_id changes
-    const filter = detectedCustomerType === 'auth_user' 
-      ? `user_id=eq.${customerId}` 
-      : `stay_id=eq.${customerId}`;
-      
-    const channel = supabase
-      .channel(`customer-orders-${customerId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders', filter },
-        (payload) => {
-          setOrders(prevOrders => {
-            const newOrder = payload.new as Order;
-            const oldOrder = payload.old as Order;
-
-            switch (payload.eventType) {
-              case 'INSERT':
-                // Use null for profileData in real-time updates, the UI will handle display
-                return [transformSupabaseOrder(newOrder, null), ...prevOrders];
-              case 'UPDATE':
-                return prevOrders.map(order =>
-                  order.id === newOrder.id ? transformSupabaseOrder(newOrder, null) : order
-                );
-              case 'DELETE':
-                return prevOrders.filter(order => order.id !== oldOrder.id);
-              default:
-                return prevOrders;
-            }
-          });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      unsubscribeChannel(`customer-orders-${customerId}`);
+    // NOTE: Removed individual customer realtime subscription to reduce WebSocket connections
+    // The main orders dashboard uses a singleton channel that will handle updates
+    // Individual customer pages will rely on page refresh or manual refetch for updates
+    
+    // Optional: Add a manual refresh mechanism if needed
+    const refreshOrders = () => {
+      if (customerId) {
+        fetchCustomerOrders(customerId, detectedCustomerType);
+      }
     };
+    
+    // Store refresh function for potential use by components
+    (window as any).refreshCustomerOrders = refreshOrders;
   }, [customerId]);
 
   const fetchCustomerDetails = async (customerId: string, customerType: 'auth_user' | 'guest_family') => {

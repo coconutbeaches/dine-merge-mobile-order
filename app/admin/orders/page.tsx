@@ -4,32 +4,109 @@ import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
-import { useOrdersDashboard } from '@/hooks/useOrdersDashboard';
+import { useFetchOrdersOptimized } from '@/src/hooks/useFetchOrdersOptimized';
 import OrdersList from '@/components/admin/OrdersList';
 import { orderStatusOptions } from '@/utils/orderDashboardUtils';
 import { OrderStatus } from '@/types/supabaseTypes';
 import OrdersDashboardHeader from '@/components/admin/OrdersDashboardHeader';
 import StatusTabs from '@/components/admin/StatusTabs';
 import DailySalesSummary from '@/src/components/admin/DailySalesSummary';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const ALL_TAB = "all";
 
 function OrdersDashboardContent() {
   const { 
     orders, 
-    selectedOrders, 
+    setOrders,
     isLoading, 
     isLoadingMore,
     hasMore,
     fetchOrders,
     loadMore,
-    updateOrderStatus,
-    deleteSelectedOrders,
-    toggleSelectOrder,
-    updateMultipleOrderStatuses,
-    selectAllOrders,
-    clearSelection
-  } = useOrdersDashboard();
+    setFilters
+  } = useFetchOrdersOptimized();
+
+  // Import order selection and actions hooks separately
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  
+  const toggleSelectOrder = (orderId: string) => {
+    setSelectedOrders(prev => 
+      prev.includes(orderId) 
+        ? prev.filter(id => id !== orderId)
+        : [...prev, orderId]
+    );
+  };
+  
+  const selectAllOrders = (orderIds: string[]) => {
+    setSelectedOrders(orderIds);
+  };
+  
+  const clearSelection = () => {
+    setSelectedOrders([]);
+  };
+  
+  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ order_status: newStatus })
+        .eq('id', orderId);
+      if (error) throw error;
+      
+      // Update local state immediately for better UX
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === parseInt(orderId) ? { ...order, order_status: newStatus } : order
+        )
+      );
+      toast.success(`Order status updated to ${newStatus}`);
+    } catch (error: any) {
+      toast.error(`Failed to update order: ${error.message}`);
+    }
+  };
+  
+  const updateMultipleOrderStatuses = async (orderIds: string[], newStatus: OrderStatus) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ order_status: newStatus })
+        .in('id', orderIds.map(id => parseInt(id)));
+      if (error) throw error;
+      
+      // Update local state immediately for better UX
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          orderIds.includes(order.id.toString()) ? { ...order, order_status: newStatus } : order
+        )
+      );
+      toast.success(`${orderIds.length} orders updated to ${newStatus}`);
+    } catch (error: any) {
+      toast.error(`Failed to update orders: ${error.message}`);
+    }
+  };
+  
+  const deleteSelectedOrders = async () => {
+    if (selectedOrders.length === 0) return;
+    
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .in('id', selectedOrders.map(id => parseInt(id)));
+      if (error) throw error;
+      
+      // Update local state immediately for better UX
+      setOrders(prevOrders => 
+        prevOrders.filter(order => !selectedOrders.includes(order.id.toString()))
+      );
+      setSelectedOrders([]);
+      toast.success(`${selectedOrders.length} orders deleted`);
+    } catch (error: any) {
+      toast.error(`Failed to delete orders: ${error.message}`);
+    }
+  };
 
   const [bulkStatus, setBulkStatus] = useState<OrderStatus | "">("");
   const [search, setSearch] = useState('');

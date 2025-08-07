@@ -229,32 +229,35 @@ export default function CustomersDashboardPage() {
   useEffect(() => {
     fetchCustomers();
     
-    const customersChannel = getCustomersChannel();
-    const unsubscribe = customersChannel.subscribe((payload) => {
-      const { user_id, total_amount, created_at } = payload.new;
-      console.log('[CustomersPage] Order INSERT received:', { user_id, total_amount, created_at });
-      
-      setCustomers((prevCustomers) => prevCustomers.map(customer => {
-        if (customer.customer_id === user_id) {
-          const updatedSpent = Number(customer.total_spent) + Number(total_amount);
-          const orderDate = created_at;
-          
-          // Update both total_spent and last_order_date
-          const updatedCustomer = {
-            ...customer,
-            total_spent: updatedSpent,
-            last_order_date: orderDate || customer.last_order_date
-          };
-          
-          console.log('[CustomersPage] Updated customer:', updatedCustomer.name, 'new total:', updatedSpent);
-          return updatedCustomer;
-        }
-        return customer;
-      }));
-    });
+    // NOTE: Temporarily disabled realtime updates to reduce WebSocket load
+    // Will re-enable after main orders dashboard performance is optimized
     
-    return () => unsubscribe();
-  }, []); // Fetch on initial load and set up realtime
+    // const customersChannel = getCustomersChannel();
+    // const unsubscribe = customersChannel.subscribe((payload) => {
+    //   const { user_id, total_amount, created_at } = payload.new;
+    //   console.log('[CustomersPage] Order INSERT received:', { user_id, total_amount, created_at });
+    //   
+    //   setCustomers((prevCustomers) => prevCustomers.map(customer => {
+    //     if (customer.customer_id === user_id) {
+    //       const updatedSpent = Number(customer.total_spent) + Number(total_amount);
+    //       const orderDate = created_at;
+    //       
+    //       // Update both total_spent and last_order_date
+    //       const updatedCustomer = {
+    //         ...customer,
+    //         total_spent: updatedSpent,
+    //         last_order_date: orderDate || customer.last_order_date
+    //       };
+    //       
+    //       console.log('[CustomersPage] Updated customer:', updatedCustomer.name, 'new total:', updatedSpent);
+    //       return updatedCustomer;
+    //     }
+    //     return customer;
+    //   }));
+    // });
+    
+    // return () => unsubscribe();
+  }, []); // Fetch on initial load
 
   useEffect(() => {
     fetchCustomers(); // Refetch when includeArchived changes
