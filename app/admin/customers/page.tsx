@@ -7,7 +7,6 @@ import CustomersList from '@/components/admin/CustomersList';
 import EditCustomerDialog from '@/components/admin/EditCustomerDialog';
 import { updateUserProfile, mergeCustomers, archiveGuestFamily } from '@/services/userProfileService';
 import { toast } from 'sonner';
-import { getCustomersChannel } from '@/services/customersChannelSingleton';
 import MergeCustomersDialog from '@/components/admin/MergeCustomersDialog';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -20,17 +19,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, RefreshCw, Trash2, Merge, Archive, Edit, Users } from 'lucide-react';
 
-// Extended Customer interface to include archived and deleted fields
-// Query now selects: 'id, name, email, archived, deleted' from profiles
-// Filters deleted customers in JS and only keeps id, name, email for display
 interface GroupedCustomer {
-  customer_id: string; // UUID for profiles, TEXT stay_id for guests
+  customer_id: string;
   name: string;
   customer_type: 'auth_user' | 'guest_family';
   total_spent: number;
   last_order_date: string | null;
   archived: boolean;
-  deleted?: boolean; // Optional field for soft deletion
+  deleted?: boolean;
   joined_at: string;
 }
 
@@ -44,7 +40,6 @@ export default function CustomersDashboardPage() {
   const [includeArchived, setIncludeArchived] = useState(false);
   const [showWalkins, setShowWalkins] = useState(false);
   
-  // Helper function to determine if a customer is a walkin
   const isWalkinCustomer = (customer: GroupedCustomer): boolean => {
     if (customer.customer_type === 'guest_family') {
       return customer.customer_id?.toLowerCase().includes('walkin') || false;
@@ -52,132 +47,47 @@ export default function CustomersDashboardPage() {
     return false;
   };
   
-  const fetchCustomers = async () => {
+  const fetchCustomers = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      console.log('Fetching customers with total_spent calculations...');
+      console.log('Fetching customers with optimized RPC call...');
       
-      // Try to use the RPC function first
-      try {
-        const { data: rpcData, error: rpcError } = await supabase
-          .rpc('get_customers_with_total_spent', { include_archived: includeArchived });
-        
-        if (!rpcError && rpcData) {
-          // Transform RPC data to GroupedCustomer format
-          const customersWithTotals = rpcData.map((customer: any) => ({
-            customer_id: customer.id,
-            name: customer.name || customer.email || 'Unnamed Customer',
-            customer_type: 'auth_user' as const,
-            total_spent: Number(customer.total_spent) || 0,
-            last_order_date: customer.last_order_date,
-            archived: customer.archived || false,
-            joined_at: customer.created_at
-          }));
-          
-          setCustomers(customersWithTotals as GroupedCustomer[]);
-          console.log('Successfully fetched', customersWithTotals.length, 'customers with total_spent from RPC');
-          return;
-        }
-      } catch (rpcErr) {
-        console.log('RPC function not available, falling back to manual calculation');
-      }
-      
-      // Fallback: Get auth users from profiles and calculate total_spent manually
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          name,
-          email,
-          created_at,
-          archived,
-          deleted
-        `)
-        .eq('deleted', false)
-        .limit(100);
-
-      if (profilesError) throw profilesError;
-
-      // Get order totals for each customer
-      const profileIds = profilesData?.map(p => p.id) || [];
-      const { data: orderTotals, error: orderError } = await supabase
-        .from('orders')
-        .select('user_id, total_amount, created_at')
-        .in('user_id', profileIds);
-      
-      if (orderError) {
-        console.warn('Could not fetch order totals:', orderError);
-      }
-      
-      // Calculate totals and last order dates
-      const customerTotals = new Map();
-      const lastOrderDates = new Map();
-      
-      if (orderTotals) {
-        orderTotals.forEach(order => {
-          const userId = order.user_id;
-          const amount = Number(order.total_amount) || 0;
-          const orderDate = new Date(order.created_at);
-          
-          customerTotals.set(userId, (customerTotals.get(userId) || 0) + amount);
-          
-          const currentLastDate = lastOrderDates.get(userId);
-          if (!currentLastDate || orderDate > currentLastDate) {
-            lastOrderDates.set(userId, orderDate);
-          }
+      const { data, error: rpcError } = await supabase
+        .rpc('get_all_customers_with_total_spent_grouped', {
+          p_include_archived: includeArchived,
+          p_limit: 1000, // Set a high limit for now, pagination can be added later
+          p_offset: 0
         });
+
+      if (rpcError) {
+        throw new Error(`Failed to fetch customers from database: ${rpcError.message}`);
       }
+      
+      if (data) {
+        const transformedCustomers = data.map((customer: any) => ({
+          customer_id: customer.customer_id,
+          name: customer.name || customer.email || 'Unnamed Customer',
+          customer_type: customer.customer_type as 'auth_user' | 'guest_family',
+          total_spent: Number(customer.total_spent) || 0,
+          last_order_date: customer.last_order_date,
+          archived: customer.archived || false,
+          joined_at: customer.joined_at
+        }));
 
-      // Transform profiles to GroupedCustomer format with calculated totals
-      const profilesWithBasicData = (profilesData || []).map(profile => ({
-        customer_id: profile.id,
-        name: profile.name || profile.email || 'Unnamed Customer',
-        customer_type: 'auth_user' as const,
-        total_spent: customerTotals.get(profile.id) || 0,
-        last_order_date: lastOrderDates.get(profile.id)?.toISOString() || null,
-        archived: profile.archived || false,
-        deleted: profile.deleted || false,
-        joined_at: profile.created_at
-      }));
-
-      console.log('Basic customer fetch results:', {
-        profilesWithBasicData: profilesWithBasicData.length
-      });
-      const data = profilesWithBasicData;
-
-      if (!data) {
+        setCustomers(transformedCustomers);
+        console.log('Successfully fetched', transformedCustomers.length, 'customers with total_spent from RPC');
+      } else {
         setCustomers([]);
-        return;
       }
 
-      // Filter based on includeArchived state and exclude deleted customers
-      const filteredData = data.filter(customer => {
-        // Always exclude deleted customers
-        if (customer.deleted) return false;
-        
-        // Filter archived customers based on includeArchived state
-        return includeArchived || !customer.archived;
-      });
-
-      // Format customers to only include id, name, email for display (as per task requirements)
-      const formattedCustomers = filteredData.map(customer => ({
-        ...customer,
-        // Keep original data but ensure we have the required fields
-        id: customer.customer_id,
-        name: customer.name,
-        email: customer.customer_type === 'auth_user' ? customer.email : null
-      }));
-
-      setCustomers(formattedCustomers as GroupedCustomer[]);
-      console.log('Successfully fetched', formattedCustomers.length, 'customers (excluding deleted)');
     } catch (err: any) {
       setError(err);
-      toast.error(`Failed to fetch customers: ${err.message}`);
+      toast.error(err.message);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [includeArchived]);
   
   const toggleSelectCustomer = (customerId: string) => {
     setSelectedCustomers(prev => 
@@ -213,7 +123,7 @@ export default function CustomersDashboardPage() {
           const { error } = await supabase
             .from('guest_users')
             .delete()
-            .eq('stay_id', customerId); // customer_id is stay_id for guest_family
+            .eq('stay_id', customerId);
           if (error) throw error;
         }
       }
@@ -228,40 +138,7 @@ export default function CustomersDashboardPage() {
   
   useEffect(() => {
     fetchCustomers();
-    
-    // NOTE: Temporarily disabled realtime updates to reduce WebSocket load
-    // Will re-enable after main orders dashboard performance is optimized
-    
-    // const customersChannel = getCustomersChannel();
-    // const unsubscribe = customersChannel.subscribe((payload) => {
-    //   const { user_id, total_amount, created_at } = payload.new;
-    //   console.log('[CustomersPage] Order INSERT received:', { user_id, total_amount, created_at });
-    //   
-    //   setCustomers((prevCustomers) => prevCustomers.map(customer => {
-    //     if (customer.customer_id === user_id) {
-    //       const updatedSpent = Number(customer.total_spent) + Number(total_amount);
-    //       const orderDate = created_at;
-    //       
-    //       // Update both total_spent and last_order_date
-    //       const updatedCustomer = {
-    //         ...customer,
-    //         total_spent: updatedSpent,
-    //         last_order_date: orderDate || customer.last_order_date
-    //       };
-    //       
-    //       console.log('[CustomersPage] Updated customer:', updatedCustomer.name, 'new total:', updatedSpent);
-    //       return updatedCustomer;
-    //     }
-    //     return customer;
-    //   }));
-    // });
-    
-    // return () => unsubscribe();
-  }, []); // Fetch on initial load
-
-  useEffect(() => {
-    fetchCustomers(); // Refetch when includeArchived changes
-  }, [includeArchived]);
+  }, [fetchCustomers]);
 
   const handleSort = (key: keyof GroupedCustomer) => {
     if (sortKey === key) {
@@ -275,30 +152,27 @@ export default function CustomersDashboardPage() {
   const [search, setSearch] = useState('');
   const [editingCustomer, setEditingCustomer] = useState<GroupedCustomer | null>(null);
   const [isMergeDialogOpen, setIsMergeDialogOpen] = useState(false);
-  const [recentlyUpdatedId, setRecentlyUpdatedId] = useState<string | null>(null);
   
   const filteredCustomers = useMemo(() => {
     if (!customers || !Array.isArray(customers)) return [];
     
     let filtered = customers;
     
-    // Apply search filter
     if (search.trim()) {
       const s = search.trim().toLowerCase();
       filtered = filtered.filter(customer => {
         const name = (customer?.name || "").toLowerCase();
         const customerId = (customer?.customer_id || "").toLowerCase();
-        return name.includes(s) || customerId.includes(s); // Search by name or customer_id
+        return name.includes(s) || customerId.includes(s);
       });
     }
     
-    // Apply walkin filter
     if (!showWalkins) {
       filtered = filtered.filter(customer => !isWalkinCustomer(customer));
     }
     
     const sorted = [...filtered].sort((a, b) => {
-      let valA: any, valB: any; // Use any for comparison due to mixed types
+      let valA: any, valB: any;
       
       switch (sortKey) {
         case 'name':
@@ -360,7 +234,7 @@ export default function CustomersDashboardPage() {
 
   const handleConfirmMerge = async (targetId: string, sourceId: string) => {
     try {
-      await mergeCustomers(sourceId, targetId); // This function needs to be updated to handle guest_user_id merges
+      await mergeCustomers(sourceId, targetId);
       toast.success('Customers merged successfully!');
       fetchCustomers();
       setIsMergeDialogOpen(false);
@@ -411,12 +285,12 @@ export default function CustomersDashboardPage() {
 
     try {
       await updateUserProfile({
-        id: editingCustomer.customer_id, // Use customer_id
+        id: editingCustomer.customer_id,
         name: trimmedName,
         phone: trimmedPhone,
       });
       toast.success('Customer updated successfully');
-      fetchCustomers(); // Refetch all customers
+      fetchCustomers();
       handleCloseDialog();
     } catch (error: any) {
       console.error('handleSaveChanges error:', error);
@@ -437,7 +311,6 @@ export default function CustomersDashboardPage() {
         if (error) throw error;
       }
 
-      // Update local customers state to flip archived
       setCustomers(prev => prev.map(c => 
         c.customer_id === customer.customer_id 
           ? { ...c, archived: isArchived }

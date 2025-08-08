@@ -10,84 +10,65 @@ import { toast } from 'sonner';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
 import { formatThaiCurrency } from '@/lib/utils';
-import { Edit } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useUserOrders } from '@/hooks/useUserOrders'; // Import the hook
 
 export default function OrderHistoryPage() {
   const router = useRouter();
   const { currentUser, isLoggedIn, isLoading: isLoadingUserContext } = useAppContext();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Use the hook for authenticated users
+  const { orders: userOrders, isLoading: isLoadingUserOrders } = useUserOrders(currentUser?.id);
+
+  const [guestOrders, setGuestOrders] = useState<Order[]>([]);
+  const [isLoadingGuestOrders, setIsLoadingGuestOrders] = useState(false);
   const [isHotelGuest, setIsHotelGuest] = useState(false);
   const [guestSession, setGuestSession] = useState(null);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      setIsLoading(true);
+    if (hasGuestSession()) {
+      const session = getGuestSession();
+      setIsHotelGuest(true);
+      setGuestSession(session);
       
-      try {
-        // Check if user is a hotel guest
-        if (hasGuestSession()) {
-          const session = getGuestSession();
-          setIsHotelGuest(true);
-          setGuestSession(session);
-          
-          if (session) {
-            // Fetch orders for hotel guests by stay_id
-            const { data, error } = await supabase
-              .from('orders')
-              .select('*')
-              .eq('stay_id', session.guest_stay_id)
-              .order('created_at', { ascending: false });
-            
-            if (error) {
-              console.error('Error fetching hotel guest orders:', error);
-              toast.error('Failed to load your orders');
-            } else {
-              setOrders(data || []);
-            }
-          }
-        } else if (isLoggedIn && currentUser) {
-          // Fetch orders for regular authenticated users
+      const fetchGuestOrders = async () => {
+        if (session) {
+          setIsLoadingGuestOrders(true);
           const { data, error } = await supabase
             .from('orders')
             .select('*')
-            .eq('user_id', currentUser.id)
+            .eq('stay_id', session.guest_stay_id)
             .order('created_at', { ascending: false });
           
           if (error) {
-            console.error('Error fetching user orders:', error);
+            console.error('Error fetching hotel guest orders:', error);
             toast.error('Failed to load your orders');
           } else {
-            setOrders(data || []);
+            setGuestOrders(data || []);
           }
+          setIsLoadingGuestOrders(false);
         }
-      } catch (error) {
-        console.error('Error in fetchOrders:', error);
-        toast.error('Failed to load your orders');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      };
+      fetchGuestOrders();
+    }
+  }, []);
 
-    // Only fetch orders if we have either a logged in user or guest session
-    if ((isLoggedIn && currentUser) || hasGuestSession()) {
-      fetchOrders();
-    } else if (!isLoadingUserContext) {
-      // No guest session and not logged in - redirect to login
+  useEffect(() => {
+    // Redirect if not loading, not a guest, and not logged in
+    if (!isLoadingUserContext && !hasGuestSession() && !isLoggedIn) {
       router.push('/login?returnTo=/order-history');
     }
-  }, [currentUser, isLoggedIn, isLoadingUserContext, router]);
+  }, [isLoggedIn, isLoadingUserContext, router]);
 
   const handleStatusClick = (orderId: string, newStatus: OrderStatus) => {
-    // For regular users viewing their own orders, don't allow status changes
     toast.info('Order status can only be changed by restaurant staff');
   };
 
   const handleOrderSave = (updatedOrder: Order) => {
-    // For regular users viewing their own orders, don't allow editing
     toast.info('Orders can only be edited by restaurant staff');
   };
+
+  const orders = isHotelGuest ? guestOrders : userOrders;
+  const isLoading = isHotelGuest ? isLoadingGuestOrders : isLoadingUserOrders;
 
   const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
 
