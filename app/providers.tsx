@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AppContextProvider from '@/context/AppContextProvider'
+import { UserProvider } from '@/context/UserContext'
 
 // Optimized React Query configuration for better performance
 const queryClient = new QueryClient({
@@ -27,15 +28,17 @@ const queryClient = new QueryClient({
   },
 })
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, includeAppContext = true }: { children: React.ReactNode; includeAppContext?: boolean }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AppContextProvider>
-          {children}
-          <Toaster />
-          <Sonner />
-        </AppContextProvider>
+        {includeAppContext ? (
+          <AppContextProvider>{children}</AppContextProvider>
+        ) : (
+          <UserProvider>{children}</UserProvider>
+        )}
+        <Toaster />
+        <Sonner />
       </TooltipProvider>
     </QueryClientProvider>
   )

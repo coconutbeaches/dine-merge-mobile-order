@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -126,6 +126,20 @@ function OrdersDashboardContent() {
     }
   }, [customerParam, initialSearchSet]);
 
+  // Apply filters server-side with debounce to reduce load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilters({
+        search: search.trim() || undefined,
+        status: activeStatus !== ALL_TAB ? activeStatus : undefined,
+        startDate: startDateParam || undefined,
+        endDate: endDateParam || undefined,
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, activeStatus, startDateParam, endDateParam, setFilters]);
+
   const handleBulkStatusChange = (value: OrderStatus) => {
     setBulkStatus(value);
     if (selectedOrders.length === 0) return;
@@ -139,62 +153,6 @@ function OrdersDashboardContent() {
       setActiveStatus(tabValue);
     }
   };
-
-  const filteredOrders = useMemo(() => {
-    let filtered = orders;
-
-    if (search.trim()) {
-      const s = search.trim().toLowerCase();
-      filtered = filtered.filter(order => {
-        const name = (order.customer_name_from_profile || order.customer_name || order.guest_first_name || "").toLowerCase();
-        const email = (order.customer_email_from_profile || "").toLowerCase();
-        const orderIdStr = String(order.id);
-        const stayId = (order.formattedStayId || '').toLowerCase();
-
-        let containsProduct = false;
-        if (Array.isArray(order.order_items)) {
-          containsProduct = order.order_items.some((item: any) => {
-            const itemName = item.product || item.name;
-            if (typeof itemName === 'string') {
-              return itemName.toLowerCase().includes(s);
-            }
-            return false;
-          });
-        }
-
-        return (
-          name.includes(s) ||
-          email.includes(s) ||
-          orderIdStr.includes(s) ||
-          containsProduct ||
-          stayId.includes(s)
-        );
-      });
-    }
-
-    if (activeStatus !== ALL_TAB) {
-      filtered = filtered.filter(order => order.order_status === activeStatus);
-    }
-
-    // Apply date-range filter from query params (inclusive)
-    if (startDateParam) {
-      const start = new Date(startDateParam);
-      filtered = filtered.filter(order => {
-        const d = new Date(order.created_at);
-        return d >= start;
-      });
-    }
-    if (endDateParam) {
-      const end = new Date(endDateParam);
-      end.setHours(23, 59, 59, 999);
-      filtered = filtered.filter(order => {
-        const d = new Date(order.created_at);
-        return d <= end;
-      });
-    }
-
-    return filtered;
-  }, [orders, search, activeStatus, startDateParam, endDateParam]);
 
   const tabOptions = [
     { label: "All", value: ALL_TAB },
@@ -232,12 +190,12 @@ function OrdersDashboardContent() {
               <div className="p-6 text-center text-muted-foreground">Loading orders...</div>
             ) : (
               <OrdersList 
-                orders={filteredOrders} 
+                orders={orders}
                 selectedOrders={selectedOrders}
                 toggleSelectOrder={toggleSelectOrder}
                 updateOrderStatus={updateOrderStatus}
                 orderStatusOptions={orderStatusOptions}
-                selectAllOrders={() => selectAllOrders(filteredOrders.map(o => o.id))}
+                selectAllOrders={() => selectAllOrders(orders.map(o => o.id))}
                 clearSelection={clearSelection}
                 onLoadMore={loadMore}
                 hasMore={hasMore}
