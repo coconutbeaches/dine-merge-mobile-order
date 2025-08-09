@@ -4,7 +4,7 @@ import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
-import { useAppContext } from '@/context/AppContext';
+import { useUserContext } from '@/context/UserContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,7 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams?.get('returnTo') || '/';
-  const { loginOrSignup, loginAsGuest } = useAppContext();
+  const { loginOrSignup, loginAsGuest } = useUserContext();
   const { toast } = useToast();
 
   const [name, setName] = useState('');
