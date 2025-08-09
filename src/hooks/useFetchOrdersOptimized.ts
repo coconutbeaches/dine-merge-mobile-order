@@ -128,10 +128,13 @@ export const useFetchOrdersOptimized = () => {
     };
   }, [resetAndFetch]);
 
-  const setFilters = (newFilters: FilterOptions) => {
-    filtersRef.current = newFilters;
-    resetAndFetch();
-  };
+  const setFilters = useCallback(
+    (newFilters: FilterOptions) => {
+      filtersRef.current = newFilters;
+      resetAndFetch();
+    },
+    [resetAndFetch]
+  );
 
   return {
     orders,
