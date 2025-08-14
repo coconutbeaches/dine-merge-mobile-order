@@ -59,10 +59,15 @@ $$;
 -- Grant permissions
 GRANT EXECUTE ON FUNCTION public.get_orders_analytics_by_date_range(TIMESTAMPTZ, TIMESTAMPTZ) TO authenticated;
 
--- Add index to optimize the new analytics query
-CREATE INDEX IF NOT EXISTS idx_orders_created_date_status 
-ON public.orders (DATE(created_at), order_status) 
-WHERE order_status::text != 'cancelled';
+-- Add indexes to optimize the new analytics query
+-- Note: Can't use DATE() function in index, so create separate indexes
+CREATE INDEX IF NOT EXISTS idx_orders_created_at_analytics 
+ON public.orders (created_at) 
+WHERE order_status != 'cancelled';
+
+CREATE INDEX IF NOT EXISTS idx_orders_status_created 
+ON public.orders (order_status, created_at) 
+WHERE order_status != 'cancelled';
 
 -- Comment for documentation
 COMMENT ON FUNCTION public.get_orders_analytics_by_date_range(TIMESTAMPTZ, TIMESTAMPTZ) 
