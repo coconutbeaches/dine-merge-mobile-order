@@ -14,17 +14,19 @@ export const metadata = {
     ]
   },
   icons: {
-    icon: '/icons/favicon.ico',
-    shortcut: '/icons/favicon-16x16.png',
+    icon: '/favicon.ico',
     apple: [
-      { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
       { url: '/icons/icon-152x152.png', sizes: '152x152', type: 'image/png' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
     ],
     other: [
-      { rel: 'icon', type: 'image/png', sizes: '32x32', url: '/icons/favicon-32x32.png' },
-      { rel: 'icon', type: 'image/png', sizes: '16x16', url: '/icons/favicon-16x16.png' },
-      { rel: 'mask-icon', url: '/icons/safari-pinned-tab.svg', color: '#5bbad5' },
+      { rel: 'icon', type: 'image/png', sizes: '72x72', url: '/icons/icon-72x72.png' },
+      { rel: 'icon', type: 'image/png', sizes: '96x96', url: '/icons/icon-96x96.png' },
+      { rel: 'icon', type: 'image/png', sizes: '128x128', url: '/icons/icon-128x128.png' },
+      { rel: 'icon', type: 'image/png', sizes: '144x144', url: '/icons/icon-144x144.png' },
+      { rel: 'icon', type: 'image/png', sizes: '192x192', url: '/icons/icon-192x192.png' },
+      { rel: 'icon', type: 'image/png', sizes: '384x384', url: '/icons/icon-384x384.png' },
+      { rel: 'icon', type: 'image/png', sizes: '512x512', url: '/icons/icon-512x512.png' },
     ],
   },
   other: {
