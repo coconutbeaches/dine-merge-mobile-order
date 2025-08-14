@@ -1,6 +1,5 @@
--- Fix analytics function with correct classification logic:
--- Hotel Guest: any orders with user_id OR stay_id (family stay ID)
--- Walkin: everything else
+-- Fix analytics function to match the orders page DailySalesSummary logic exactly
+-- This restores the correct classification that was working on the orders page
 
 CREATE OR REPLACE FUNCTION public.get_orders_analytics_by_date_range(
   p_start_date TIMESTAMPTZ,
@@ -18,25 +17,31 @@ SECURITY DEFINER
 AS $$
   SELECT
     DATE(o.created_at) AS order_date,
-    -- Hotel guests: any orders with user_id (authenticated) OR stay_id (family stay ID)
+    -- Hotel guests: authenticated users OR stay_id that doesn't start with 'walkin'
     COUNT(CASE 
-      WHEN o.user_id IS NOT NULL OR o.stay_id IS NOT NULL
+      WHEN (o.user_id IS NOT NULL) 
+        OR (o.stay_id IS NOT NULL AND NOT LOWER(o.stay_id) LIKE 'walkin%') 
       THEN 1 
       ELSE NULL 
     END)::INTEGER AS hotel_guest_orders,
     SUM(CASE 
-      WHEN o.user_id IS NOT NULL OR o.stay_id IS NOT NULL
+      WHEN (o.user_id IS NOT NULL) 
+        OR (o.stay_id IS NOT NULL AND NOT LOWER(o.stay_id) LIKE 'walkin%') 
       THEN o.total_amount 
       ELSE 0 
     END)::NUMERIC AS hotel_guest_revenue,
-    -- Walkin guests: everything else (no user_id AND no stay_id)
+    -- Walkin guests: stay_id starts with 'walkin' OR table_number based orders
     COUNT(CASE 
-      WHEN o.user_id IS NULL AND o.stay_id IS NULL
+      WHEN (LOWER(o.stay_id) LIKE 'walkin%') 
+        OR (o.table_number = 'Take Away') 
+        OR (o.table_number IS NOT NULL AND o.table_number ~ '^[0-9]+$')
       THEN 1 
       ELSE NULL 
     END)::INTEGER AS outside_guest_orders,
     SUM(CASE 
-      WHEN o.user_id IS NULL AND o.stay_id IS NULL
+      WHEN (LOWER(o.stay_id) LIKE 'walkin%') 
+        OR (o.table_number = 'Take Away') 
+        OR (o.table_number IS NOT NULL AND o.table_number ~ '^[0-9]+$')
       THEN o.total_amount 
       ELSE 0 
     END)::NUMERIC AS outside_guest_revenue

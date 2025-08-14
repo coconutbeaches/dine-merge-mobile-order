@@ -70,15 +70,20 @@ const DailySalesSummary = () => {
           totalSales += amount;
           orderCount++;
 
-          // Determine customer type using simplified logic:
-          // Hotel Guest: any orders with user_id OR stay_id (family stay ID)
-          // Walkin: everything else
+          // Determine customer type
           let isWalkin = false;
           let isHotelGuest = false;
 
-          if (order.user_id || order.stay_id) {
+          // Rule 1: If it has a user_id, it's a hotel guest (authenticated user)
+          if (order.user_id) {
             isHotelGuest = true;
-          } else {
+          }
+          // Rule 2: If it has a stay_id that is NOT a 'walkin-' pattern, it's a hotel guest (guest family)
+          else if (order.stay_id && !order.stay_id.toLowerCase().startsWith('walkin')) {
+            isHotelGuest = true;
+          }
+          // Rule 3: If it's not a hotel guest by the above rules, check if it's a walk-in
+          else if (order.stay_id?.toLowerCase().startsWith('walkin') || order.table_number === 'Take Away' || (order.table_number && !isNaN(Number(order.table_number)))) {
             isWalkin = true;
           }
 
