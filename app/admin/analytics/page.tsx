@@ -335,7 +335,7 @@ export default function AnalyticsPage() {
                     </div>
                     
                     {/* Bars */}
-                    <div className="absolute bottom-0 left-0 right-0 h-72 flex items-end justify-start gap-1 px-2 overflow-x-auto">
+                    <div className="absolute bottom-0 left-0 right-0 h-72 flex items-end justify-start px-1">
                       {chartData.map((item, index) => {
                         const total = item.hotel_guest + item.non_guest;
                         
@@ -351,14 +351,16 @@ export default function AnalyticsPage() {
                         const guestHeight = total > 0 ? (item.hotel_guest / total) * height : 0;
                         const nonGuestHeight = total > 0 ? (item.non_guest / total) * height : 0;
                         
-                        // Calculate bar width - ensure minimum width but allow horizontal scrolling for many bars
-                        const calculatedWidth = Math.max(20, (90 / chartData.length));
-                        const barWidth = chartData.length > 20 ? Math.max(16, 90 / chartData.length) : calculatedWidth;
+                        // Calculate bar width to fit all bars in the available space
+                        // Reserve space for gaps (0.25rem = 4px per gap)
+                        const totalGapSpace = Math.max(0, (chartData.length - 1) * 4); // 4px gap between bars
+                        const availableWidthForBars = 100 - (totalGapSpace / 10); // Convert 4px gaps to rough percentage
+                        const barWidth = Math.max(1, availableWidthForBars / chartData.length);
                         
                         return (
                           <div 
                             key={index} 
-                            className="relative group cursor-pointer hover:opacity-80 transition-all duration-200 hover:scale-105 flex-shrink-0"
+                            className={`relative group cursor-pointer hover:opacity-80 transition-all duration-200 hover:scale-105 ${index < chartData.length - 1 ? 'mr-1' : ''}`}
                             style={{ height: `${height}px`, width: `${barWidth}%` }}
                             onClick={() => handleBarClick(item.date)}
                           >
