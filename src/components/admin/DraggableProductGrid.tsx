@@ -141,20 +141,27 @@ const DraggableProductGrid: React.FC<DraggableProductGridProps> = ({
     // Update UI immediately
     onProductsReorder(reorderedProducts);
 
-    // Update sort_order in database
+    // Update sort_order in database with batch operations
     try {
       const updates = reorderedProducts.map((product, index) => ({
         id: product.id,
         sort_order: (index + 1) * 10
       }));
 
-      for (const update of updates) {
-        const { error } = await supabase
+      // Use Promise.all for concurrent updates instead of sequential
+      const updatePromises = updates.map(update => 
+        supabase
           .from('products')
           .update({ sort_order: update.sort_order })
-          .eq('id', update.id);
+          .eq('id', update.id)
+      );
 
-        if (error) throw error;
+      const results = await Promise.all(updatePromises);
+      
+      // Check for any errors
+      const errors = results.filter(result => result.error);
+      if (errors.length > 0) {
+        throw new Error(`Failed to update ${errors.length} products: ${errors[0].error?.message}`);
       }
 
       toast.success('Product order updated successfully');

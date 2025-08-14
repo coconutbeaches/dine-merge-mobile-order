@@ -108,31 +108,41 @@ export default function CustomersDashboardPage() {
   const deleteSelectedCustomers = async () => {
     if (selectedCustomers.length === 0) return;
     
+    const customersToDelete = customers.filter(c => selectedCustomers.includes(c.customer_id));
+    const authUserIds = customersToDelete
+      .filter(c => c.customer_type === 'auth_user')
+      .map(c => c.customer_id);
+    const guestFamilyIds = customersToDelete
+      .filter(c => c.customer_type === 'guest_family')
+      .map(c => c.customer_id);
+    
     try {
-      for (const customerId of selectedCustomers) {
-        const customerToDelete = customers.find(c => c.customer_id === customerId);
-        if (!customerToDelete) continue;
+      // Batch delete auth users
+      if (authUserIds.length > 0) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .delete()
+          .in('id', authUserIds);
+        if (profileError) throw profileError;
+      }
 
-        if (customerToDelete.customer_type === 'auth_user') {
-          const { error } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('id', customerId);
-          if (error) throw error;
-        } else if (customerToDelete.customer_type === 'guest_family') {
-          const { error } = await supabase
-            .from('guest_users')
-            .delete()
-            .eq('stay_id', customerId);
-          if (error) throw error;
-        }
+      // Batch delete guest families  
+      if (guestFamilyIds.length > 0) {
+        const { error: guestError } = await supabase
+          .from('guest_users')
+          .delete()
+          .in('stay_id', guestFamilyIds);
+        if (guestError) throw guestError;
       }
 
       setCustomers(prev => prev.filter(customer => !selectedCustomers.includes(customer.customer_id)));
       setSelectedCustomers([]);
       toast.success(`Deleted ${selectedCustomers.length} customer(s)`);
     } catch (error: any) {
+      console.error('Error bulk deleting customers:', error);
       toast.error(`Failed to delete customers: ${error.message}`);
+      // Refresh data on error to ensure consistency
+      fetchCustomers();
     }
   };
   
