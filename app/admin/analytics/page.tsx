@@ -147,6 +147,15 @@ export default function AnalyticsPage() {
           : row.outside_guest_orders,
     }));
 
+  // Debug logging
+  console.log(`Analytics Debug - Raw data length: ${data.length}`);
+  console.log(`Analytics Debug - Chart data length: ${chartData.length}`);
+  console.log(`Analytics Debug - Date range: ${chartStartDate} to ${chartEndDate}`);
+  if (chartData.length > 0) {
+    console.log(`Analytics Debug - First date: ${chartData[0].date}`);
+    console.log(`Analytics Debug - Last date: ${chartData[chartData.length - 1].date}`);
+  }
+
   const maxValue = chartData.length > 0 ? Math.max(
     ...chartData.map((d) => d.hotel_guest + d.non_guest),
   ) : 0;
@@ -326,7 +335,7 @@ export default function AnalyticsPage() {
                     </div>
                     
                     {/* Bars */}
-                    <div className="absolute bottom-0 left-0 right-0 h-72 flex items-end justify-start gap-1 px-2">
+                    <div className="absolute bottom-0 left-0 right-0 h-72 flex items-end justify-start gap-1 px-2 overflow-x-auto">
                       {chartData.map((item, index) => {
                         const total = item.hotel_guest + item.non_guest;
                         
@@ -342,11 +351,15 @@ export default function AnalyticsPage() {
                         const guestHeight = total > 0 ? (item.hotel_guest / total) * height : 0;
                         const nonGuestHeight = total > 0 ? (item.non_guest / total) * height : 0;
                         
+                        // Calculate bar width - ensure minimum width but allow horizontal scrolling for many bars
+                        const calculatedWidth = Math.max(20, (90 / chartData.length));
+                        const barWidth = chartData.length > 20 ? Math.max(16, 90 / chartData.length) : calculatedWidth;
+                        
                         return (
                           <div 
                             key={index} 
-                            className="relative group cursor-pointer hover:opacity-80 transition-all duration-200 hover:scale-105"
-                            style={{ height: `${height}px`, minWidth: '8px', width: `${Math.max(8, (100 - chartData.length) / chartData.length)}%` }}
+                            className="relative group cursor-pointer hover:opacity-80 transition-all duration-200 hover:scale-105 flex-shrink-0"
+                            style={{ height: `${height}px`, width: `${barWidth}%` }}
                             onClick={() => handleBarClick(item.date)}
                           >
                             {/* Non-guest (black) bar - bottom */}
