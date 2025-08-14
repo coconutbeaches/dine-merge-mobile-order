@@ -6,8 +6,8 @@ import AddToHomeScreen from '@/components/pwa/AddToHomeScreen'
 import PWAProvider from '@/components/pwa/PWAProvider'
 import { SessionRecovery } from '@/components/SessionRecovery'
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const headerList = headers()
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const headerList = await headers()
   const pathname = headerList.get('x-matched-path') ?? ''
   const isAdminPath = pathname.startsWith('/admin')
   const isLoginPath = pathname.startsWith('/login')

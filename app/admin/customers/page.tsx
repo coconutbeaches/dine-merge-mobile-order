@@ -324,6 +324,62 @@ export default function CustomersDashboardPage() {
     }
   };
 
+  const handleBulkArchiveCustomers = async (customerIds: string[], isArchived: boolean) => {
+    if (customerIds.length === 0) return;
+    
+    const customersToArchive = customers.filter(c => customerIds.includes(c.customer_id));
+    const authUserIds = customersToArchive
+      .filter(c => c.customer_type === 'auth_user')
+      .map(c => c.customer_id);
+    const guestFamilyIds = customersToArchive
+      .filter(c => c.customer_type === 'guest_family')
+      .map(c => c.customer_id);
+
+    try {
+      // Batch archive auth users
+      if (authUserIds.length > 0) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ archived: isArchived })
+          .in('id', authUserIds);
+        if (profileError) throw profileError;
+      }
+
+      // Batch archive guest families
+      if (guestFamilyIds.length > 0) {
+        if (isArchived) {
+          // Insert multiple archive records
+          const archiveRecords = guestFamilyIds.map(id => ({ stay_id: id }));
+          const { error: archiveError } = await supabase
+            .from('guest_family_archives')
+            .upsert(archiveRecords);
+          if (archiveError) throw archiveError;
+        } else {
+          // Remove multiple archive records
+          const { error: unarchiveError } = await supabase
+            .from('guest_family_archives')
+            .delete()
+            .in('stay_id', guestFamilyIds);
+          if (unarchiveError) throw unarchiveError;
+        }
+      }
+
+      // Update local state in batch
+      setCustomers(prev => prev.map(c => 
+        customerIds.includes(c.customer_id)
+          ? { ...c, archived: isArchived }
+          : c
+      ));
+
+      toast.success(`${customerIds.length} customer(s) ${isArchived ? 'archived' : 'unarchived'} successfully!`);
+    } catch (error: any) {
+      console.error('Error bulk archiving customers:', error);
+      toast.error(`Failed to ${isArchived ? 'archive' : 'unarchive'} customers: ${error.message}`);
+      // Refresh data on error to ensure consistency
+      fetchCustomers();
+    }
+  };
+
   return (
     <Layout title="Customers" showBackButton={false}>
       <div className="container mx-auto p-4 space-y-6">
@@ -410,10 +466,12 @@ export default function CustomersDashboardPage() {
                   <Trash2 className="mr-2 h-4 w-4" />
                   Delete
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => selectedCustomers.forEach(id => {
-                  const customer = customers.find(c => c.customer_id === id);
-                  if (customer) handleArchiveCustomer(customer, true);
-                })}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleBulkArchiveCustomers(selectedCustomers, true)}
+                  disabled={isLoading}
+                >
                   <Archive className="mr-2 h-4 w-4" />
                   Archive
                 </Button>
