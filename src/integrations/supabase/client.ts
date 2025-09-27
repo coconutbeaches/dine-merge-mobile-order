@@ -19,34 +19,56 @@ if (process.env.NODE_ENV === 'development') {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Create a custom storage adapter that migrates from cookies to localStorage
+const customStorage = typeof window !== 'undefined' ? {
+  getItem: (key: string) => {
+    // First try localStorage (new method)
+    const localStorageValue = window.localStorage.getItem(key);
+    if (localStorageValue) {
+      return localStorageValue;
+    }
+    
+    // Fallback to cookies for migration (old method)
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith(key + '='))
+      ?.split('=')[1];
+    
+    // If found in cookies, migrate to localStorage
+    if (cookieValue) {
+      window.localStorage.setItem(key, cookieValue);
+      // Clear the cookie after migration
+      document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      return cookieValue;
+    }
+    
+    return null;
+  },
+  setItem: (key: string, value: string) => {
+    // Always use localStorage for new values
+    window.localStorage.setItem(key, value);
+    // Also clear any existing cookies with the same key
+    document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  },
+  removeItem: (key: string) => {
+    window.localStorage.removeItem(key);
+    // Also clear from cookies
+    document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  },
+} : undefined;
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     // Enable automatic session refresh
     autoRefreshToken: true,
-    // Persist auth session in cookies for server access
+    // Persist auth session in localStorage to prevent cookie bloat
     persistSession: true,
     // Detect session in URL (for OAuth flows)
     detectSessionInUrl: true,
     // Storage key for session
     storageKey: 'supabase.auth.token',
-    // Use cookies for session storage so server can access it
-    storage: typeof window !== 'undefined' ? {
-      getItem: (key: string) => {
-        const value = document.cookie
-          .split('; ')
-          .find(row => row.startsWith(key + '='))
-          ?.split('=')[1];
-        return value || null;
-      },
-      setItem: (key: string, value: string) => {
-        // Set cookie with 7 days expiration and secure options
-        const isSecure = window.location.protocol === 'https:';
-        document.cookie = `${key}=${value}; path=/; max-age=604800; SameSite=Lax${isSecure ? '; Secure' : ''}`;
-      },
-      removeItem: (key: string) => {
-        document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-      },
-    } : undefined,
+    // Use custom storage that migrates from cookies to localStorage
+    storage: customStorage,
   },
   realtime: {
     connect: true,

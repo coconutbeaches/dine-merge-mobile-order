@@ -196,7 +196,8 @@ export const useFetchOrders = () => {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'orders' },
         async (payload) => {
-          console.log('Real-time order INSERT:', payload);
+          try {
+            console.log('Real-time order INSERT:', payload);
           
           // Fetch profile data if needed
           let profileData = null;
@@ -214,18 +215,22 @@ export const useFetchOrders = () => {
           
           clearTimeout(broadcastTimeout);
           broadcastTimeout = setTimeout(processPendingUpdates, 300);
+          } catch (error) {
+            console.warn('[Realtime] Error handling INSERT:', error);
+          }
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'orders' },
         async (payload) => {
-          // Ignore updates where order_status hasn't changed
-          if (payload.new.order_status === payload.old.order_status) {
-            return;
-          }
-          
-          console.log('Real-time order UPDATE (status changed):', payload);
+          try {
+            // Ignore updates where order_status hasn't changed
+            if (payload.new?.order_status === payload.old?.order_status) {
+              return;
+            }
+            
+            console.log('Real-time order UPDATE (status changed):', payload);
           
           const existingOrder = orders.find(order => order.id === payload.new.id);
           
@@ -249,22 +254,29 @@ export const useFetchOrders = () => {
           
           clearTimeout(broadcastTimeout);
           broadcastTimeout = setTimeout(processPendingUpdates, 300);
+          } catch (error) {
+            console.warn('[Realtime] Error handling UPDATE:', error);
+          }
         }
       )
       .on(
         'postgres_changes',
         { event: 'DELETE', schema: 'public', table: 'orders' },
         (payload) => {
-          console.log('Real-time order DELETE:', payload);
-          
-          // For deletes, update immediately
-          setOrders(prev => prev.filter(order => order.id !== payload.old.id));
+          try {
+            console.log('Real-time order DELETE:', payload);
+            
+            // For deletes, update immediately
+            setOrders(prev => prev.filter(order => order.id !== payload.old?.id));
           
           // Update React Query cache
           queryClient.setQueryData(['orders', 'dashboard'], (oldData: ExtendedOrder[] | undefined) => {
             if (!oldData) return oldData;
-            return oldData.filter(order => order.id !== payload.old.id);
+            return oldData.filter(order => order.id !== payload.old?.id);
           });
+          } catch (error) {
+            console.warn('[Realtime] Error handling DELETE:', error);
+          }
         }
       )
       .subscribe();
