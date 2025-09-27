@@ -50,8 +50,38 @@ const CustomerOrderHistory = () => {
   if (isLoading) {
     return (
       <Layout title="Customer Orders" showBackButton={true}>
-        <div className="page-container text-center py-10">
-          <p>Loading customer orders...</p>
+        <div className="page-container">
+          <div className="p-6 space-y-6">
+            {/* Header skeleton */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-gray-200 rounded animate-pulse" />
+                <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
+              </div>
+              <div className="flex gap-2">
+                <div className="h-10 w-10 bg-gray-200 rounded animate-pulse" />
+                <div className="h-10 w-10 bg-gray-200 rounded animate-pulse" />
+              </div>
+            </div>
+            {/* Customer info skeleton */}
+            <div className="p-4 border rounded-lg space-y-2">
+              <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-48 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+            </div>
+            {/* Orders list skeleton */}
+            <div className="space-y-2">
+              {[1,2,3].map(i => (
+                <div key={i} className="p-4 border rounded-lg flex justify-between">
+                  <div className="space-y-2">
+                    <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                    <div className="h-3 w-32 bg-gray-200 rounded animate-pulse" />
+                  </div>
+                  <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </Layout>
     );

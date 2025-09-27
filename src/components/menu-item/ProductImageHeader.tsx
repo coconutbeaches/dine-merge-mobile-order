@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
@@ -44,10 +45,15 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
   return (
     <>
       {/* Item Image */}
-      <div 
-        className="h-80 w-full bg-center bg-cover rounded-none mb-4" 
-        style={{ backgroundImage: `url(${imageUrl || '/placeholder.svg'})` }}
-      >
+      <div className="relative h-80 w-full mb-4 bg-gray-100">
+        <Image
+          src={imageUrl || '/placeholder.svg'}
+          alt={productDescription || 'Product image'}
+          fill
+          className="object-cover"
+          priority
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
       </div>
       
       {/* Item Details */}

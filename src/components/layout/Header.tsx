@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ShoppingCart, User, Settings } from 'lucide-react';
@@ -58,8 +59,15 @@ const Header: React.FC<HeaderProps> = ({
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          <div onClick={() => router.push('/menu')} className="cursor-pointer">
-            <img src="/lovable-uploads/c739d1da-89bf-4732-a560-e0d9fcaf13ac.png" alt="Coconut Beach Logo" className="h-[1.8rem]" />
+          <div onClick={() => router.push('/menu')} className="cursor-pointer relative h-[1.8rem] w-[120px]">
+            <Image 
+              src="/lovable-uploads/c739d1da-89bf-4732-a560-e0d9fcaf13ac.png" 
+              alt="Coconut Beach Logo" 
+              fill
+              className="object-contain"
+              priority
+              sizes="120px"
+            />
           </div>
         </div>
 
