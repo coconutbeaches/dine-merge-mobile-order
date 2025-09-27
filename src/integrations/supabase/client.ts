@@ -23,30 +23,15 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     // Enable automatic session refresh
     autoRefreshToken: true,
-    // Persist auth session in cookies for server access
+    // Persist auth session in localStorage to prevent cookie bloat
     persistSession: true,
     // Detect session in URL (for OAuth flows)
     detectSessionInUrl: true,
     // Storage key for session
     storageKey: 'supabase.auth.token',
-    // Use cookies for session storage so server can access it
-    storage: typeof window !== 'undefined' ? {
-      getItem: (key: string) => {
-        const value = document.cookie
-          .split('; ')
-          .find(row => row.startsWith(key + '='))
-          ?.split('=')[1];
-        return value || null;
-      },
-      setItem: (key: string, value: string) => {
-        // Set cookie with 7 days expiration and secure options
-        const isSecure = window.location.protocol === 'https:';
-        document.cookie = `${key}=${value}; path=/; max-age=604800; SameSite=Lax${isSecure ? '; Secure' : ''}`;
-      },
-      removeItem: (key: string) => {
-        document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-      },
-    } : undefined,
+    // Use localStorage instead of cookies to prevent performance issues
+    // The custom cookie implementation was causing cookie bloat with duplicate tokens
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   },
   realtime: {
     connect: true,
