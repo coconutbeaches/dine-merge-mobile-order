@@ -19,6 +19,44 @@ if (process.env.NODE_ENV === 'development') {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Create a custom storage adapter that migrates from cookies to localStorage
+const customStorage = typeof window !== 'undefined' ? {
+  getItem: (key: string) => {
+    // First try localStorage (new method)
+    const localStorageValue = window.localStorage.getItem(key);
+    if (localStorageValue) {
+      return localStorageValue;
+    }
+    
+    // Fallback to cookies for migration (old method)
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith(key + '='))
+      ?.split('=')[1];
+    
+    // If found in cookies, migrate to localStorage
+    if (cookieValue) {
+      window.localStorage.setItem(key, cookieValue);
+      // Clear the cookie after migration
+      document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+      return cookieValue;
+    }
+    
+    return null;
+  },
+  setItem: (key: string, value: string) => {
+    // Always use localStorage for new values
+    window.localStorage.setItem(key, value);
+    // Also clear any existing cookies with the same key
+    document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  },
+  removeItem: (key: string) => {
+    window.localStorage.removeItem(key);
+    // Also clear from cookies
+    document.cookie = `${key}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  },
+} : undefined;
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     // Enable automatic session refresh
@@ -29,9 +67,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     detectSessionInUrl: true,
     // Storage key for session
     storageKey: 'supabase.auth.token',
-    // Use localStorage instead of cookies to prevent performance issues
-    // The custom cookie implementation was causing cookie bloat with duplicate tokens
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    // Use custom storage that migrates from cookies to localStorage
+    storage: customStorage,
   },
   realtime: {
     connect: true,
