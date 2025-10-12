@@ -19,7 +19,9 @@ const CustomerOrderHistory = () => {
   const { orders, setOrders, customer, customerType, isLoading } = useCustomerOrders(userId);
   const { updateMultipleOrderStatuses, updateOrder } = useOrderActions(setOrders);
 
-  const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
+  const totalSpent = orders
+    .filter(order => order.order_status !== 'cancelled')
+    .reduce((total, order) => total + order.total_amount, 0);
 
   const handleCreateNewOrder = () => {
     router.push(`/menu?customerId=${userId}`);
