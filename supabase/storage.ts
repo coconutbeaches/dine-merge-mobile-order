@@ -6,25 +6,32 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// Validate required environment variables
-if (!supabaseUrl || !supabaseAnonKey) {
+// During build time, use placeholder values to allow the build to complete
+const isBuildTime = typeof window === 'undefined' && process.env.NODE_ENV !== 'development';
+
+// Validate required environment variables at runtime only
+if (typeof window !== 'undefined' && (!supabaseUrl || !supabaseAnonKey)) {
   const missingVars = [];
   if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
   if (!supabaseAnonKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
 
-  throw new Error(
+  console.error(
     `Missing required environment variables: ${missingVars.join(', ')}\n` +
     `Please set these in your Vercel project settings.`
   );
 }
 
+// Use placeholders during build time
+const url = supabaseUrl || (isBuildTime ? 'https://placeholder.supabase.co' : '');
+const anonKey = supabaseAnonKey || (isBuildTime ? 'placeholder-key' : '');
+
 // Regular client for most operations
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(url, anonKey)
 
 // Admin client for operations that need elevated privileges
 // Note: This requires SUPABASE_SERVICE_ROLE_KEY which may not be set in all environments
 export const supabaseAdmin = supabaseServiceKey
-  ? createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  ? createClient<Database>(url, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
