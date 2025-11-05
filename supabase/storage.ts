@@ -6,24 +6,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-// During build time, use placeholder values to allow the build to complete
-const isBuildTime = typeof window === 'undefined' && process.env.NODE_ENV !== 'development';
-
-// Validate required environment variables at runtime only
-if (typeof window !== 'undefined' && (!supabaseUrl || !supabaseAnonKey)) {
-  const missingVars = [];
-  if (!supabaseUrl) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
-  if (!supabaseAnonKey) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-
-  console.error(
-    `Missing required environment variables: ${missingVars.join(', ')}\n` +
-    `Please set these in your Vercel project settings.`
-  );
-}
-
-// Use placeholders during build time
-const url = supabaseUrl || (isBuildTime ? 'https://placeholder.supabase.co' : '');
-const anonKey = supabaseAnonKey || (isBuildTime ? 'placeholder-key' : '');
+// Use placeholders when env vars are missing
+// The EnvConfigValidator component will show a user-friendly error page if needed
+const url = supabaseUrl || 'https://placeholder.supabase.co';
+const anonKey = supabaseAnonKey || 'placeholder-key';
 
 // Regular client for most operations
 export const supabase = createClient<Database>(url, anonKey)

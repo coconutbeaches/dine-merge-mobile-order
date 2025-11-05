@@ -6,31 +6,10 @@ import type { Database } from '@/types/supabaseTypes';
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// During build time, use placeholder values to allow the build to complete
-// Runtime validation will occur when the client is actually used
-const isBuildTime = typeof window === 'undefined' && process.env.NODE_ENV !== 'development';
-
-// Validate environment variables at runtime (browser only)
-if (typeof window !== 'undefined' && (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY)) {
-  const missingVars = [];
-  if (!SUPABASE_URL) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
-  if (!SUPABASE_PUBLISHABLE_KEY) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
-
-  console.error(
-    `Missing required environment variables: ${missingVars.join(', ')}\n` +
-    `Please set these in your Vercel project settings:\n` +
-    `1. Go to your Vercel project dashboard\n` +
-    `2. Navigate to Settings > Environment Variables\n` +
-    `3. Add the following variables:\n` +
-    `   - NEXT_PUBLIC_SUPABASE_URL\n` +
-    `   - NEXT_PUBLIC_SUPABASE_ANON_KEY\n` +
-    `See .env.local.example for reference values.`
-  );
-}
-
-// Use placeholders during build time to allow Next.js to compile
-const url = SUPABASE_URL || (isBuildTime ? 'https://placeholder.supabase.co' : '');
-const key = SUPABASE_PUBLISHABLE_KEY || (isBuildTime ? 'placeholder-key' : '');
+// During build time or when env vars are missing, use placeholder values
+// The EnvConfigValidator component will show a user-friendly error page if needed
+const url = SUPABASE_URL || 'https://placeholder.supabase.co';
+const key = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
