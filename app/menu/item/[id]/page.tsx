@@ -3,6 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductOption } from '@/types/supabaseTypes';
 import MenuItemClient from './MenuItemClient';
 
+// Force dynamic rendering to avoid build-time data fetching
+export const dynamic = 'force-dynamic';
+
 type ProductWithOptions = Product & {
   options: ProductOption[];
 };
