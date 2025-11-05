@@ -12,6 +12,7 @@ import QuantityAddToCart from '@/components/menu-item/QuantityAddToCart';
 import { calculateTotalPrice, convertProductToMenuItem } from '@/utils/productUtils';
 import { Product, ProductOption } from '@/types/supabaseTypes';
 import Layout from '@/components/layout/Layout';
+import { getProductImageUrl } from '@/utils/imageUrl';
 
 type ProductWithOptions = Product & {
   options: ProductOption[];
@@ -72,6 +73,8 @@ export default function MenuItemClient({ product }: MenuItemClientProps) {
 
   const totalPrice = menuItemForCart ? calculateTotalPrice(menuItemForCart, selectedOptions) * quantity : 0;
 
+  const resolvedImageUrl = getProductImageUrl(product.image_url);
+
   return (
     <Layout title={product.name} showBackButton>
       <div className="page-container">
@@ -79,7 +82,7 @@ export default function MenuItemClient({ product }: MenuItemClientProps) {
           isLoading={false}
           error={null}
           productDescription={product.description}
-          imageUrl={product.image_url}
+          imageUrl={resolvedImageUrl}
         />
         
         <ProductOptions 

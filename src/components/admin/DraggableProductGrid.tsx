@@ -12,6 +12,7 @@ import { formatThaiCurrency } from '@/lib/utils';
 import { Product } from '@/types/supabaseTypes';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getProductImageUrl } from '@/utils/imageUrl';
 
 interface Category {
   id: string;
@@ -45,6 +46,8 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const imageSrc = getProductImageUrl(product.image_url);
+
   return (
     <Card
       ref={setNodeRef}
@@ -64,9 +67,9 @@ const DraggableProductItem: React.FC<DraggableProductItemProps> = ({ product, na
       </div>
       
       <div className="relative aspect-square bg-gray-100 w-full">
-        {product.image_url ? (
+        {imageSrc ? (
           <img
-            src={product.image_url}
+            src={imageSrc}
             alt={product.name}
             className="h-full w-full object-cover"
           />

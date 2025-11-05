@@ -1,5 +1,6 @@
 
 import { MenuItem } from '@/types';
+import { getProductImageUrl } from '@/utils/imageUrl';
 
 export const calculateTotalPrice = (
   item: MenuItem, 
@@ -35,7 +36,7 @@ export const convertProductToMenuItem = (product: any): MenuItem => {
     name: product.name,
     price: product.price,
     description: product.description || '',
-    image: product.image_url || '/placeholder.svg',
+    image: getProductImageUrl(product.image_url) || '/placeholder.svg',
     category: product.category_id || '',
     available: true,
     options: product.options?.map((option: any) => ({
@@ -50,4 +51,3 @@ export const convertProductToMenuItem = (product: any): MenuItem => {
     })) || []
   };
 };
-

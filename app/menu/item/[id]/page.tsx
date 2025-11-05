@@ -1,7 +1,11 @@
 import React from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductOption } from '@/types/supabaseTypes';
+import { getProductImageUrl } from '@/utils/imageUrl';
 import MenuItemClient from './MenuItemClient';
+import { createServerClient } from '@/lib/supabase-server';
+import { hasSupabaseClient } from '@/integrations/supabase/client';
+
+export const dynamic = 'force-dynamic';
 
 type ProductWithOptions = Product & {
   options: ProductOption[];
@@ -15,6 +19,43 @@ export default async function MenuItemPage({ params }: MenuItemPageProps) {
   const { id } = await params;
 
   try {
+    if (!hasSupabaseClient()) {
+      console.warn('[MenuItemPage] Supabase environment variables missing during build; returning fallback product.');
+      const fallbackProduct: ProductWithOptions = {
+        id,
+        name: 'Menu item unavailable',
+        description: 'Product details are temporarily unavailable.',
+        image_url: null,
+        price: 0,
+        category_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sort_order: 0,
+        options: [],
+      };
+
+      return <MenuItemClient product={fallbackProduct} />;
+    }
+
+    const supabase = await createServerClient();
+    if (!supabase) {
+      console.warn('[MenuItemPage] Supabase client unavailable; returning fallback product.');
+      const fallbackProduct: ProductWithOptions = {
+        id,
+        name: 'Menu item unavailable',
+        description: 'Product details are temporarily unavailable.',
+        image_url: null,
+        price: 0,
+        category_id: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sort_order: 0,
+        options: [],
+      };
+
+      return <MenuItemClient product={fallbackProduct} />;
+    }
+
     // Fetch product data
     const { data: productData, error: productError } = await supabase
       .from('products')
@@ -44,6 +85,11 @@ export default async function MenuItemPage({ params }: MenuItemPageProps) {
     const options = optionsData || [];
 
     // Fetch option choices if there are options
+    const product = {
+      ...productData,
+      image_url: getProductImageUrl(productData.image_url),
+    };
+
     if (options.length > 0) {
       const optionIds = options.map(option => option.id);
       const { data: choicesData, error: choicesError } = await supabase
@@ -67,7 +113,7 @@ export default async function MenuItemPage({ params }: MenuItemPageProps) {
       });
 
       const productWithOptions: ProductWithOptions = {
-        ...productData,
+        ...product,
         options: optionsWithChoices
       };
 
@@ -76,7 +122,7 @@ export default async function MenuItemPage({ params }: MenuItemPageProps) {
 
     // No options case
     const productWithOptions: ProductWithOptions = {
-      ...productData,
+      ...product,
       options: []
     };
 

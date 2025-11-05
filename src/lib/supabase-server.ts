@@ -1,24 +1,48 @@
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr';
 import type { Database } from '@/types/supabaseTypes';
 
 // Service Role Client (Server-side only)
-export function createServiceRoleClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export function createServiceRoleClient(): SupabaseClient<Database> | null {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error('Missing Supabase environment variables for service role client');
+    console.warn('[supabase] Service role environment variables missing. Elevated Supabase features are disabled.');
+    return null;
   }
 
   return createClient<Database>(supabaseUrl, supabaseServiceRoleKey);
 }
 
 // Server Component Client (uses cookies for auth)
-export async function createServerClient() {
+export async function createServerClient(): Promise<SupabaseClient<Database> | null> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('[supabase] Public Supabase environment variables missing. Server-side Supabase client disabled.');
+    return null;
+  }
+
   const cookieStore = await cookies();
-  return createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+
+  return createSupabaseServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll().map((cookie) => ({
+          name: cookie.name,
+          value: cookie.value,
+        }));
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
 }
 
 // Server-side admin role verification
@@ -34,6 +58,10 @@ export async function verifyAdminRole(): Promise<{
     // First, get the user from cookies
     console.log(`[verifyAdminRole()] ${Date.now()} - Creating server client`);
     const supabase = await createServerClient();
+    if (!supabase) {
+      console.warn('[verifyAdminRole] Supabase client unavailable. Defaulting to non-admin.');
+      return { isAdmin: false, userId: null, error: 'supabase_client_unavailable' };
+    }
     
     console.log(`[verifyAdminRole()] ${Date.now()} - Getting user from cookies`);
     const { data: { user }, error } = await supabase.auth.getUser();
@@ -48,6 +76,10 @@ export async function verifyAdminRole(): Promise<{
     // Now use service role client to check the user's role
     console.log(`[verifyAdminRole()] ${Date.now()} - Creating service role client`);
     const serviceClient = createServiceRoleClient();
+    if (!serviceClient) {
+      console.warn('[verifyAdminRole] Service role client unavailable. Defaulting to non-admin.');
+      return { isAdmin: false, userId: user.id, error: 'service_client_unavailable' };
+    }
     
     console.log(`[verifyAdminRole()] ${Date.now()} - Querying profile for userId: ${user.id}`);
     const { data: profile, error: profileError } = await serviceClient

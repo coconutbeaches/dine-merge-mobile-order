@@ -1,5 +1,6 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { getProductImageUrl } from '@/utils/imageUrl';
 
 interface Product {
   id: string;
@@ -20,6 +21,8 @@ const MenuItemCard = memo(({ product }: MenuItemCardProps) => {
     router.push(`/menu/item/${product.id}`);
   };
 
+  const imageSrc = useMemo(() => getProductImageUrl(product.image_url) || '/placeholder.svg', [product.image_url]);
+
   return (
     <div
       className="food-card cursor-pointer"
@@ -27,7 +30,7 @@ const MenuItemCard = memo(({ product }: MenuItemCardProps) => {
     >
       <div className="menu-item-image relative">
         <img 
-          src={product.image_url || '/placeholder.svg'} 
+          src={imageSrc} 
           alt={product.name} 
           className="h-full w-full object-cover"
           loading="lazy"

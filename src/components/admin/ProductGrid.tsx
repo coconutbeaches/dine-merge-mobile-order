@@ -6,6 +6,7 @@ import { Plus } from 'lucide-react';
 import { formatThaiCurrency } from '@/lib/utils';
 // Types for Next.js router
 import { Product } from '@/types/supabaseTypes';
+import { getProductImageUrl } from '@/utils/imageUrl';
 
 interface Category {
   id: string;
@@ -72,16 +73,19 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-      {products.map((product) => (
-        <Card 
-          key={product.id} 
-          className="cursor-pointer hover:shadow-lg transition-shadow flex flex-col"
-          onClick={() => navigate.push(`/admin/products/edit/${product.id}`)}
-        >
-          <div className="relative aspect-square bg-gray-100 w-full">
-            {product.image_url ? (
+      {products.map((product) => {
+        const imageSrc = getProductImageUrl(product.image_url);
+
+        return (
+          <Card 
+            key={product.id} 
+            className="cursor-pointer hover:shadow-lg transition-shadow flex flex-col"
+            onClick={() => navigate.push(`/admin/products/edit/${product.id}`)}
+          >
+            <div className="relative aspect-square bg-gray-100 w-full">
+            {imageSrc ? (
               <img
-                src={product.image_url}
+                src={imageSrc}
                 alt={product.name}
                 className="h-full w-full object-cover"
               />
@@ -118,7 +122,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             </CardFooter>
           </div>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 };

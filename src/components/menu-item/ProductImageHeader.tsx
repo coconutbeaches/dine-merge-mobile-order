@@ -1,10 +1,11 @@
 "use client";
 
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import { logImageLoadError } from '@/utils/clientLogger';
 
 interface ProductImageHeaderProps {
   isLoading: boolean;
@@ -20,6 +21,38 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
   imageUrl
 }) => {
   const router = useRouter();
+  const [hasImageError, setHasImageError] = useState(false);
+  const hasLoggedErrorRef = useRef(false);
+
+  const resolvedImage = useMemo(() => imageUrl || '/placeholder.svg', [imageUrl]);
+
+  useEffect(() => {
+    setHasImageError(false);
+    hasLoggedErrorRef.current = false;
+  }, [imageUrl]);
+
+  const handleImageError = useCallback((event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    if (!imageUrl || hasLoggedErrorRef.current) {
+      setHasImageError(true);
+      return;
+    }
+
+    setHasImageError(true);
+    hasLoggedErrorRef.current = true;
+
+    const failedSrc = (event?.currentTarget?.currentSrc) || imageUrl;
+
+    console.error('[ProductImageHeader] Failed to load product image', {
+      src: failedSrc,
+      alt: productDescription,
+    });
+
+    void logImageLoadError({
+      src: failedSrc,
+      productDescription,
+      deviceWidth: typeof window !== 'undefined' ? window.innerWidth : undefined,
+    });
+  }, [imageUrl, productDescription]);
 
   if (isLoading) {
     return (
@@ -47,12 +80,13 @@ const ProductImageHeader: React.FC<ProductImageHeaderProps> = ({
       {/* Item Image */}
       <div className="relative h-80 w-full mb-4 bg-gray-100">
         <Image
-          src={imageUrl || '/placeholder.svg'}
+          src={hasImageError ? '/placeholder.svg' : resolvedImage}
           alt={productDescription || 'Product image'}
           fill
           className="object-cover"
           priority
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          onError={handleImageError}
         />
       </div>
       
