@@ -2,20 +2,28 @@
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+// Use placeholders when env vars are missing
+// The EnvConfigValidator component will show a user-friendly error page if needed
+const url = supabaseUrl || 'https://placeholder.supabase.co';
+const anonKey = supabaseAnonKey || 'placeholder-key';
 
 // Regular client for most operations
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient<Database>(url, anonKey)
 
 // Admin client for operations that need elevated privileges
-export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseServiceKey!, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
+// Note: This requires SUPABASE_SERVICE_ROLE_KEY which may not be set in all environments
+export const supabaseAdmin = supabaseServiceKey
+  ? createClient<Database>(url, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : supabase // Fallback to regular client if service key is not available
 
 // Storage bucket name
 export const PROFILE_PICTURES_BUCKET = 'profile-pictures'

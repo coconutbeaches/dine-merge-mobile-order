@@ -3,18 +3,13 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabaseTypes';
 
 // Use environment variables - no fallbacks for security
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Validate environment variables in development
-if (process.env.NODE_ENV === 'development') {
-  if (!SUPABASE_URL) {
-    console.warn('NEXT_PUBLIC_SUPABASE_URL is not set');
-  }
-  if (!SUPABASE_PUBLISHABLE_KEY) {
-    console.warn('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
-  }
-}
+// During build time or when env vars are missing, use placeholder values
+// The EnvConfigValidator component will show a user-friendly error page if needed
+const url = SUPABASE_URL || 'https://placeholder.supabase.co';
+const key = SUPABASE_PUBLISHABLE_KEY || 'placeholder-key';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -57,7 +52,7 @@ const customStorage = typeof window !== 'undefined' ? {
   },
 } : undefined;
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(url, key, {
   auth: {
     // Enable automatic session refresh
     autoRefreshToken: true,
