@@ -32,7 +32,11 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Set up environment variables (copy from .env.local.example)
+cp .env.local.example .env.local
+# Edit .env.local with your actual Supabase credentials
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
@@ -89,9 +93,36 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Environment Variables
+
+This project requires the following environment variables to be set:
+
+### Required for all environments:
+- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Your Supabase anonymous key
+
+### Optional (for admin/server operations):
+- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key (server-side only)
+- `NEXT_PUBLIC_GA_TRACKING_ID`: Google Analytics tracking ID
+
+### Setting up for Vercel:
+
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** > **Environment Variables**
+3. Add the following variables:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (optional, for admin features)
+4. Make sure to add them for all environments (Production, Preview, Development)
+5. Redeploy your application for the changes to take effect
+
+See `.env.local.example` for reference values.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/c49a8c44-9196-466a-8929-d139ab77ca8e) and click on Share -> Publish.
+
+**Important**: After deploying, make sure to set up the environment variables in your Vercel project settings (see Environment Variables section above).
 
 ## Can I connect a custom domain to my Lovable project?
 

@@ -3,17 +3,25 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabaseTypes';
 
 // Use environment variables - no fallbacks for security
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// Validate environment variables in development
-if (process.env.NODE_ENV === 'development') {
-  if (!SUPABASE_URL) {
-    console.warn('NEXT_PUBLIC_SUPABASE_URL is not set');
-  }
-  if (!SUPABASE_PUBLISHABLE_KEY) {
-    console.warn('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
-  }
+// Validate environment variables are set
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  const missingVars = [];
+  if (!SUPABASE_URL) missingVars.push('NEXT_PUBLIC_SUPABASE_URL');
+  if (!SUPABASE_PUBLISHABLE_KEY) missingVars.push('NEXT_PUBLIC_SUPABASE_ANON_KEY');
+
+  throw new Error(
+    `Missing required environment variables: ${missingVars.join(', ')}\n` +
+    `Please set these in your Vercel project settings:\n` +
+    `1. Go to your Vercel project dashboard\n` +
+    `2. Navigate to Settings > Environment Variables\n` +
+    `3. Add the following variables:\n` +
+    `   - NEXT_PUBLIC_SUPABASE_URL\n` +
+    `   - NEXT_PUBLIC_SUPABASE_ANON_KEY\n` +
+    `See .env.local.example for reference values.`
+  );
 }
 
 // Import the supabase client like this:
