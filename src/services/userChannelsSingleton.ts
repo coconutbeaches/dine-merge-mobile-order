@@ -45,7 +45,12 @@ export const getUserOrdersChannel = (userId: string) => {
         manager.channel
           .on(
             'postgres_changes',
-            { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${userId}` },
+            {
+              event: '*',
+              schema: 'public',
+              table: 'orders',
+              filter: `user_id=eq.${userId}`
+            },
             (payload) => {
               console.log(`[UserChannels] User ${userId}: Broadcasting to ${manager.subscribers.size} subscribers`);
               manager.subscribers.forEach(subscriber => {
@@ -57,18 +62,9 @@ export const getUserOrdersChannel = (userId: string) => {
               });
             }
           )
-          .subscribe((status, err) => {
-            if (status === 'SUBSCRIBED') {
-                console.log(`[UserChannels] Successfully subscribed to channel for user ${userId}`);
-                manager.isSubscribed = true;
-            }
-            if (status === 'CHANNEL_ERROR') {
-                console.error(`[UserChannels] Channel error for user ${userId}:`, err);
-            }
-            if (status === 'TIMED_OUT') {
-                console.error(`[UserChannels] Channel timed out for user ${userId}`);
-            }
-          });
+          .subscribe();
+        
+        manager.isSubscribed = true;
       }
 
       // Return an unsubscribe function

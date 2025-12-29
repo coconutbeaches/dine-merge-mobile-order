@@ -18,13 +18,20 @@ export const useOrdersByDate = (
   return useQuery({
     queryKey: ['orders-by-date', startDate, endDate, metric],
     queryFn: async () => {
+      console.log('[useOrdersByDate] Fetching data:', { startDate, endDate, metric })
+      
       // Use optimized server-side aggregation instead of client-side processing
       const { data, error } = await supabase.rpc('get_orders_analytics_by_date_range', {
         p_start_date: `${startDate}T00:00:00Z`,
         p_end_date: `${endDate}T23:59:59Z`
       })
 
-      if (error) throw new Error(error.message)
+      if (error) {
+        console.error('[useOrdersByDate] RPC error:', error)
+        throw new Error(error.message)
+      }
+
+      console.log('[useOrdersByDate] RPC success, rows:', data?.length || 0)
 
       // Transform to match expected interface
       const aggregatedData: OrdersByDate[] = (data || []).map(row => ({
@@ -35,10 +42,13 @@ export const useOrdersByDate = (
         outside_guest_revenue: parseFloat(row.outside_guest_revenue || '0'),
       }))
 
+      console.log('[useOrdersByDate] Transformed data:', aggregatedData.length, 'rows')
       return aggregatedData
     },
     staleTime: 60 * 1000, // 1 minute cache for aggregated data
     gcTime: 10 * 60 * 1000, // 10 minutes
     enabled: Boolean(startDate && endDate),
+    retry: 2, // Explicitly set retry
+    retryDelay: 1000,
   })
 }

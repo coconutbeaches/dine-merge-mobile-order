@@ -148,12 +148,13 @@ export default function AnalyticsPage() {
     }));
 
   // Debug logging
-  console.log(`Analytics Debug - Raw data length: ${data.length}`);
-  console.log(`Analytics Debug - Chart data length: ${chartData.length}`);
-  console.log(`Analytics Debug - Date range: ${chartStartDate} to ${chartEndDate}`);
+  console.log(`[AnalyticsPage] isLoading: ${isLoading}, error:`, error);
+  console.log(`[AnalyticsPage] Raw data length: ${data.length}`);
+  console.log(`[AnalyticsPage] Chart data length: ${chartData.length}`);
+  console.log(`[AnalyticsPage] Date range: ${chartStartDate} to ${chartEndDate}`);
   if (chartData.length > 0) {
-    console.log(`Analytics Debug - First date: ${chartData[0].date}`);
-    console.log(`Analytics Debug - Last date: ${chartData[chartData.length - 1].date}`);
+    console.log(`[AnalyticsPage] First date: ${chartData[0].date}`);
+    console.log(`[AnalyticsPage] Last date: ${chartData[chartData.length - 1].date}`);
   }
 
   const maxValue = chartData.length > 0 ? Math.max(
@@ -259,12 +260,18 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent className="p-4">
             {isLoading ? (
-              <div className="p-6 text-center text-gray-500">Loading analytics...</div>
+              <div className="p-6 text-center text-gray-500">
+                Loading analytics...
+                <br />
+                <small className="text-xs">Date range: {chartStartDate} to {chartEndDate}</small>
+              </div>
             ) : error ? (
               <div className="p-6 text-center text-red-500">
-                Failed to load data: {error}
+                Failed to load data: {String(error)}
                 <br />
                 <small>Start: {chartStartDate}, End: {chartEndDate}</small>
+                <br />
+                <small className="text-xs mt-2 block">Check browser console for details</small>
               </div>
             ) : data.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
