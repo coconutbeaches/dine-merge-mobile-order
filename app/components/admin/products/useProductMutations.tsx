@@ -167,6 +167,10 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      if (id) {
+        queryClient.invalidateQueries({ queryKey: ["product", id] });
+        queryClient.invalidateQueries({ queryKey: ["productOptions", id] });
+      }
       queryClient.invalidateQueries({ queryKey: ["menu-products"] });
       toast.success("Product updated successfully");
       router.push("/admin/products");

@@ -245,6 +245,8 @@ export default function EditProductPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      queryClient.invalidateQueries({ queryKey: ['productOptions', productId] });
       queryClient.invalidateQueries({ queryKey: ['menu-products'] });
       toast.success('Product updated successfully');
       router.push('/admin/products');
