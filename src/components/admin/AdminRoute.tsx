@@ -17,32 +17,32 @@ export function AdminRoute({ children }: AdminRouteProps) {
   const [isRefreshing, setIsRefreshing] = useState(true);
   const [refreshError, setRefreshError] = useState<string | null>(null);
 
-  // Proactively refresh session on mount to ensure cookies are fresh.
-  // This prevents the 2-minute auth failure where server-side cookies expire
-  // but client-side localStorage still has valid tokens.
+  // Check session on mount to ensure auth state is current.
+  // We use getSession() which is safe and idempotent, not refreshSession()
+  // which throws an error if no session exists.
   useEffect(() => {
     let isMounted = true;
 
-    const refreshSession = async () => {
+    const checkSession = async () => {
       try {
-        console.log('[AdminRoute] Refreshing session on mount...');
-        const { data, error: refreshErr } = await supabase.auth.refreshSession();
+        console.log('[AdminRoute] Checking session on mount...');
+        // Use getSession() - it's safe even if no session exists
+        // The middleware handles the actual token refresh via getUser()
+        const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
 
         if (!isMounted) return;
 
-        if (refreshErr) {
-          console.error('[AdminRoute] Session refresh error:', refreshErr);
-          // If refresh fails with a specific auth error, clear state
-          if (refreshErr.message?.includes('refresh_token') ||
-              refreshErr.message?.includes('session') ||
-              refreshErr.message?.includes('expired')) {
-            setRefreshError('Session expired. Please log in again.');
-          }
+        if (sessionErr) {
+          console.error('[AdminRoute] Session check error:', sessionErr);
+          setRefreshError('Failed to verify session.');
+        } else if (!session) {
+          console.log('[AdminRoute] No session found');
+          // No error - just no session, let the auth flow handle redirect
         } else {
-          console.log('[AdminRoute] Session refreshed successfully');
+          console.log('[AdminRoute] Session verified successfully');
         }
       } catch (err) {
-        console.error('[AdminRoute] Session refresh exception:', err);
+        console.error('[AdminRoute] Session check exception:', err);
         if (isMounted) {
           setRefreshError('Failed to verify session.');
         }
@@ -53,14 +53,14 @@ export function AdminRoute({ children }: AdminRouteProps) {
       }
     };
 
-    refreshSession();
+    checkSession();
 
     return () => {
       isMounted = false;
     };
   }, []);
 
-  // Show loading spinner while refreshing session or auth is being determined
+  // Show loading spinner while checking session or auth is being determined
   if (isRefreshing || !authReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -72,7 +72,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
     );
   }
 
-  // Show error splash if there's a refresh error or auth error
+  // Show error splash if there's a session error or auth error
   if (refreshError || error) {
     return (
       <ErrorSplash
@@ -81,8 +81,8 @@ export function AdminRoute({ children }: AdminRouteProps) {
           setRefreshError(null);
           setIsRefreshing(true);
           retryAuth();
-          // Also trigger a session refresh
-          supabase.auth.refreshSession().finally(() => {
+          // Re-check session
+          supabase.auth.getSession().finally(() => {
             setIsRefreshing(false);
           });
         }}
