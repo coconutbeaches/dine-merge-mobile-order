@@ -44,6 +44,9 @@ if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
       detectSessionInUrl: true,
       // Flow type for PKCE
       flowType: 'pkce',
+      // IMPORTANT: Use the same storage key as the old client for backward compatibility
+      // This ensures existing sessions in localStorage are recognized
+      storageKey: 'supabase.auth.token',
     },
     realtime: {
       connect: true,
