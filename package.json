@@ -69,7 +69,7 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.462.0",
     "nanoid": "^5.1.5",
-    "next": "^15.3.5",
+    "next": "^15.3.8",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
