@@ -8,6 +8,22 @@ import { toast } from 'sonner';
 import { getGuestSession, hasGuestSession, getTableNumber } from '@/utils/guestSession';
 import { clearCartBackup } from '@/lib/cartService';
 
+const PROFILE_REQUEST_TIMEOUT_MS = 8000;
+
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, message: string) => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }) as Promise<T>;
+};
+
 export function usePlaceOrder(
   userId: string | undefined,
   setOrders: React.Dispatch<React.SetStateAction<Order[]>>
@@ -93,11 +109,15 @@ export function usePlaceOrder(
       const shouldFetchProfile = !customerName && !hasGuestSession() && (!adminContext || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId));
       
       if (shouldFetchProfile) {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('name, email')
-          .eq('id', finalUserId)
-          .single();
+        const { data: profileData, error: profileError } = await withTimeout(
+          supabase
+            .from('profiles')
+            .select('name, email')
+            .eq('id', finalUserId)
+            .single(),
+          PROFILE_REQUEST_TIMEOUT_MS,
+          'Profile request timed out'
+        );
         
         if (profileError) {
           console.error("Error fetching profile for order:", profileError);
