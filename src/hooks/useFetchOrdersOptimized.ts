@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ExtendedOrder } from '@/src/types/app';
+import { formatStayId } from '@/lib/utils';
 
 interface OptimizedOrder {
   id: number;
@@ -32,6 +33,41 @@ export const useFetchOrdersOptimized = () => {
   const [page, setPage] = useState(0);
   const pageSize = 100; // Increase page size for better performance
 
+  const fetchOrdersFallback = useCallback(async (currentPage: number, isInitialLoad: boolean) => {
+    const from = currentPage * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select('id,user_id,guest_user_id,guest_first_name,stay_id,table_number,total_amount,created_at,updated_at,order_status,order_items,special_instructions,customer_name')
+      .order('created_at', { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      throw error;
+    }
+
+    const transformedOrders: ExtendedOrder[] = (data || []).map(order => ({
+      ...order,
+      customer_email: null,
+      customer_type: order.guest_user_id ? 'guest' : 'registered',
+      formattedStayId: formatStayId(order.stay_id, order.table_number),
+      customer_name_from_profile: null,
+      customer_email_from_profile: null
+    }));
+
+    if (isInitialLoad) {
+      setOrders(transformedOrders);
+      setPage(1);
+    } else {
+      setOrders(prev => [...prev, ...transformedOrders]);
+      setPage(prev => prev + 1);
+    }
+
+    setHasMore(transformedOrders.length === pageSize);
+    console.log(`[Optimized] Fallback fetched ${transformedOrders.length} orders (page ${currentPage + 1})`);
+  }, [pageSize]);
+
   const fetchOrders = useCallback(async (reset = false) => {
     const currentPage = reset ? 0 : page;
     const isInitialLoad = reset || currentPage === 0;
@@ -53,13 +89,28 @@ export const useFetchOrdersOptimized = () => {
           p_end: null
         });
 
-      if (error) throw error;
+      if (error) {
+        const errorMessage = String(error.message || '').toLowerCase();
+        const status = (error as { status?: number }).status;
+        const isMissingRpc =
+          status === 404 ||
+          errorMessage.includes('404') ||
+          errorMessage.includes('not found') ||
+          errorMessage.includes('rpc_admin_get_orders');
+
+        if (isMissingRpc) {
+          await fetchOrdersFallback(currentPage, isInitialLoad);
+          return;
+        }
+
+        throw error;
+      }
 
       if (data) {
         // Transform data to match UI expectations
         const transformedOrders: ExtendedOrder[] = data.map(order => ({
           ...order,
-          formattedStayId: order.formatted_stay_id
+          formattedStayId: order.formatted_stay_id || formatStayId(order.stay_id, order.table_number)
         }));
 
         if (isInitialLoad) {
@@ -83,7 +134,7 @@ export const useFetchOrdersOptimized = () => {
         setIsLoadingMore(false);
       }
     }
-  }, [page, pageSize]);
+  }, [fetchOrdersFallback, page, pageSize]);
 
   const resetAndFetch = useCallback(() => {
     setPage(0);
