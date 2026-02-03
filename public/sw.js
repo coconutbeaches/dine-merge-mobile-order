@@ -1,6 +1,7 @@
 const CACHE_NAME = 'coconut-beach-v1';
 const DYNAMIC_CACHE_NAME = 'coconut-beach-dynamic-v1';
 
+const NETWORK_TIMEOUT = 5000;
 // Essential static assets that exist and are important for offline functionality
 const urlsToCache = [
   '/manifest.json',
@@ -58,7 +59,14 @@ self.addEventListener('fetch', function(event) {
   if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
-  
+
+  const requestUrl = new URL(event.request.url);
+
+  // Skip admin routes to avoid caching or delaying admin navigation
+  if (requestUrl.pathname.startsWith('/admin')) {
+    return;
+  }
+
   // Skip requests to Next.js internal routes
   if (event.request.url.includes('/_next/') || 
       event.request.url.includes('/api/') ||
@@ -66,13 +74,30 @@ self.addEventListener('fetch', function(event) {
       event.request.url.includes('/rest/v1/')) {
     return;
   }
+
+  const shouldCacheResponse = () => {
+    if (event.request.mode === 'navigate') {
+      return false;
+    }
+
+    if (event.request.destination) {
+      return ['style', 'script', 'image', 'font'].includes(event.request.destination);
+    }
+
+    return /\.(?:css|js|mjs|png|jpg|jpeg|gif|svg|webp|avif|ico|woff2?|ttf|otf)$/i.test(requestUrl.pathname);
+  };
   
   event.respondWith(
-    // Try network first
-    fetch(event.request)
+    // Try network first with timeout to avoid long waits on slow connections
+    Promise.race([
+      fetch(event.request),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), NETWORK_TIMEOUT)
+      )
+    ])
       .then(function(response) {
         // If network request succeeded, cache the response for next time
-        if (response.status === 200) {
+        if (response.status === 200 && shouldCacheResponse()) {
           const responseClone = response.clone();
           caches.open(DYNAMIC_CACHE_NAME)
             .then(function(cache) {
