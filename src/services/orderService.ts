@@ -8,6 +8,22 @@ export type CartItem = CartItemType;
 
 import { getTableNumber, getGuestSession } from '@/utils/guestSession';
 
+const ORDER_REQUEST_TIMEOUT_MS = 15000;
+
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, message: string) => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+    }),
+  ]).finally(() => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }) as Promise<T>;
+};
+
 export async function placeOrder(orderData: {
   items: CartItem[];
   total: number;
@@ -33,21 +49,25 @@ export async function placeOrder(orderData: {
     const finalGuestUserId = guestSession?.guest_user_id;
     const finalGuestFirstName = guestSession?.guest_first_name;
     
-    const { data, error } = await supabase
-      .from('orders')
-      .insert({
-        user_id: orderData.userId || null,
-        guest_user_id: finalGuestUserId || null,
-        guest_first_name: finalGuestFirstName || null,
-        stay_id: guestSession?.guest_stay_id || null,
-        total_amount: orderData.total,
-        order_status: 'new',
-        order_items: orderData.items as any, // Cast to Json
-        table_number: finalTableNumber,
-        customer_name: orderData.customerName
-      })
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      supabase
+        .from('orders')
+        .insert({
+          user_id: orderData.userId || null,
+          guest_user_id: finalGuestUserId || null,
+          guest_first_name: finalGuestFirstName || null,
+          stay_id: guestSession?.guest_stay_id || null,
+          total_amount: orderData.total,
+          order_status: 'new',
+          order_items: orderData.items as any, // Cast to Json
+          table_number: finalTableNumber,
+          customer_name: orderData.customerName
+        })
+        .select()
+        .single(),
+      ORDER_REQUEST_TIMEOUT_MS,
+      'Order request timed out'
+    );
 
     if (error) {
       console.error('Supabase error:', error);
@@ -88,21 +108,25 @@ export const placeOrderInSupabase = async (
   }
 ) => {
   try {
-    const { data, error } = await supabase
-      .from('orders')
-      .insert({
-        user_id: userId || null,
-        guest_user_id: guestUserId || null,
-        guest_first_name: guestFirstName || null,
-        stay_id: stayId || null,
-        customer_name: customerName,
-        order_items: cartItems as any, // Cast to Json
-        total_amount: total,
-        table_number: tableNumber,
-        order_status: 'new'
-      })
-      .select()
-      .single();
+    const { data, error } = await withTimeout(
+      supabase
+        .from('orders')
+        .insert({
+          user_id: userId || null,
+          guest_user_id: guestUserId || null,
+          guest_first_name: guestFirstName || null,
+          stay_id: stayId || null,
+          customer_name: customerName,
+          order_items: cartItems as any, // Cast to Json
+          total_amount: total,
+          table_number: tableNumber,
+          order_status: 'new'
+        })
+        .select()
+        .single(),
+      ORDER_REQUEST_TIMEOUT_MS,
+      'Order request timed out'
+    );
 
     if (error) throw error;
     

@@ -1,6 +1,20 @@
 // Service Worker registration for PWA
 export function registerServiceWorker() {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    const isAdminRoute = window.location.pathname.startsWith('/admin');
+
+    if (isAdminRoute) {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((registrations) => {
+          return Promise.all(registrations.map((registration) => registration.unregister()));
+        })
+        .catch((error) => {
+          console.log('Service Worker unregister failed:', error);
+        });
+      return;
+    }
+
     // Only register in production or when explicitly enabled
     const isDev = process.env.NODE_ENV === 'development';
     const enableSW = process.env.NEXT_PUBLIC_ENABLE_SW === 'true';
