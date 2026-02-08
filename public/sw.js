@@ -1,31 +1,68 @@
-const CACHE_NAME = 'coconut-beach-v1';
-const DYNAMIC_CACHE_NAME = 'coconut-beach-dynamic-v1';
+const STATIC_CACHE_NAME = 'coconut-beach-static-v2';
+const DYNAMIC_CACHE_NAME = 'coconut-beach-dynamic-v2';
+const CACHE_PREFIX = 'coconut-beach-';
 
-// Essential static assets that exist and are important for offline functionality
-const urlsToCache = [
-  '/manifest.json',
-  '/favicon.ico',
-  '/CoconutBeachLogo.png'
+// Restrict cache usage for authenticated and sensitive routes.
+const NEVER_CACHE_PATH_PREFIXES = [
+  '/admin',
+  '/login',
+  '/debug-auth',
+  '/debug-admin-auth',
+  '/api',
+  '/_next',
+  '/__nextjs_',
+  '/rest/v1',
+  '/auth/v1',
 ];
+
+// Navigation paths we explicitly allow for offline fallback.
+const NAVIGATION_CACHE_ALLOWLIST = ['/', '/menu'];
+
+// Essential static assets for basic offline experience.
+const urlsToCache = ['/', '/manifest.json', '/favicon.ico', '/CoconutBeachLogo.png'];
+
+function matchesPathPrefix(pathname, prefixes) {
+  return prefixes.some(function(prefix) {
+    return pathname.startsWith(prefix);
+  });
+}
+
+function shouldHandleRequest(request, requestUrl) {
+  if (request.method !== 'GET') return false;
+  if (requestUrl.origin !== self.location.origin) return false;
+  if (matchesPathPrefix(requestUrl.pathname, NEVER_CACHE_PATH_PREFIXES)) return false;
+  return true;
+}
+
+function shouldCacheResponse(request, response, requestUrl) {
+  if (!response || response.status !== 200) return false;
+
+  const cacheControl = (response.headers.get('Cache-Control') || '').toLowerCase();
+  if (cacheControl.includes('no-store') || cacheControl.includes('private')) return false;
+
+  if (request.mode === 'navigate') {
+    return NAVIGATION_CACHE_ALLOWLIST.includes(requestUrl.pathname);
+  }
+
+  const contentType = (response.headers.get('Content-Type') || '').toLowerCase();
+  if (contentType.includes('text/html')) return false;
+
+  return true;
+}
 
 // Install event - cache essential static assets
 self.addEventListener('install', function(event) {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches
+      .open(STATIC_CACHE_NAME)
       .then(function(cache) {
-        // Only cache assets that we know exist
-        return cache.addAll(urlsToCache.filter(url => {
-          // Skip caching if we can't verify the asset exists
-          return true; // For now, trust that these basic assets exist
-        }));
+        return cache.addAll(urlsToCache);
       })
       .catch(function(error) {
         console.log('Service Worker cache installation failed:', error);
-        // Don't prevent installation if caching fails
-      })
+      }),
   );
-  
-  // Force the waiting service worker to become the active service worker
+
   self.skipWaiting();
 });
 
@@ -35,78 +72,64 @@ self.addEventListener('activate', function(event) {
     caches.keys().then(function(cacheNames) {
       return Promise.all(
         cacheNames.map(function(cacheName) {
-          if (cacheName !== CACHE_NAME && cacheName !== DYNAMIC_CACHE_NAME) {
+          if (
+            cacheName.startsWith(CACHE_PREFIX) &&
+            cacheName !== STATIC_CACHE_NAME &&
+            cacheName !== DYNAMIC_CACHE_NAME
+          ) {
             return caches.delete(cacheName);
           }
-        })
+          return Promise.resolve();
+        }),
       );
-    })
+    }),
   );
-  
-  // Immediately take control of all clients
+
   self.clients.claim();
 });
 
-// Fetch event - network-first strategy with cache fallback
+// Fetch event - network-first strategy with constrained cache fallback
 self.addEventListener('fetch', function(event) {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-  
-  // Skip requests to external APIs or non-same-origin requests
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-  
-  // Skip requests to Next.js internal routes
-  if (event.request.url.includes('/_next/') || 
-      event.request.url.includes('/api/') ||
-      event.request.url.includes('/__nextjs_') ||
-      event.request.url.includes('/rest/v1/')) {
-    return;
-  }
-  
+  const requestUrl = new URL(event.request.url);
+  if (!shouldHandleRequest(event.request, requestUrl)) return;
+
   event.respondWith(
-    // Try network first
     fetch(event.request)
       .then(function(response) {
-        // If network request succeeded, cache the response for next time
-        if (response.status === 200) {
+        if (shouldCacheResponse(event.request, response, requestUrl)) {
           const responseClone = response.clone();
-          caches.open(DYNAMIC_CACHE_NAME)
-            .then(function(cache) {
-              cache.put(event.request, responseClone);
-            })
-            .catch(function(error) {
+          caches.open(DYNAMIC_CACHE_NAME).then(function(cache) {
+            cache.put(event.request, responseClone).catch(function(error) {
               console.log('Failed to cache response:', error);
             });
+          });
         }
         return response;
       })
       .catch(function() {
-        // Network failed, try cache
-        return caches.match(event.request)
-          .then(function(response) {
-            if (response) {
-              return response;
-            }
-            
-            // If it's a navigation request and we don't have it cached,
-            // try to serve a basic offline page
-            if (event.request.mode === 'navigate') {
-              return caches.match('/') || 
-                     new Response('<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>You are offline</h1><p>Please check your internet connection.</p></body></html>', {
-                       headers: { 'Content-Type': 'text/html' }
-                     });
-            }
-            
-            // For other requests, just fail
-            return new Response('Network error', {
-              status: 408,
-              statusText: 'Network error'
-            });
+        return caches.match(event.request).then(function(cachedResponse) {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+
+          if (
+            event.request.mode === 'navigate' &&
+            NAVIGATION_CACHE_ALLOWLIST.includes(requestUrl.pathname)
+          ) {
+            return (
+              caches.match('/') ||
+              new Response(
+                '<!DOCTYPE html><html><head><title>Offline</title></head><body><h1>You are offline</h1><p>Please check your internet connection.</p></body></html>',
+                { headers: { 'Content-Type': 'text/html' } },
+              )
+            );
+          }
+
+          return new Response('Network error', {
+            status: 408,
+            statusText: 'Network error',
           });
-      })
+        });
+      }),
   );
 });

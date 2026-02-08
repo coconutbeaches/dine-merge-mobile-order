@@ -1,6 +1,41 @@
 // Service Worker registration for PWA
 export function registerServiceWorker() {
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    const pathname = window.location.pathname || '';
+    const isRestrictedPath =
+      pathname.startsWith('/admin') ||
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/debug-auth') ||
+      pathname.startsWith('/debug-admin-auth');
+
+    if (isRestrictedPath) {
+      // Admin/auth routes should never run through a stale SW cache.
+      window.addEventListener('load', () => {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+          .catch((error) => {
+            console.log('Service Worker cleanup failed:', error);
+          });
+
+        if ('caches' in window) {
+          caches
+            .keys()
+            .then((cacheNames) =>
+              Promise.all(
+                cacheNames
+                  .filter((cacheName) => cacheName.startsWith('coconut-beach-'))
+                  .map((cacheName) => caches.delete(cacheName)),
+              ),
+            )
+            .catch((error) => {
+              console.log('Service Worker cache cleanup failed:', error);
+            });
+        }
+      });
+      return;
+    }
+
     // Only register in production or when explicitly enabled
     const isDev = process.env.NODE_ENV === 'development';
     const enableSW = process.env.NEXT_PUBLIC_ENABLE_SW === 'true';
@@ -37,12 +72,17 @@ export function registerServiceWorker() {
   }
 }
 
+type NavigatorWithStandalone = Navigator & {
+  standalone?: boolean;
+};
+
 // Check if app is running as PWA
 export function isPWA(): boolean {
   if (typeof window === 'undefined') return false;
-  
+
+  const navigatorWithStandalone = window.navigator as NavigatorWithStandalone;
   return window.matchMedia('(display-mode: standalone)').matches || 
-         (window.navigator as any).standalone === true;
+         navigatorWithStandalone.standalone === true;
 }
 
 // Check if device supports PWA installation

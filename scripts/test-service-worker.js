@@ -38,7 +38,10 @@ if (!hasProblems) {
 const requiredPatterns = [
   'catch(function(error)',
   'skipWaiting()',
-  'clients.claim()'
+  'clients.claim()',
+  'NEVER_CACHE_PATH_PREFIXES',
+  '/admin',
+  'NAVIGATION_CACHE_ALLOWLIST'
 ];
 
 requiredPatterns.forEach(pattern => {
