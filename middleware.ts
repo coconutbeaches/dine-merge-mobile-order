@@ -4,6 +4,24 @@ import { createServerClient } from '@supabase/ssr';
 const VERCEL_DOMAIN = 'dine-merge-mobile-order.vercel.app';
 const CUSTOM_DOMAIN = 'menu.coconut.holiday';
 
+function shouldRefreshSupabaseSession(pathname: string): boolean {
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/rest/v1') ||
+    pathname.startsWith('/auth/v1')
+  ) {
+    return false;
+  }
+
+  // Skip static files (images, fonts, scripts, sourcemaps, etc).
+  if (/\.[a-zA-Z0-9]+$/.test(pathname)) {
+    return false;
+  }
+
+  return true;
+}
+
 export async function middleware(request: NextRequest) {
   const host = request.headers.get('host');
   const pathname = request.nextUrl.pathname;
@@ -30,7 +48,7 @@ export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (supabaseUrl && supabaseAnonKey) {
+  if (supabaseUrl && supabaseAnonKey && shouldRefreshSupabaseSession(pathname)) {
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         getAll() {

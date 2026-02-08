@@ -18,7 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <GoogleAnalytics />
         <PWAProvider>
-          <Providers includeAppContext={!isLoginPath}>
+          <Providers includeAppContext={true}>
             {!skipSessionRecovery ? (
               <SessionRecovery>{children}</SessionRecovery>
             ) : (
