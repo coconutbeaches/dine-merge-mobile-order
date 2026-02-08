@@ -10,7 +10,7 @@ interface FilterOptions {
   endDate?: string;
 }
 
-interface OptimizedOrder {
+interface OrderRow {
   id: number;
   user_id: string | null;
   guest_user_id: string | null;
@@ -23,205 +23,172 @@ interface OptimizedOrder {
   order_status: string;
   order_items: unknown[];
   special_instructions: string | null;
-  customer_name: string;
-  customer_email: string | null;
-  customer_type: string;
-  formatted_stay_id: string;
-  customer_name_from_profile: string | null;
-  customer_email_from_profile: string | null;
+  customer_name: string | null;
 }
+
+interface ProfileRow {
+  id: string;
+  name: string | null;
+  email: string | null;
+}
+
+const REQUEST_TIMEOUT_MS = 12000;
+const PAGE_SIZE = 50;
+
+const escapeSearch = (value: string) => value.replace(/[%(),]/g, '').trim();
 
 export const useFetchOrdersOptimized = () => {
   const [orders, setOrders] = useState<ExtendedOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const pageSize = 100; // Increase page size for better performance
+  const [error, setError] = useState<string | null>(null);
+
   const pageRef = useRef(0);
   const filtersRef = useRef<FilterOptions>({});
+  const inFlightRef = useRef(false);
   const latestRequestIdRef = useRef(0);
 
-  const transformOptimizedOrder = useCallback((order: OptimizedOrder): ExtendedOrder => {
-    const customerName =
-      order.customer_name ||
-      order.customer_name_from_profile ||
-      order.guest_first_name ||
-      null;
-    const customerEmail = order.customer_email || order.customer_email_from_profile || null;
+  const buildQuery = useCallback((page: number, filters: FilterOptions) => {
+    let query = supabase
+      .from('orders')
+      .select(`
+        id,
+        user_id,
+        guest_user_id,
+        guest_first_name,
+        stay_id,
+        table_number,
+        total_amount,
+        created_at,
+        updated_at,
+        order_status,
+        order_items,
+        special_instructions,
+        customer_name
+      `)
+      .order('created_at', { ascending: false })
+      .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-    return {
-      ...order,
-      customer_name: customerName,
-      customer_email: customerEmail,
-      formattedStayId: order.formatted_stay_id,
-    } as ExtendedOrder;
-  }, []);
-
-  const fetchOrdersFallback = useCallback(
-    async (currentPage: number, filters: FilterOptions): Promise<ExtendedOrder[]> => {
-      let query = supabase
-        .from('orders')
-        .select(`
-          id,
-          user_id,
-          guest_user_id,
-          guest_first_name,
-          stay_id,
-          table_number,
-          total_amount,
-          created_at,
-          updated_at,
-          order_status,
-          order_items,
-          special_instructions,
-          customer_name
-        `)
-        .order('created_at', { ascending: false })
-        .range(currentPage * pageSize, (currentPage + 1) * pageSize - 1);
-
-      if (filters.status) {
-        query = query.eq('order_status', filters.status);
-      }
-      if (filters.startDate) {
-        query = query.gte('created_at', new Date(filters.startDate).toISOString());
-      }
-      if (filters.endDate) {
-        query = query.lte('created_at', new Date(filters.endDate).toISOString());
-      }
-      if (filters.search?.trim()) {
-        const escaped = filters.search.trim().replace(/[%]/g, '');
+    if (filters.status) {
+      query = query.eq('order_status', filters.status);
+    }
+    if (filters.startDate) {
+      query = query.gte('created_at', new Date(filters.startDate).toISOString());
+    }
+    if (filters.endDate) {
+      query = query.lte('created_at', new Date(filters.endDate).toISOString());
+    }
+    if (filters.search?.trim()) {
+      const search = escapeSearch(filters.search);
+      if (search.length > 0) {
         query = query.or(
-          `customer_name.ilike.%${escaped}%,guest_first_name.ilike.%${escaped}%,stay_id.ilike.%${escaped}%,table_number.ilike.%${escaped}%`,
+          `customer_name.ilike.%${search}%,guest_first_name.ilike.%${search}%,stay_id.ilike.%${search}%,table_number.ilike.%${search}%`,
         );
       }
+    }
 
-      const { data: ordersData, error: ordersError } = await query;
-      if (ordersError) {
-        throw ordersError;
-      }
+    return query;
+  }, []);
 
-      const userIds = [
-        ...new Set((ordersData || []).map((order) => order.user_id).filter(Boolean)),
-      ];
+  const fetchProfilesById = useCallback(async (rows: OrderRow[]) => {
+    const userIds = [...new Set(rows.map((row) => row.user_id).filter(Boolean) as string[])];
+    if (userIds.length === 0) {
+      return new Map<string, ProfileRow>();
+    }
 
-      let profilesById = new Map<string, { name: string | null; email: string | null }>();
-      if (userIds.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, name, email')
-          .in('id', userIds as string[]);
+    const { data, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, name, email')
+      .in('id', userIds);
 
-        if (!profilesError && profilesData) {
-          profilesById = new Map(
-            profilesData.map((profile) => [
-              profile.id,
-              { name: profile.name ?? null, email: profile.email ?? null },
-            ]),
-          );
-        }
-      }
+    if (profileError || !data) {
+      return new Map<string, ProfileRow>();
+    }
 
-      return (ordersData || []).map((order) => {
-        const profile = order.user_id ? profilesById.get(order.user_id) : undefined;
-        const customerName = order.customer_name || profile?.name || order.guest_first_name || null;
+    return new Map<string, ProfileRow>(data.map((profile) => [profile.id, profile]));
+  }, []);
+
+  const mapRows = useCallback(
+    async (rows: OrderRow[]): Promise<ExtendedOrder[]> => {
+      const profilesById = await fetchProfilesById(rows);
+      return rows.map((row) => {
+        const profile = row.user_id ? profilesById.get(row.user_id) : undefined;
+        const customerName = row.customer_name || profile?.name || row.guest_first_name || null;
         const customerEmail = profile?.email || null;
+
         return {
-          ...order,
+          ...row,
           customer_name: customerName,
           customer_email: customerEmail,
-          formattedStayId: `${order.stay_id || ''}-${order.table_number || ''}`,
+          formattedStayId: `${row.stay_id || ''}-${row.table_number || ''}`,
         } as ExtendedOrder;
       });
     },
-    [pageSize],
+    [fetchProfilesById],
   );
 
-  const fetchOrders = useCallback(async (reset = false, customFilters?: FilterOptions) => {
-    const currentPage = reset ? 0 : pageRef.current;
-    const isInitialLoad = reset || currentPage === 0;
-    const filters = customFilters || filtersRef.current;
-    const requestId = ++latestRequestIdRef.current;
+  const fetchOrders = useCallback(
+    async (reset = false, customFilters?: FilterOptions) => {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
 
-    if (isInitialLoad) {
-      setIsLoading(true);
-    } else {
-      setIsLoadingMore(true);
-    }
+      const requestId = ++latestRequestIdRef.current;
+      const page = reset ? 0 : pageRef.current;
+      const isInitialLoad = reset || page === 0;
+      const filters = customFilters || filtersRef.current;
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
-    try {
-      const rpcPromise = supabase
-        .rpc('rpc_admin_get_orders', {
-          p_limit: pageSize,
-          p_offset: currentPage * pageSize,
-          p_search: filters.search || null,
-          p_status: filters.status || null,
-          p_start: filters.startDate ? new Date(filters.startDate).toISOString() : null,
-          p_end: filters.endDate ? new Date(filters.endDate).toISOString() : null,
-        });
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Orders request timeout')), 15000),
-      );
-
-      const { data, error } = (await Promise.race([rpcPromise, timeoutPromise])) as {
-        data: OptimizedOrder[] | null;
-        error: Error | null;
-      };
-
-      if (error) {
-        throw error;
+      if (isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsLoadingMore(true);
       }
-
-      if (data) {
-        if (requestId !== latestRequestIdRef.current) {
-          return;
-        }
-
-        const transformedOrders: ExtendedOrder[] = data.map(transformOptimizedOrder);
-
-        if (isInitialLoad) {
-          setOrders(transformedOrders);
-          pageRef.current = 1;
-        } else {
-          setOrders((prev) => [...prev, ...transformedOrders]);
-          pageRef.current += 1;
-        }
-
-        setHasMore(data.length === pageSize);
-        console.log(`[Optimized] Fetched ${data.length} orders (page ${currentPage + 1})`);
-      }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
+      setError(null);
 
       try {
-        const fallbackData = await fetchOrdersFallback(currentPage, filters);
-        if (requestId !== latestRequestIdRef.current) {
-          return;
-        }
+        const queryPromise = (async () => {
+          const { data, error: queryError } = await buildQuery(page, filters);
+          if (queryError) throw queryError;
+          return (data || []) as OrderRow[];
+        })();
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error('Orders request timeout')), REQUEST_TIMEOUT_MS);
+        });
+
+        const rows = await Promise.race([queryPromise, timeoutPromise]);
+        const transformed = await mapRows(rows);
+
+        if (requestId !== latestRequestIdRef.current) return;
 
         if (isInitialLoad) {
-          setOrders(fallbackData);
+          setOrders(transformed);
           pageRef.current = 1;
         } else {
-          setOrders((prev) => [...prev, ...fallbackData]);
+          setOrders((prev) => [...prev, ...transformed]);
           pageRef.current += 1;
         }
-        setHasMore(fallbackData.length === pageSize);
-        toast.error('Using fallback order fetch due to slow query');
-      } catch (fallbackError) {
-        console.error('Fallback order fetch failed:', fallbackError);
-        toast.error('Failed to fetch orders');
-      }
-    } finally {
-      if (requestId === latestRequestIdRef.current) {
-        if (isInitialLoad) {
-          setIsLoading(false);
-        } else {
-          setIsLoadingMore(false);
+        setHasMore(rows.length === PAGE_SIZE);
+      } catch (err) {
+        if (requestId !== latestRequestIdRef.current) return;
+        const message =
+          err instanceof Error && err.message === 'Orders request timeout'
+            ? 'Orders are loading slowly. Please retry.'
+            : 'Failed to fetch orders.';
+        setError(message);
+        toast.error(message);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+        if (requestId === latestRequestIdRef.current) {
+          if (isInitialLoad) setIsLoading(false);
+          else setIsLoadingMore(false);
         }
+        inFlightRef.current = false;
       }
-    }
-  }, [fetchOrdersFallback, pageSize, transformOptimizedOrder]);
+    },
+    [buildQuery, mapRows],
+  );
 
   const resetAndFetch = useCallback(() => {
     pageRef.current = 0;
@@ -233,29 +200,31 @@ export const useFetchOrdersOptimized = () => {
     if (!isLoadingMore && hasMore) {
       fetchOrders(false);
     }
-  }, [fetchOrders, isLoadingMore, hasMore]);
-
-  useEffect(() => {
-    resetAndFetch();
-  }, [resetAndFetch]);
+  }, [fetchOrders, hasMore, isLoadingMore]);
 
   const setFilters = useCallback(
     (newFilters: FilterOptions) => {
       filtersRef.current = newFilters;
       pageRef.current = 0;
-      resetAndFetch();
+      setHasMore(true);
+      fetchOrders(true, newFilters);
     },
-    [resetAndFetch]
+    [fetchOrders],
   );
+
+  useEffect(() => {
+    resetAndFetch();
+  }, [resetAndFetch]);
 
   return {
     orders,
     setOrders,
     isLoading,
     isLoadingMore,
+    error,
+    hasMore,
     fetchOrders: resetAndFetch,
     loadMore,
-    hasMore,
-    setFilters
+    setFilters,
   };
 };

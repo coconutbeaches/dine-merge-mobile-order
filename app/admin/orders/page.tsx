@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { useFetchOrdersOptimized } from '@/src/hooks/useFetchOrdersOptimized';
@@ -22,6 +21,7 @@ function OrdersDashboardContent() {
     setOrders,
     isLoading, 
     isLoadingMore,
+    error,
     hasMore,
     fetchOrders,
     loadMore,
@@ -62,8 +62,9 @@ function OrdersDashboardContent() {
         )
       );
       toast.success(`Order status updated to ${newStatus}`);
-    } catch (error: any) {
-      toast.error(`Failed to update order: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to update order: ${message}`);
     }
   };
   
@@ -82,8 +83,9 @@ function OrdersDashboardContent() {
         )
       );
       toast.success(`${orderIds.length} orders updated to ${newStatus}`);
-    } catch (error: any) {
-      toast.error(`Failed to update orders: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to update orders: ${message}`);
     }
   };
   
@@ -103,21 +105,35 @@ function OrdersDashboardContent() {
       );
       setSelectedOrders([]);
       toast.success(`${selectedOrders.length} orders deleted`);
-    } catch (error: any) {
-      toast.error(`Failed to delete orders: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to delete orders: ${message}`);
     }
   };
 
   const [bulkStatus, setBulkStatus] = useState<OrderStatus | "">("");
   const [search, setSearch] = useState('');
-  const searchParams = useSearchParams();
-  const startDateParam = searchParams.get('startDate');
-  const endDateParam = searchParams.get('endDate');
-  const customerParam = searchParams.get('customer');
+  const [startDateParam, setStartDateParam] = useState<string | null>(null);
+  const [endDateParam, setEndDateParam] = useState<string | null>(null);
+  const [customerParam, setCustomerParam] = useState<string | null>(null);
   const [activeStatus, setActiveStatus] = useState<string>(ALL_TAB);
+  const lastAppliedFilterKeyRef = useRef<string>('');
   
   // Set initial search if customer parameter is present
   const [initialSearchSet, setInitialSearchSet] = useState(false);
+
+  useEffect(() => {
+    const syncFromUrl = () => {
+      const params = new URLSearchParams(window.location.search);
+      setStartDateParam(params.get('startDate'));
+      setEndDateParam(params.get('endDate'));
+      setCustomerParam(params.get('customer'));
+    };
+
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
+  }, []);
 
   useEffect(() => {
     if (customerParam && !initialSearchSet) {
@@ -129,16 +145,24 @@ function OrdersDashboardContent() {
   // Apply filters server-side with debounce to reduce load
   useEffect(() => {
     const timer = setTimeout(() => {
-      setFilters({
+      const nextFilters = {
         search: search.trim() || undefined,
         status: activeStatus !== ALL_TAB ? activeStatus : undefined,
         startDate: startDateParam || undefined,
         endDate: endDateParam || undefined,
-      });
+      };
+
+      const nextKey = JSON.stringify(nextFilters);
+      if (nextKey === lastAppliedFilterKeyRef.current) {
+        return;
+      }
+
+      lastAppliedFilterKeyRef.current = nextKey;
+      setFilters(nextFilters);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search, activeStatus, startDateParam, endDateParam]);
+  }, [search, activeStatus, startDateParam, endDateParam, setFilters]);
 
   const handleBulkStatusChange = (value: OrderStatus) => {
     setBulkStatus(value);
@@ -186,6 +210,18 @@ function OrdersDashboardContent() {
 
         <Card>
           <CardContent className="p-0">
+            {error && !isLoading && (
+              <div className="p-4 border-b bg-red-50 text-red-700 text-sm flex items-center justify-between">
+                <span>{error}</span>
+                <button
+                  className="underline font-medium"
+                  onClick={fetchOrders}
+                  type="button"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
             {isLoading ? (
               <div className="p-6 text-center text-muted-foreground">Loading orders...</div>
             ) : (
@@ -210,20 +246,5 @@ function OrdersDashboardContent() {
 }
 
 export default function OrdersDashboardPage() {
-  return (
-    <Suspense fallback={
-      <Layout title="Orders Dashboard" showBackButton={false}>
-        <div className="page-container p-4 md:p-6">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black mb-4"></div>
-              <p className="text-lg text-muted-foreground">Loading orders...</p>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    }>
-      <OrdersDashboardContent />
-    </Suspense>
-  );
+  return <OrdersDashboardContent />;
 }
