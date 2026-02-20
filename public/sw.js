@@ -1,5 +1,5 @@
-const STATIC_CACHE_NAME = 'coconut-beach-static-v2';
-const DYNAMIC_CACHE_NAME = 'coconut-beach-dynamic-v2';
+const STATIC_CACHE_NAME = 'coconut-beach-static-v3';
+const DYNAMIC_CACHE_NAME = 'coconut-beach-dynamic-v3';
 const CACHE_PREFIX = 'coconut-beach-';
 
 // Restrict cache usage for authenticated and sensitive routes.

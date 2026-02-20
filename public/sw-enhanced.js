@@ -1,5 +1,5 @@
 // Enhanced Service Worker for Dine Merge Mobile Order
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `coconut-beach-${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `coconut-beach-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE_NAME = `coconut-beach-images-${CACHE_VERSION}`;
@@ -89,14 +89,20 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') {
     return;
   }
-  
+
   // Skip Chrome extension requests
   if (url.protocol === 'chrome-extension:') {
     return;
   }
-  
+
   // Skip non-same-origin requests unless they're images
   if (!url.href.startsWith(self.location.origin) && !isImageRequest(request)) {
+    return;
+  }
+
+  // Never intercept Next.js chunks or auth/admin routes — always go to network
+  const NEVER_INTERCEPT = ['/_next/', '/admin', '/login', '/api/', '/rest/v1/', '/auth/v1/'];
+  if (NEVER_INTERCEPT.some(prefix => url.pathname.startsWith(prefix))) {
     return;
   }
   
@@ -182,8 +188,10 @@ function isApiRequest(request) {
 
 function isStaticAsset(request) {
   const url = new URL(request.url);
-  return url.pathname.includes('/_next/static/') ||
-         url.pathname.includes('/static/') ||
+  // NOTE: /_next/ paths are intentionally excluded here.
+  // Next.js content-hashes its chunks, so URLs change on every deploy.
+  // Caching them causes stale JS to be served after deployments.
+  return url.pathname.includes('/static/') ||
          STATIC_ASSETS.includes(url.pathname);
 }
 
