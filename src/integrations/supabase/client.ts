@@ -20,6 +20,19 @@ if (process.env.NODE_ENV === 'development') {
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// One-time migration: remove the stale localStorage key written by the old
+// createClient + customStorage adapter. The new createBrowserClient uses
+// cookies named 'sb-<project-ref>-auth-token', not localStorage.
+// Leaving the old key in place doesn't break anything, but cleaning it up
+// prevents any future confusion if the storage mechanism ever falls back.
+if (typeof window !== 'undefined') {
+  try {
+    window.localStorage.removeItem('supabase.auth.token');
+  } catch {
+    // localStorage may be unavailable in some private browsing modes — safe to ignore
+  }
+}
+
 let supabaseClient: SupabaseClient<Database> | null = null;
 let hasLoggedMissingError = false;
 
@@ -44,9 +57,11 @@ if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
       detectSessionInUrl: true,
       // Flow type for PKCE
       flowType: 'pkce',
-      // IMPORTANT: Use the same storage key as the old client for backward compatibility
-      // This ensures existing sessions in localStorage are recognized
-      storageKey: 'supabase.auth.token',
+      // NOTE: Do NOT set storageKey here. createBrowserClient uses
+      // 'sb-<project-ref>-auth-token' as the cookie name by default,
+      // which must match what the server client and middleware look for.
+      // Overriding storageKey breaks that agreement and causes middleware
+      // to never find the session.
     },
     realtime: {
       connect: true,
