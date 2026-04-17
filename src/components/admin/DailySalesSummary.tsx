@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { formatThaiCurrencyWithComma } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { endOfDay, startOfDay } from 'date-fns';
+import { getOrderCustomerChannel } from '@/utils/orderClassification';
 
 interface DailySales {
   totalSales: number;
@@ -28,8 +29,8 @@ const DailySalesSummary = () => {
 
         // Get today's date in local timezone
         const today = new Date();
-        const startOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0));
-        const endOfDay = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999));
+        const startOfToday = startOfDay(today);
+        const endOfToday = endOfDay(today);
 
         // Fetch today's orders
         const { data: orders, error: fetchError } = await supabase
@@ -42,11 +43,12 @@ const DailySalesSummary = () => {
             user_id,
             customer_name,
             guest_first_name,
+            table_number,
             created_at,
             order_status
           `)
-          .gte('created_at', startOfDay.toISOString())
-          .lte('created_at', endOfDay.toISOString())
+          .gte('created_at', startOfToday.toISOString())
+          .lte('created_at', endOfToday.toISOString())
           .neq('order_status', 'cancelled'); // Exclude cancelled orders
 
         console.log('Fetched orders:', orders);
@@ -70,24 +72,11 @@ const DailySalesSummary = () => {
           totalSales += amount;
           orderCount++;
 
-          // Determine customer type
-          let isWalkin = false;
-          let isHotelGuest = false;
+          const customerChannel = getOrderCustomerChannel(order);
+          const isHotelGuest = customerChannel === 'hotel_guest';
+          const isWalkin = customerChannel === 'outside';
 
-          // Rule 1: If it has a user_id, it's a hotel guest (authenticated user)
-          if (order.user_id) {
-            isHotelGuest = true;
-          }
-          // Rule 2: If it has a stay_id that is NOT a 'walkin-' pattern, it's a hotel guest (guest family)
-          else if (order.stay_id && !order.stay_id.toLowerCase().startsWith('walkin')) {
-            isHotelGuest = true;
-          }
-          // Rule 3: If it's not a hotel guest by the above rules, check if it's a walk-in
-          else if (order.stay_id?.toLowerCase().startsWith('walkin') || order.table_number === 'Take Away' || (order.table_number && !isNaN(Number(order.table_number)))) {
-            isWalkin = true;
-          }
-
-          console.log(`Order ID: ${order.id}, Amount: ${amount}, stay_id: ${order.stay_id}, user_id: ${order.user_id}, isWalkin: ${isWalkin}, isHotelGuest: ${isHotelGuest}`);
+          console.log(`Order ID: ${order.id}, Amount: ${amount}, stay_id: ${order.stay_id}, user_id: ${order.user_id}, channel: ${customerChannel}`);
 
           // Now, apply the amounts based on the determined type
           if (isHotelGuest) {
