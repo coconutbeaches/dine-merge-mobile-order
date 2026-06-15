@@ -145,7 +145,7 @@ export default function CheckoutPage() {
             <Separator />
             <div className="flex justify-between font-bold text-lg">
               <span>
-                Total <span className="font-normal italic">including VAT:</span>
+                Total <span className="text-sm font-normal italic">including VAT:</span>
               </span>
               <span>{formatThaiCurrency(grandTotal)}</span>
             </div>
