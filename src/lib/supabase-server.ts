@@ -7,7 +7,9 @@ import type { Database } from '@/types/supabaseTypes';
 // Service Role Client (Server-side only)
 export function createServiceRoleClient(): SupabaseClient<Database> | null {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const supabaseServiceRoleKey =
+    process.env.SUPABASE_SECRET_KEY?.trim() ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.warn('[supabase] Service role environment variables missing. Elevated Supabase features are disabled.');
