@@ -20,16 +20,18 @@ export function createServiceRoleClient(): SupabaseClient<Database> | null {
 // Server Component Client (uses cookies for auth)
 export async function createServerClient(): Promise<SupabaseClient<Database> | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const supabasePublishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     console.warn('[supabase] Public Supabase environment variables missing. Server-side Supabase client disabled.');
     return null;
   }
 
   const cookieStore = await cookies();
 
-  return createSupabaseServerClient<Database>(supabaseUrl, supabaseAnonKey, {
+  return createSupabaseServerClient<Database>(supabaseUrl, supabasePublishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll().map((cookie) => ({

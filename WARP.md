@@ -173,7 +173,7 @@ retryAuth()                                      // Manual retry mechanism
 
 ### Debugging Auth Issues
 1. Check browser console for `[UserContext]` logs
-2. Verify environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+2. Verify environment variables: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 3. Use `npm run debug:supabase` to test connection
 4. Check Supabase dashboard RLS policies
 
@@ -275,7 +275,7 @@ npm install
 Create `.env.local`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
 ```
 
 ### VS Code Setup

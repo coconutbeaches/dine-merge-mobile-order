@@ -6,7 +6,9 @@ import type { Database } from '@/types/supabaseTypes';
 
 // Use environment variables - no fallbacks for security
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-const SUPABASE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+const SUPABASE_PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
 
 // Validate environment variables in development
 if (process.env.NODE_ENV === 'development') {
@@ -14,7 +16,7 @@ if (process.env.NODE_ENV === 'development') {
     console.warn('NEXT_PUBLIC_SUPABASE_URL is not set');
   }
   if (!SUPABASE_PUBLISHABLE_KEY) {
-    console.warn('NEXT_PUBLIC_SUPABASE_ANON_KEY is not set');
+    console.warn('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is not set');
   }
 }
 
@@ -81,7 +83,7 @@ if (SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
 }
 
 const missingConfigError = () =>
-  new Error('Supabase client is not configured. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are set.');
+  new Error('Supabase client is not configured. Ensure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY are set.');
 
 const createUnavailableProxy = (path: string): any => {
   const proxyTarget = () => undefined;
