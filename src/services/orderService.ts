@@ -184,6 +184,37 @@ export const createCustomOrder = async (
   return data;
 };
 
+export const createAdminCustomOrder = async (
+  customerId: string | null,
+  customerName: string | null,
+  items: CustomOrderItem[],
+  orderDate: string,
+  tableNumber?: string
+) => {
+  const response = await fetch('/api/admin/custom-orders', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      customerId,
+      customerName,
+      items,
+      orderDate,
+      tableNumber,
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    console.error('Error creating custom order:', payload);
+    throw new Error(payload?.error || 'Failed to create custom order');
+  }
+
+  return payload.order;
+};
+
 export const getFilteredOrderHistory = (orders: Order[], userId?: string, hasGuestSession?: boolean) => {
   if (!userId) return [];
   

@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Plus, Minus, Trash2 } from 'lucide-react';
-import { createCustomOrder, CustomOrderItem } from '@/services/orderService';
+import { createAdminCustomOrder, CustomOrderItem } from '@/services/orderService';
 import { toast } from 'sonner';
 
 interface CustomOrderSectionProps {
@@ -44,7 +44,7 @@ const CustomOrderSection: React.FC<CustomOrderSectionProps> = ({ customerId, cus
       const dateTimeString = `${orderDate}T${orderTime}:00`;
       const dateTime = new Date(dateTimeString);
       
-      await createCustomOrder(customerId, customerName, items.map(({id, ...rest}) => rest), dateTime.toISOString(), tableNumber);
+      await createAdminCustomOrder(customerId, customerName, items.map(({id, ...rest}) => rest), dateTime.toISOString(), tableNumber);
       toast.success('Custom order created');
       setItems([]);
       setTableNumber('');
