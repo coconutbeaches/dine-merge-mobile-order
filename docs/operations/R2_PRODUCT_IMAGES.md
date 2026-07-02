@@ -24,21 +24,34 @@ Objects are served at:
 https://menu-images.coconut.holiday/<filename>
 ```
 
+Existing migrated objects keep their original filenames. New uploads use randomized object keys.
+
+## Object Naming Strategy
+
+Future uploads do not preserve the original filename. The upload route keeps the original file extension and generates a UUID object key:
+
+```text
+8b4a3c74-2f73-4c1d-a6c8-8a7f5b6d5f4d.jpg
+```
+
+Randomized filenames prevent a new upload from overwriting an existing R2 object with the same customer-supplied filename. Product rows store the resulting public URL in `public.products.image_url`, so the menu does not depend on the original filename.
+
 ## Upload Flow
 
 1. An admin selects an image in the product form.
 2. The browser posts the file to `POST /api/admin/product-images`.
 3. The server route checks admin access with Supabase auth.
-4. The server uploads the file to R2 using the original filename as the object key.
-5. The upload preserves the file MIME type from the browser upload.
-6. The upload sets:
+4. The server generates a UUID object key and preserves the original file extension.
+5. The server uploads the original bytes to R2 under that unique key.
+6. The upload preserves the file MIME type from the browser upload.
+7. The upload sets:
 
 ```text
 Cache-Control: public, max-age=31536000, immutable
 ```
 
-7. The route returns the public R2 URL.
-8. The product mutation stores that R2 URL in `public.products.image_url`.
+8. The route returns the public R2 URL.
+9. The product mutation stores that R2 URL in `public.products.image_url`.
 
 New product image uploads must not write to Supabase Storage.
 
@@ -47,7 +60,7 @@ New product image uploads must not write to Supabase Storage.
 Set these in Vercel for production. Use the same values for preview if preview admin uploads should work.
 
 ```text
-CLOUDFLARE_ACCOUNT_ID=0e543750d0b264970f73dc17ef71c287
+CLOUDFLARE_ACCOUNT_ID=<your Cloudflare account ID>
 R2_BUCKET_NAME=menu-images
 NEXT_PUBLIC_PRODUCT_IMAGE_BASE_URL=https://menu-images.coconut.holiday
 R2_ACCESS_KEY_ID=<from Cloudflare R2 API token>
@@ -56,7 +69,7 @@ R2_SECRET_ACCESS_KEY=<from Cloudflare R2 API token>
 
 Create the R2 credentials in Cloudflare:
 
-1. Open Cloudflare dashboard for account `Steepdecline@gmail.com's Account`.
+1. Open the Cloudflare dashboard account that owns `coconut.holiday`.
 2. Go to R2 object storage.
 3. Open API tokens.
 4. Create an R2 API token with Object Read & Write permission.

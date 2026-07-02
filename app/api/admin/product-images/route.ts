@@ -1,4 +1,4 @@
-import { createHmac, createHash } from 'crypto';
+import { createHmac, createHash, randomUUID } from 'crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyAdminRole } from '@/lib/supabase-server';
 
@@ -35,10 +35,13 @@ const getPublicUrl = (key: string) => {
 
 const getObjectKey = (file: File) => {
   const fileName = file.name.trim();
-  if (!fileName || fileName.includes('/') || fileName.includes('\\')) {
-    throw new Error('Image filename is invalid');
+  const extensionMatch = fileName.match(/\.([A-Za-z0-9]{1,16})$/);
+
+  if (!extensionMatch) {
+    throw new Error('Image filename must include an extension');
   }
-  return fileName;
+
+  return `${randomUUID()}.${extensionMatch[1].toLowerCase()}`;
 };
 
 async function putR2Object(key: string, file: File) {
