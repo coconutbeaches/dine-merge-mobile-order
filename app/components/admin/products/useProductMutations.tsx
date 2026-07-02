@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useRouter } from "next/navigation";
@@ -19,28 +18,35 @@ interface MutationProps {
   options: ProductOption[];
 }
 
+interface ProductUpdateData {
+  name: string;
+  description: string;
+  price: number;
+  category_id: string | null;
+  image_url?: string;
+}
+
 export function useProductMutations({ id, isEditMode, options }: MutationProps) {
   const queryClient = useQueryClient();
   const router = useRouter();
 
-  // Util: upload image to Supabase
+  // Util: upload image through the server so R2 credentials stay private.
   const uploadImage = async (file: File) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${nanoid()}.${fileExt}`;
-    const filePath = `${fileName}`;
-    const { error: uploadError } = await supabase
-      .storage
-      .from('products')
-      .upload(filePath, file);
+    const formData = new FormData();
+    formData.append('image', file);
 
-    if (uploadError) throw uploadError;
+    const response = await fetch('/api/admin/product-images', {
+      method: 'POST',
+      body: formData,
+    });
 
-    const { data: { publicUrl } } = supabase
-      .storage
-      .from('products')
-      .getPublicUrl(filePath);
+    const payload = await response.json().catch(() => null);
 
-    return publicUrl;
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to upload image');
+    }
+
+    return payload.imageUrl as string;
   };
 
   // Create product mutation
@@ -112,7 +118,7 @@ export function useProductMutations({ id, isEditMode, options }: MutationProps) 
       if (data.image) {
         imageUrl = await uploadImage(data.image);
       }
-      const updateData: any = {
+      const updateData: ProductUpdateData = {
         name: data.name,
         description: data.description,
         price: parseFloat(data.price.toString()),

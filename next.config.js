@@ -1,3 +1,11 @@
+const productImageHostname = (() => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_PRODUCT_IMAGE_BASE_URL || 'https://menu-images.coconut.holiday').hostname;
+  } catch {
+    return 'menu-images.coconut.holiday';
+  }
+})();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -29,6 +37,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: '**.supabase.co',
         pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: productImageHostname,
       },
     ],
   },
