@@ -1,11 +1,15 @@
 import { createHmac, createHash, randomUUID } from 'crypto';
 import { NextResponse, type NextRequest } from 'next/server';
+import sharp from 'sharp';
 import { verifyAdminRole } from '@/lib/supabase-server';
 
 export const runtime = 'nodejs';
 
 const CACHE_CONTROL = 'public, max-age=31536000, immutable';
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_EDGE = 1600;
+const WEBP_QUALITY = 82;
+const OUTPUT_CONTENT_TYPE = 'image/webp';
 
 const getEnv = (key: string) => process.env[key]?.trim() || '';
 
@@ -33,25 +37,29 @@ const getPublicUrl = (key: string) => {
   return `${baseUrl.replace(/\/+$/, '')}/${encodeURIComponent(key)}`;
 };
 
-const getObjectKey = (file: File) => {
-  const fileName = file.name.trim();
-  const extensionMatch = fileName.match(/\.([A-Za-z0-9]{1,16})$/);
+// Re-encode any uploaded raster image to a size- and quality-capped WebP.
+// Honours EXIF orientation, downscales the long edge to MAX_IMAGE_EDGE (never
+// upscales), and keeps alpha where present (WebP supports transparency).
+async function optimizeToWebp(file: File) {
+  const input = Buffer.from(await file.arrayBuffer());
+  return sharp(input, { failOn: 'none' })
+    .rotate()
+    .resize({
+      width: MAX_IMAGE_EDGE,
+      height: MAX_IMAGE_EDGE,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .webp({ quality: WEBP_QUALITY })
+    .toBuffer();
+}
 
-  if (!extensionMatch) {
-    throw new Error('Image filename must include an extension');
-  }
-
-  return `${randomUUID()}.${extensionMatch[1].toLowerCase()}`;
-};
-
-async function putR2Object(key: string, file: File) {
+async function putR2Object(key: string, body: Buffer, contentType: string) {
   const accountId = getRequiredEnv('CLOUDFLARE_ACCOUNT_ID');
   const accessKeyId = getRequiredEnv('R2_ACCESS_KEY_ID');
   const secretAccessKey = getRequiredEnv('R2_SECRET_ACCESS_KEY');
   const bucket = getRequiredEnv('R2_BUCKET_NAME');
 
-  const body = Buffer.from(await file.arrayBuffer());
-  const contentType = file.type || 'application/octet-stream';
   const payloadHash = toHex(body);
   const now = new Date();
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
@@ -128,19 +136,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Image must be 10MB or smaller' }, { status: 400 });
   }
 
-  let key: string;
+  const key = `${randomUUID()}.webp`;
+
+  let optimized: Buffer;
 
   try {
-    key = getObjectKey(file);
+    optimized = await optimizeToWebp(file);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Image filename is invalid' },
-      { status: 400 }
-    );
+    console.error('[admin/product-images] Optimize failed:', error);
+    return NextResponse.json({ error: 'Could not process image' }, { status: 400 });
   }
 
   try {
-    await putR2Object(key, file);
+    await putR2Object(key, optimized, OUTPUT_CONTENT_TYPE);
     return NextResponse.json({ imageUrl: getPublicUrl(key), key }, { status: 201 });
   } catch (error) {
     console.error('[admin/product-images] Upload failed:', error);
