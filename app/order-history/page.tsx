@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
 import CustomerOrdersList from '@/components/customer/CustomerOrdersList';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
-import { getGuestSession, hasGuestSession } from '@/utils/guestSession';
+import { getGuestSession, hasGuestSession, GuestSession } from '@/utils/guestSession';
 import { formatThaiCurrency } from '@/lib/utils';
 import { useUserOrders } from '@/hooks/useUserOrders'; // Import the hook
+import { fetchGuestOrderHistory } from '@/services/guestOrderHistoryService';
 
 export default function OrderHistoryPage() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function OrderHistoryPage() {
   const [guestOrders, setGuestOrders] = useState<Order[]>([]);
   const [isLoadingGuestOrders, setIsLoadingGuestOrders] = useState(false);
   const [isHotelGuest, setIsHotelGuest] = useState(false);
-  const [guestSession, setGuestSession] = useState(null);
+  const [guestSession, setGuestSession] = useState<GuestSession | null>(null);
 
   useEffect(() => {
     if (hasGuestSession()) {
@@ -33,19 +33,16 @@ export default function OrderHistoryPage() {
       const fetchGuestOrders = async () => {
         if (session) {
           setIsLoadingGuestOrders(true);
-          const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .eq('stay_id', session.guest_stay_id)
-            .order('created_at', { ascending: false });
-          
-          if (error) {
+          try {
+            const orders = await fetchGuestOrderHistory(session);
+            setGuestOrders(orders);
+          } catch (error) {
             console.error('Error fetching hotel guest orders:', error);
             toast.error('Failed to load your orders');
-          } else {
-            setGuestOrders(data || []);
+            setGuestOrders([]);
+          } finally {
+            setIsLoadingGuestOrders(false);
           }
-          setIsLoadingGuestOrders(false);
         }
       };
       fetchGuestOrders();
