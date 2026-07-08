@@ -34,23 +34,34 @@ export const useFetchOrderById = (orderId: string | undefined) => {
       }
 
       try {
-        const { data: orderData, error: orderError } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', parsedOrderId)
-          .maybeSingle();
-
-        if (orderError) {
-          console.error('Database error fetching order:', orderError);
-          // Create more descriptive error messages
-          if (orderError.code === 'PGRST116') {
-            throw new Error('Order not found');
+        // Readback goes through an authorized server route (service role) so a
+        // guest can only read their own order and no anonymous 15-minute
+        // cross-guest SELECT policy is needed. Guest ownership is proven with
+        // the guest_user_id from localStorage; authenticated users and admins
+        // are authorized via their session cookie server-side.
+        let guestUserId = '';
+        try {
+          if (typeof window !== 'undefined') {
+            guestUserId = window.localStorage.getItem('guest_user_id') || '';
           }
-          if (orderError.message?.includes('connection')) {
-            throw new Error('Network connection error. Please check your internet connection.');
-          }
-          throw new Error(`Database error: ${orderError.message}`);
+        } catch {
+          // localStorage may be unavailable (private mode) — proceed without it.
         }
+
+        const query = guestUserId ? `?guestUserId=${encodeURIComponent(guestUserId)}` : '';
+        const response = await fetch(`/api/orders/${parsedOrderId}${query}`, {
+          headers: { Accept: 'application/json' },
+        });
+
+        if (response.status === 404) {
+          throw new Error('Order not found');
+        }
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload?.error || `Database error: failed to load order (${response.status})`);
+        }
+
+        const { order: orderData } = await response.json();
 
         if (!orderData) {
           throw new Error('Order not found');

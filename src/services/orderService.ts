@@ -70,56 +70,62 @@ export const placeOrderInSupabase = async (
   {
     userId,
     guestUserId,
-    guestFirstName,
-    stayId,
     customerName,
     cartItems,
-    total,
-    tableNumber
+    tableNumber,
+    adminCustomerId,
+    adminCustomerName,
   }: {
     userId?: string | null;
     guestUserId?: string | null;
     guestFirstName?: string | null;
+    // stayId / total are intentionally ignored here: the server route derives
+    // stay_id from the authoritative guests row and recomputes the total from
+    // product prices. They remain in the type for call-site compatibility.
     stayId?: string | null;
     customerName?: string | null;
     cartItems: CartItem[];
-    total: number;
+    total?: number;
     tableNumber?: string;
+    adminCustomerId?: string | null;
+    adminCustomerName?: string | null;
   }
 ) => {
   try {
-    const { data, error } = await supabase
-      .from('orders')
-      .insert({
-        user_id: userId || null,
-        guest_user_id: guestUserId || null,
-        guest_first_name: guestFirstName || null,
-        stay_id: stayId || null,
-        customer_name: customerName,
-        order_items: cartItems as any, // Cast to Json
-        total_amount: total,
-        table_number: tableNumber,
-        order_status: 'new'
-      })
-      .select()
-      .single();
+    // Order placement runs on the server (service role) so that total_amount is
+    // recomputed from authoritative prices and stay_id / guest_user_id are
+    // derived from the verified session rather than trusted from the client.
+    const response = await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cartItems,
+        userId: userId || null,
+        guestUserId: guestUserId || null,
+        customerName: customerName || null,
+        tableNumber: tableNumber || null,
+        adminCustomerId: adminCustomerId || null,
+        adminCustomerName: adminCustomerName || null,
+      }),
+    });
 
-    if (error) throw error;
-    
-    // Clear table number after successful order placement
-    // This ensures subsequent orders without rescanning will have table_number=null
+    const payload = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Failed to place order');
+    }
+
+    // Clear table number after successful order placement so subsequent orders
+    // without rescanning will have table_number=null.
     try {
       localStorage.removeItem('table_number_pending');
-      console.log('[Order Service] Cleared table_number_pending after successful order');
     } catch (localStorageError) {
       console.warn('[Order Service] Could not clear table_number_pending (localStorage unavailable):', localStorageError);
-      // Don't throw - localStorage errors shouldn't fail the order
     }
-    
-    return data;
+
+    return payload.order;
   } catch (error) {
-    console.error('Error placing order in Supabase:', error);
-    console.error('Error details:', JSON.stringify(error, null, 2));
+    console.error('Error placing order via /api/orders:', error);
     throw error;
   }
 };
