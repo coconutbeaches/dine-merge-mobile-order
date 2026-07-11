@@ -135,7 +135,12 @@ export function usePlaceOrder(
         total: cartTotal,
         // Merge according to specification:
         // tableNumber: providedTableNumber || guestCtx.tableNumber || undefined
-        tableNumber: providedTableNumber || guestCtx.tableNumber || undefined
+        tableNumber: providedTableNumber || guestCtx.tableNumber || undefined,
+        // Passed through to /api/orders so the server can authorize the actor.
+        // The server recomputes total and derives stay_id from these, ignoring
+        // the client-supplied stayId/total above.
+        adminCustomerId: adminContext?.customerId ?? null,
+        adminCustomerName: adminContext?.customerName ?? null,
       };
       
       console.log('🔍 DEBUGGING: Parameters being sent to placeOrderInSupabase:', orderParams);
