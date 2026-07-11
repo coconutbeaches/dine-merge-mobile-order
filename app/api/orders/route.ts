@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient, createServiceRoleClient, verifyAdminRole } from '@/lib/supabase-server';
-import { recomputeOrderTotal, UnpriceableItemError, type PricableItem } from '@/lib/orderPricing';
+import {
+  buildTrustedOrderFromRequest,
+  OrderRejectedError,
+  type OrderRequestItem,
+} from '@/lib/orderPricing';
 
 export const runtime = 'nodejs';
 
@@ -35,9 +39,9 @@ export async function POST(request: NextRequest) {
 
   const body = (payload ?? {}) as Record<string, unknown>;
   const items = Array.isArray(body.cartItems)
-    ? (body.cartItems as PricableItem[])
+    ? (body.cartItems as OrderRequestItem[])
     : Array.isArray(body.items)
-      ? (body.items as PricableItem[])
+      ? (body.items as OrderRequestItem[])
       : [];
 
   if (!items.length) {
@@ -128,12 +132,16 @@ export async function POST(request: NextRequest) {
     };
   }
 
-  // ---- Recompute the total from authoritative prices (ignore client total) ----
+  // ---- Rebuild order_items from the trusted catalog and price them ----------
+  // Names, prices and option labels come from the database, not the client, and
+  // the total is recomputed. A forged display name or tampered total is ignored;
+  // invalid/missing required options reject the order.
+  let orderItems: unknown;
   let total: number;
   try {
-    total = await recomputeOrderTotal(serviceClient, items);
+    ({ orderItems, total } = await buildTrustedOrderFromRequest(serviceClient, items));
   } catch (error) {
-    if (error instanceof UnpriceableItemError) {
+    if (error instanceof OrderRejectedError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('[api/orders] Pricing failed:', error);
@@ -148,8 +156,8 @@ export async function POST(request: NextRequest) {
       guest_first_name: attribution.guest_first_name,
       stay_id: attribution.stay_id,
       customer_name: attribution.customer_name,
-      // Stored verbatim for rendering; typed as Json in the DB.
-      order_items: items as unknown as never,
+      // Trusted, catalog-rebuilt lines; typed as Json in the DB.
+      order_items: orderItems as never,
       total_amount: total,
       table_number: tableNumber,
       order_status: 'new',
