@@ -27,19 +27,32 @@
 --   B. Add a BEFORE INSERT OR UPDATE trigger that blocks setting/changing
 --      role / customer_type / archived / deleted unless the caller is
 --      conclusively authorized (signed service_role JWT, or an admin user).
---   C. (Re)create the UPDATE RLS policy with both USING and WITH CHECK so the
---      migration is self-contained across environments.
+--   C. (Re)create the UPDATE and INSERT RLS policies with USING/WITH CHECK, and
+--      set safe column defaults, so the migration is self-contained across
+--      freshly repo-provisioned databases (the repo base schema declares
+--      `role text` with no default, so a signup-shaped insert would otherwise
+--      yield NULL and be rejected by the new INSERT guard).
 --
 -- Preserved workflows:
 --   * Any user editing their own name / phone (SECURITY DEFINER RPC
 --     update_profile_details) and avatar (avatar_url / avatar_path / updated_at).
---   * Signup (handle_new_user) which inserts only safe defaults.
+--   * Signup (handle_new_user) which inserts only id/email/name -> safe defaults.
 --   * Admins archiving/unarchiving auth-user customers and creating guests via
 --     the authenticated client (archived / role='guest').
 --   * service_role / server workflows managing any column.
 --   * verifyAdminRole(), which reads profiles.role via the service_role client.
 
 begin;
+
+-- ---------------------------------------------------------------------------
+-- 0. Safe column defaults (self-contained; independent of live/prod state).
+--    Guarantees a signup-shaped insert that omits these columns lands as a
+--    non-privileged "customer" row that the INSERT guard in (B) accepts.
+-- ---------------------------------------------------------------------------
+
+alter table public.profiles alter column role set default 'customer';
+alter table public.profiles alter column archived set default false;
+alter table public.profiles alter column deleted set default false;
 
 -- ---------------------------------------------------------------------------
 -- A. Grants: remove blanket UPDATE, re-grant only user-editable columns.
@@ -133,16 +146,25 @@ create trigger trg_profiles_protect_privileged
   execute function public.enforce_profiles_privileged_columns();
 
 -- ---------------------------------------------------------------------------
--- C. Self-contained UPDATE RLS policy with USING + WITH CHECK.
---    The legacy "Users can update own profile" policy had no WITH CHECK. We drop
---    it and (re)create profiles_update_own_or_admin idempotently so the intended
---    policy is guaranteed to exist regardless of prior environment state, and no
---    user is left with column grants but no usable RLS path.
+-- C. Self-contained RLS policies (idempotent), so the intended INSERT/UPDATE
+--    paths exist regardless of prior environment state and no user is left with
+--    column grants but no usable RLS path. The legacy "Users can update own
+--    profile" policy had no WITH CHECK; it is dropped in favour of the WITH
+--    CHECK variant below.
 -- ---------------------------------------------------------------------------
 
+-- INSERT: a user may create their own row; an admin may create any row.
+-- (Privileged field values on insert are still gated by the trigger in B.)
+drop policy if exists profiles_insert_own_or_admin on public.profiles;
+create policy profiles_insert_own_or_admin
+  on public.profiles
+  for insert
+  to authenticated
+  with check ((id = auth.uid()) or (public.get_user_role(auth.uid()) = 'admin'));
+
+-- UPDATE: own row or admin, enforced for both the old and the new row.
 drop policy if exists "Users can update own profile" on public.profiles;
 drop policy if exists profiles_update_own_or_admin on public.profiles;
-
 create policy profiles_update_own_or_admin
   on public.profiles
   for update
