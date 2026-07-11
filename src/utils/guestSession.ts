@@ -8,8 +8,6 @@
  * Includes PWA standalone mode detection and session recovery.
  */
 
-import { supabase } from '@/integrations/supabase/client';
-
 /**
  * GuestSession interface for managing guest user sessions
  * stay_id is either a hotel stay (e.g. '3A12') or 'walkin-<guest_user_id>' for walk-in guests
@@ -174,120 +172,54 @@ export function getTableNumber(): string | null {
 }
 
 export async function createGuestUser({ table_number, first_name = 'Guest', stay_id }: { table_number: string; first_name?: string; stay_id?: string }): Promise<GuestSession> {
-  const randomId = crypto.randomUUID();
-  
-  // If stay_id is provided (hotel guest), use it. Otherwise, create walkin stay_id
-  const finalStayId = stay_id || `walkin-${randomId}`;
-  
-  console.log('[createGuestUser] Creating guest user with:', { 
-    randomId, 
-    first_name, 
-    table_number, 
-    provided_stay_id: stay_id,
-    finalStayId 
-  });
-  
-  // Performance optimization: Check if user already exists to avoid duplicate inserts
-  if (stay_id) {
-    try {
-      const { data: existingUser, error: existingError } = await supabase
-        .from('guests')
-        .select('id as user_id, first_name, stay_id')
-        .eq('stay_id', finalStayId)
-        .eq('first_name', first_name)
-        .single();
-      
-      if (existingUser && !existingError) {
-        console.log('[createGuestUser] User already exists, returning existing session:', existingUser);
-        const session = {
-          guest_user_id: existingUser.user_id,
-          guest_first_name: existingUser.first_name,
-          guest_stay_id: existingUser.stay_id
-        };
-        
-        try {
-          saveGuestSession(session);
-          setTableNumber(table_number);
-          console.log('[createGuestUser] Session saved successfully:', session);
-        } catch (storageError) {
-          console.warn('[createGuestUser] Failed to save session to localStorage:', storageError);
-        }
-        
-        return session;
-      }
-    } catch (checkError) {
-      console.log('[createGuestUser] Error checking existing user (proceeding with insert):', checkError);
-    }
-  }
-  
-  // Insert the guest user with final stay_id to avoid update query
-  const { data, error } = await supabase.from('guests').insert({
-    id: randomId,
+  // Guest rows are created server-side. The browser no longer has direct
+  // SELECT/INSERT access to public.guests (C3); POST /api/guest/register runs
+  // with the service-role client and applies the hotel / second-family-member /
+  // walk-in / duplicate-registration and per-stay cap rules.
+  console.log('[createGuestUser] Registering guest via /api/guest/register:', {
     first_name,
-    stay_id: finalStayId,
-    table_number
-  }).select();
-  
-  if (error) {
-    console.error('[createGuestUser] Insert error:', error);
-    // Handle common duplicate key errors gracefully
-    if (error.code === '23505') { // PostgreSQL duplicate key error
-      console.log('[createGuestUser] Duplicate key error, attempting to fetch existing user');
-      try {
-        const { data: existingUser } = await supabase
-          .from('guests')
-          .select('id as user_id, first_name, stay_id')
-          .eq('stay_id', finalStayId)
-          .eq('first_name', first_name)
-          .single();
-        
-        if (existingUser) {
-          const session = {
-            guest_user_id: existingUser.user_id,
-            guest_first_name: existingUser.first_name,
-            guest_stay_id: existingUser.stay_id
-          };
-          
-          try {
-            saveGuestSession(session);
-            setTableNumber(table_number);
-            console.log('[createGuestUser] Session saved successfully:', session);
-          } catch (storageError) {
-            console.warn('[createGuestUser] Failed to save session to localStorage:', storageError);
-          }
-          
-          return session;
-        }
-      } catch (fetchError) {
-        console.error('[createGuestUser] Failed to fetch existing user after duplicate key error:', fetchError);
-      }
-    }
-    throw error;
+    table_number,
+    provided_stay_id: stay_id,
+  });
+
+  const response = await fetch('/api/guest/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      first_name,
+      stay_id,
+      table_number,
+    }),
+  });
+
+  const payload = await response.json().catch(() => ({} as Record<string, unknown>));
+
+  if (!response.ok) {
+    const message = typeof payload?.error === 'string' ? payload.error : 'Failed to register guest';
+    console.error('[createGuestUser] Registration failed:', { status: response.status, message });
+    throw new Error(message);
   }
-  
-  if (!data || data.length === 0) {
-    console.error('[createGuestUser] No data returned from insert');
+
+  const session: GuestSession = {
+    guest_user_id: payload.guest_user_id,
+    guest_first_name: payload.first_name,
+    guest_stay_id: payload.stay_id,
+  };
+
+  if (!session.guest_user_id || !session.guest_stay_id) {
+    console.error('[createGuestUser] Registration response missing fields:', payload);
     throw new Error('Failed to create guest user: no data returned');
   }
-  
-  const insertedUser = data[0];
-  console.log('[createGuestUser] User inserted successfully:', insertedUser);
-  
-  const session = {
-    guest_user_id: insertedUser.id,
-    guest_first_name: insertedUser.first_name,
-    guest_stay_id: insertedUser.stay_id
-  };
-  
+
   try {
     saveGuestSession(session);
     setTableNumber(table_number);
     console.log('[createGuestUser] Session saved successfully:', session);
   } catch (storageError) {
     console.warn('[createGuestUser] Failed to save session to localStorage:', storageError);
-    // Don't throw here - the user was created successfully in the database
+    // Don't throw here - the guest was registered successfully server-side.
   }
-  
+
   return session;
 }
 
