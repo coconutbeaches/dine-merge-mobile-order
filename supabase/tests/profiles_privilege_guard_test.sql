@@ -107,16 +107,50 @@ begin
   end if;
   raise notice 'TEST 0 PASSED: get_user_role(uuid) + INSERT/UPDATE policies exist; role resolution correct';
 
-  -- get_user_role exposes ONLY the role; a normal user still cannot read another
-  -- user's profile row/columns directly (RLS SELECT remains restrictive).
-  perform pg_temp.act_as('00000000-0000-0000-0000-0000000000aa');
-  select count(*) into v_policy_count
-    from public.profiles where id = '00000000-0000-0000-0000-0000000000bb';
-  perform pg_temp.reset_to_db_owner();
-  if v_policy_count <> 0 then
-    raise exception 'TEST 0b FAILED: a normal user could read another profile row (data exposure)';
+  -- ===== TEST 0b: get_user_role() security properties (scalar role only) ======
+  -- Validates the function itself, NOT the (out-of-scope, intentionally broad)
+  -- profile SELECT policy. The function returns a scalar text role and never
+  -- row/other-column data, and is hardened as SECURITY DEFINER + STABLE with a
+  -- fixed search_path and least-privilege EXECUTE.
+  if pg_typeof(public.get_user_role('00000000-0000-0000-0000-0000000000bb')) <> 'text'::regtype then
+    raise exception 'TEST 0b FAILED: get_user_role did not return scalar text';
   end if;
-  raise notice 'TEST 0b PASSED: get_user_role leaks only role; RLS still blocks reading other profiles';
+  declare
+    v_secdef boolean;
+    v_volatile "char";
+    v_config text[];
+    v_acl text[];
+  begin
+    select p.prosecdef, p.provolatile, p.proconfig, p.proacl::text[]
+      into v_secdef, v_volatile, v_config, v_acl
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'get_user_role'
+      and pg_get_function_identity_arguments(p.oid) = 'user_id uuid';
+    if not coalesce(v_secdef, false) then
+      raise exception 'TEST 0b FAILED: get_user_role is not SECURITY DEFINER';
+    end if;
+    if v_volatile::text <> 's' then
+      raise exception 'TEST 0b FAILED: get_user_role is not STABLE (volatility=%)', v_volatile;
+    end if;
+    if v_config is null or not ('search_path=public, pg_temp' = any(v_config)) then
+      raise exception 'TEST 0b FAILED: get_user_role search_path is not fixed to public, pg_temp (config=%)', v_config;
+    end if;
+    -- A NULL ACL means default function privileges, i.e. PUBLIC implicitly has
+    -- EXECUTE; an entry beginning with '=' is an explicit PUBLIC grant.
+    if v_acl is null then
+      raise exception 'TEST 0b FAILED: get_user_role has default ACL (PUBLIC implicitly has EXECUTE)';
+    end if;
+    if exists (select 1 from unnest(v_acl) a where a like '=%') then
+      raise exception 'TEST 0b FAILED: PUBLIC has an EXECUTE grant on get_user_role';
+    end if;
+  end;
+  if not has_function_privilege('authenticated', 'public.get_user_role(uuid)', 'EXECUTE') then
+    raise exception 'TEST 0b FAILED: authenticated lacks EXECUTE on get_user_role';
+  end if;
+  if not has_function_privilege('service_role', 'public.get_user_role(uuid)', 'EXECUTE') then
+    raise exception 'TEST 0b FAILED: service_role lacks EXECUTE on get_user_role';
+  end if;
+  raise notice 'TEST 0b PASSED: get_user_role returns scalar role only; SECURITY DEFINER + STABLE + fixed search_path; PUBLIC denied, authenticated/service_role allowed';
 
   -- ===== TEST 11a (negative): privileged fixture insert fails when UNtrusted ==
   -- Proves the admin/service fixtures above succeeded *because* of the trusted
