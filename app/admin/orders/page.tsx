@@ -11,6 +11,8 @@ import OrdersDashboardHeader from '@/components/admin/OrdersDashboardHeader';
 import StatusTabs from '@/components/admin/StatusTabs';
 import DailySalesSummary from '@/src/components/admin/DailySalesSummary';
 import { supabase } from '@/integrations/supabase/client';
+import { deleteAdminOrders } from '@/services/orderService';
+import { getRemainingSelectedOrderIds, removeDeletedOrders } from '@/lib/adminOrderDelete';
 import { toast } from 'sonner';
 
 const ALL_TAB = "all";
@@ -29,9 +31,9 @@ function OrdersDashboardContent() {
   } = useFetchOrdersOptimized();
 
   // Import order selection and actions hooks separately
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [selectedOrders, setSelectedOrders] = useState<number[]>([]);
   
-  const toggleSelectOrder = (orderId: string) => {
+  const toggleSelectOrder = (orderId: number) => {
     setSelectedOrders(prev => 
       prev.includes(orderId) 
         ? prev.filter(id => id !== orderId)
@@ -39,7 +41,7 @@ function OrdersDashboardContent() {
     );
   };
   
-  const selectAllOrders = (orderIds: string[]) => {
+  const selectAllOrders = (orderIds: number[]) => {
     setSelectedOrders(orderIds);
   };
   
@@ -47,7 +49,7 @@ function OrdersDashboardContent() {
     setSelectedOrders([]);
   };
   
-  const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
+  const updateOrderStatus = async (orderId: number, newStatus: OrderStatus) => {
     try {
       const { error } = await supabase
         .from('orders')
@@ -58,7 +60,7 @@ function OrdersDashboardContent() {
       // Update local state immediately for better UX
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === parseInt(orderId) ? { ...order, order_status: newStatus } : order
+          order.id === orderId ? { ...order, order_status: newStatus } : order
         )
       );
       toast.success(`Order status updated to ${newStatus}`);
@@ -68,18 +70,18 @@ function OrdersDashboardContent() {
     }
   };
   
-  const updateMultipleOrderStatuses = async (orderIds: string[], newStatus: OrderStatus) => {
+  const updateMultipleOrderStatuses = async (orderIds: number[], newStatus: OrderStatus) => {
     try {
       const { error } = await supabase
         .from('orders')
         .update({ order_status: newStatus })
-        .in('id', orderIds.map(id => parseInt(id)));
+        .in('id', orderIds);
       if (error) throw error;
       
       // Update local state immediately for better UX
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          orderIds.includes(order.id.toString()) ? { ...order, order_status: newStatus } : order
+          orderIds.includes(order.id) ? { ...order, order_status: newStatus } : order
         )
       );
       toast.success(`${orderIds.length} orders updated to ${newStatus}`);
@@ -91,21 +93,24 @@ function OrdersDashboardContent() {
   
   const deleteSelectedOrders = async () => {
     if (selectedOrders.length === 0) return;
-    
+
     try {
-      const { error } = await supabase
-        .from('orders')
-        .delete()
-        .in('id', selectedOrders.map(id => parseInt(id)));
-      if (error) throw error;
-      
-      // Update local state immediately for better UX
-      setOrders(prevOrders => 
-        prevOrders.filter(order => !selectedOrders.includes(order.id.toString()))
-      );
-      setSelectedOrders([]);
-      toast.success(`${selectedOrders.length} orders deleted`);
+      // Deletion is default-denied for the browser client (RLS); go through the
+      // admin server route which authorizes and deletes with the service role.
+      const deletedIds = await deleteAdminOrders(selectedOrders);
+      if (deletedIds.length === 0) {
+        throw new Error('No matching orders were deleted');
+      }
+      // Only drop rows the server confirmed as deleted (safe on partial failure).
+      setOrders(prevOrders => removeDeletedOrders(prevOrders, deletedIds));
+      setSelectedOrders(prevSelected => getRemainingSelectedOrderIds(prevSelected, deletedIds));
+      if (deletedIds.length < selectedOrders.length) {
+        toast.warning(`${deletedIds.length} of ${selectedOrders.length} selected orders deleted`);
+      } else {
+        toast.success(`${deletedIds.length} orders deleted`);
+      }
     } catch (error: unknown) {
+      // Leave rows visible on failure and surface the error.
       const message = error instanceof Error ? error.message : 'Unknown error';
       toast.error(`Failed to delete orders: ${message}`);
     }
