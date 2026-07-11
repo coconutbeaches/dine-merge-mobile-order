@@ -221,6 +221,33 @@ export const createAdminCustomOrder = async (
   return payload.order;
 };
 
+/**
+ * Delete one or more orders as an admin via the server route (H5).
+ *
+ * Order deletion is default-denied by RLS for the browser client, so this goes
+ * through POST /api/admin/orders/delete, which verifies admin authorization and
+ * deletes with the service-role client. Returns the ids the server confirmed as
+ * deleted; throws with the server-provided message on failure so callers can
+ * keep rows visible and surface an error.
+ */
+export const deleteAdminOrders = async (
+  orderIds: Array<number | string>,
+): Promise<number[]> => {
+  const response = await fetch('/api/admin/orders/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ orderIds }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'Failed to delete orders');
+  }
+
+  return Array.isArray(payload?.deletedIds) ? payload.deletedIds : [];
+};
+
 export const getFilteredOrderHistory = (orders: Order[], userId?: string, hasGuestSession?: boolean) => {
   if (!userId) return [];
   

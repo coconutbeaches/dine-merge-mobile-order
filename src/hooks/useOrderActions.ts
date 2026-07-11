@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Order, OrderStatus } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
+import { deleteAdminOrders } from '@/services/orderService';
+import { getRemainingSelectedOrderIds, removeDeletedOrders } from '@/lib/adminOrderDelete';
 
 export const useOrderActions = (
   setOrders?: React.Dispatch<React.SetStateAction<Order[]>>
@@ -115,32 +117,35 @@ export const useOrderActions = (
   };
 
   const deleteSelectedOrders = async (
-    selectedOrders: string[], 
+    selectedOrders: Array<number | string>,
     setSelectedOrders: React.Dispatch<React.SetStateAction<number[]>>
   ) => {
     if (selectedOrders.length === 0) return;
-    
+
     try {
-      const { error } = await supabase
-        .from('orders')
-        .delete()
-        .in('id', selectedOrders);
-        
-      if (error) throw error;
-      
-      setOrders?.(prevOrders => 
-        prevOrders.filter(order => !selectedOrders.includes(order.id))
-      );
-      setSelectedOrders([]);
-      
-      // Invalidate specific queries for deleted orders
-      selectedOrders.forEach(orderId => {
-        queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      // Default-denied by RLS for the browser client; delete via the admin
+      // server route (service role) and only drop confirmed-deleted rows.
+      const deletedIds = await deleteAdminOrders(selectedOrders);
+      if (deletedIds.length === 0) {
+        throw new Error('No matching orders were deleted');
+      }
+
+      setOrders?.(prevOrders => removeDeletedOrders(prevOrders, deletedIds));
+      setSelectedOrders(prevSelected => getRemainingSelectedOrderIds(prevSelected, deletedIds));
+
+      // Invalidate specific queries for the orders that were actually deleted
+      deletedIds.forEach(orderId => {
+        queryClient.invalidateQueries({ queryKey: ['order', String(orderId)] });
       });
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      
-      toast.success(`Deleted ${selectedOrders.length} orders`);
+
+      if (deletedIds.length < selectedOrders.length) {
+        toast.warning(`Deleted ${deletedIds.length} of ${selectedOrders.length} selected orders`);
+      } else {
+        toast.success(`Deleted ${deletedIds.length} orders`);
+      }
     } catch (error: any) {
+      // Leave rows visible on failure and surface the error.
       console.error('Error deleting orders:', error);
       toast.error(`Failed to delete orders: ${error.message}`);
     }
