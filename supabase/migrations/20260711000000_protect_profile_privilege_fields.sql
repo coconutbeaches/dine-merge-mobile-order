@@ -1,5 +1,5 @@
 -- Security fix C2: prevent authenticated/anon clients from escalating privileges
--- via direct writes to protected columns on public.profiles.
+-- via writes to protected columns on public.profiles.
 --
 -- Vulnerability chain (verified against production schema):
 --   1. `authenticated` (and `anon`) held table-level UPDATE on public.profiles,
@@ -13,20 +13,29 @@
 --        update profiles set role = 'admin' where id = auth.uid();
 --      and self-promote to admin (and likewise flip customer_type / archived /
 --      deleted on their own row).
+--   5. INSERT vector (confirmed exploitable in live state): the signup trigger
+--      handle_new_user only writes id/email/name, and 110 auth.users currently
+--      have NO profiles row. RLS `profiles_insert_own_or_admin` permits
+--      (id = auth.uid()), authenticated holds INSERT on all columns, and no
+--      trigger guarded INSERT -- so a profileless user could
+--        insert into profiles (id, role) values (auth.uid(), 'admin');
+--      and self-promote. This is guarded on INSERT below.
 --
 -- Defense in depth applied here:
 --   A. Revoke blanket UPDATE from anon + authenticated; re-grant column-level
 --      UPDATE only on the legitimately user-editable columns.
---   B. Add a BEFORE UPDATE trigger that blocks changes to role / customer_type /
---      archived / deleted unless the caller is an admin or a privileged
---      backend context (service_role / migrations / SECURITY DEFINER).
---   C. Consolidate the UPDATE RLS policies onto the one that carries WITH CHECK.
+--   B. Add a BEFORE INSERT OR UPDATE trigger that blocks setting/changing
+--      role / customer_type / archived / deleted unless the caller is
+--      conclusively authorized (signed service_role JWT, or an admin user).
+--   C. (Re)create the UPDATE RLS policy with both USING and WITH CHECK so the
+--      migration is self-contained across environments.
 --
 -- Preserved workflows:
 --   * Any user editing their own name / phone (SECURITY DEFINER RPC
 --     update_profile_details) and avatar (avatar_url / avatar_path / updated_at).
---   * Admins archiving/unarchiving auth-user customers via the authenticated
---     client (app/admin/customers/page.tsx) -> `archived` column.
+--   * Signup (handle_new_user) which inserts only safe defaults.
+--   * Admins archiving/unarchiving auth-user customers and creating guests via
+--     the authenticated client (archived / role='guest').
 --   * service_role / server workflows managing any column.
 --   * verifyAdminRole(), which reads profiles.role via the service_role client.
 
@@ -34,6 +43,10 @@ begin;
 
 -- ---------------------------------------------------------------------------
 -- A. Grants: remove blanket UPDATE, re-grant only user-editable columns.
+--    INSERT grants are intentionally left intact -- signup needs id/email/name
+--    and admins (who use the `authenticated` DB role) need `role` for guest
+--    creation, so INSERT of protected columns is gated by the trigger in (B),
+--    not by column grants (the same rationale as `archived` on UPDATE).
 -- ---------------------------------------------------------------------------
 
 -- Remove table-level UPDATE (which implicitly covers all columns).
@@ -59,7 +72,7 @@ grant update (name, phone, avatar_url, avatar_path, updated_at, archived)
   on public.profiles to authenticated;
 
 -- ---------------------------------------------------------------------------
--- B. Trigger guard on privileged columns.
+-- B. Trigger guard on privileged columns (INSERT and UPDATE).
 -- ---------------------------------------------------------------------------
 
 create or replace function public.enforce_profiles_privileged_columns()
@@ -70,27 +83,40 @@ set search_path = public, pg_temp
 as $$
 declare
   v_uid uuid := auth.uid();
-  v_jwt_role text := coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role', '');
+  v_claims text := nullif(current_setting('request.jwt.claims', true), '');
+  v_jwt_role text := coalesce(v_claims::jsonb ->> 'role', '');
   is_privileged boolean;
 begin
-  -- Privileged when: no end-user JWT (service_role key, migrations, or a
-  -- SECURITY DEFINER context), an explicit service_role JWT, or an admin user.
+  -- Conclusively-authorized callers only. A null uid is NOT treated as trusted
+  -- (that would silently privilege any future SECURITY DEFINER function with no
+  -- user context); authorization must be positively proven via:
+  --   * a signed service_role JWT (backend using the service key), or
+  --   * an authenticated user whose stored role is actually 'admin'.
   is_privileged := (
-    v_uid is null
-    or v_jwt_role = 'service_role'
-    or public.get_user_role(v_uid) = 'admin'
+    v_jwt_role = 'service_role'
+    or (v_uid is not null and public.get_user_role(v_uid) = 'admin')
   );
 
   if is_privileged then
     return new;
   end if;
 
-  if new.role           is distinct from old.role
-     or new.customer_type is distinct from old.customer_type
-     or new.archived      is distinct from old.archived
-     or new.deleted       is distinct from old.deleted then
-    raise exception 'Not authorized to modify privileged profile fields (role, customer_type, archived, deleted)'
-      using errcode = '42501';
+  if tg_op = 'UPDATE' then
+    if new.role           is distinct from old.role
+       or new.customer_type is distinct from old.customer_type
+       or new.archived      is distinct from old.archived
+       or new.deleted       is distinct from old.deleted then
+      raise exception 'Not authorized to modify privileged profile fields (role, customer_type, archived, deleted)'
+        using errcode = '42501';
+    end if;
+  else  -- INSERT: only safe defaults are allowed for non-privileged callers.
+    if new.role is distinct from 'customer'
+       or new.customer_type is not null
+       or coalesce(new.archived, false) is true
+       or coalesce(new.deleted, false) is true then
+      raise exception 'Not authorized to set privileged profile fields on insert (role, customer_type, archived, deleted)'
+        using errcode = '42501';
+    end if;
   end if;
 
   return new;
@@ -98,22 +124,30 @@ end;
 $$;
 
 comment on function public.enforce_profiles_privileged_columns() is
-  'Security C2: blocks non-admin, non-service-role callers from changing role/customer_type/archived/deleted on profiles.';
+  'Security C2: blocks non-admin, non-service-role callers from setting/changing role/customer_type/archived/deleted on profiles (INSERT and UPDATE).';
 
 drop trigger if exists trg_profiles_protect_privileged on public.profiles;
 create trigger trg_profiles_protect_privileged
-  before update on public.profiles
+  before insert or update on public.profiles
   for each row
   execute function public.enforce_profiles_privileged_columns();
 
 -- ---------------------------------------------------------------------------
--- C. Consolidate UPDATE RLS policies onto the WITH CHECK variant.
---    The legacy "Users can update own profile" policy had no WITH CHECK, so the
---    NEW row was never re-validated. profiles_update_own_or_admin already
---    enforces (id = auth.uid() OR admin) for both USING and WITH CHECK, so the
---    legacy policy is redundant and strictly looser -- drop it.
+-- C. Self-contained UPDATE RLS policy with USING + WITH CHECK.
+--    The legacy "Users can update own profile" policy had no WITH CHECK. We drop
+--    it and (re)create profiles_update_own_or_admin idempotently so the intended
+--    policy is guaranteed to exist regardless of prior environment state, and no
+--    user is left with column grants but no usable RLS path.
 -- ---------------------------------------------------------------------------
 
 drop policy if exists "Users can update own profile" on public.profiles;
+drop policy if exists profiles_update_own_or_admin on public.profiles;
+
+create policy profiles_update_own_or_admin
+  on public.profiles
+  for update
+  to authenticated
+  using ((id = auth.uid()) or (public.get_user_role(auth.uid()) = 'admin'))
+  with check ((id = auth.uid()) or (public.get_user_role(auth.uid()) = 'admin'));
 
 commit;
