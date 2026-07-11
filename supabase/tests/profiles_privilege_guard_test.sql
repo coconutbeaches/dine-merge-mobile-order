@@ -82,6 +82,42 @@ declare
   v_new_updated timestamptz;
   v_policy_count int;
 begin
+  -- ===== TEST 0: prerequisite get_user_role + policies exist on a fresh env ===
+  if not exists (
+    select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'get_user_role'
+      and pg_get_function_identity_arguments(p.oid) = 'user_id uuid'
+  ) then
+    raise exception 'TEST 0 FAILED: public.get_user_role(uuid) does not exist after migration';
+  end if;
+  if public.get_user_role('00000000-0000-0000-0000-0000000000aa') <> 'customer' then
+    raise exception 'TEST 0 FAILED: a customer did not resolve to ''customer''';
+  end if;
+  if public.get_user_role('00000000-0000-0000-0000-0000000000bb') <> 'admin' then
+    raise exception 'TEST 0 FAILED: an admin did not resolve to ''admin''';
+  end if;
+  if public.get_user_role('99999999-9999-9999-9999-999999999999') is not null then
+    raise exception 'TEST 0 FAILED: a missing profile did not return NULL (safe non-admin value)';
+  end if;
+  select count(*) into v_policy_count from pg_policies
+  where schemaname = 'public' and tablename = 'profiles'
+    and policyname in ('profiles_insert_own_or_admin', 'profiles_update_own_or_admin');
+  if v_policy_count <> 2 then
+    raise exception 'TEST 0 FAILED: INSERT and UPDATE policies were not both created (count=%)', v_policy_count;
+  end if;
+  raise notice 'TEST 0 PASSED: get_user_role(uuid) + INSERT/UPDATE policies exist; role resolution correct';
+
+  -- get_user_role exposes ONLY the role; a normal user still cannot read another
+  -- user's profile row/columns directly (RLS SELECT remains restrictive).
+  perform pg_temp.act_as('00000000-0000-0000-0000-0000000000aa');
+  select count(*) into v_policy_count
+    from public.profiles where id = '00000000-0000-0000-0000-0000000000bb';
+  perform pg_temp.reset_to_db_owner();
+  if v_policy_count <> 0 then
+    raise exception 'TEST 0b FAILED: a normal user could read another profile row (data exposure)';
+  end if;
+  raise notice 'TEST 0b PASSED: get_user_role leaks only role; RLS still blocks reading other profiles';
+
   -- ===== TEST 11a (negative): privileged fixture insert fails when UNtrusted ==
   -- Proves the admin/service fixtures above succeeded *because* of the trusted
   -- context, not by accident: the same shape as a normal user is rejected.
@@ -90,7 +126,7 @@ begin
   begin
     insert into public.profiles (id, email, name, role)
     values ('00000000-0000-0000-0000-0000000000ee', 'c2_ee@test.local', 'EE', 'admin');
-  exception when others then
+  exception when sqlstate '42501' then   -- insufficient_privilege (trigger/RLS)
     v_ok := true;
   end;
   perform pg_temp.reset_to_db_owner();
@@ -140,7 +176,7 @@ begin
   v_ok := false;
   begin
     update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-0000000000aa';
-  exception when others then v_ok := true; end;
+  exception when sqlstate '42501' then v_ok := true; end;   -- insufficient_privilege (grant/RLS/trigger)
   perform pg_temp.reset_to_db_owner();
   if not v_ok then raise exception 'TEST 2 FAILED: normal user changed role'; end if;
   select role into v_txt from public.profiles where id = '00000000-0000-0000-0000-0000000000aa';
@@ -152,7 +188,7 @@ begin
   v_ok := false;
   begin
     update public.profiles set customer_type = 'admin' where id = '00000000-0000-0000-0000-0000000000aa';
-  exception when others then v_ok := true; end;
+  exception when sqlstate '42501' then v_ok := true; end;   -- insufficient_privilege (grant/RLS/trigger)
   perform pg_temp.reset_to_db_owner();
   if not v_ok then raise exception 'TEST 3 FAILED: normal user changed customer_type'; end if;
   raise notice 'TEST 3 PASSED: normal user blocked from changing customer_type';
@@ -162,7 +198,7 @@ begin
   v_ok := false;
   begin
     update public.profiles set archived = true where id = '00000000-0000-0000-0000-0000000000aa';
-  exception when others then v_ok := true; end;
+  exception when sqlstate '42501' then v_ok := true; end;   -- insufficient_privilege (grant/RLS/trigger)
   perform pg_temp.reset_to_db_owner();
   if not v_ok then raise exception 'TEST 4a FAILED: normal user archived self'; end if;
 
@@ -170,7 +206,7 @@ begin
   v_ok := false;
   begin
     update public.profiles set deleted = true where id = '00000000-0000-0000-0000-0000000000aa';
-  exception when others then v_ok := true; end;
+  exception when sqlstate '42501' then v_ok := true; end;   -- insufficient_privilege (grant/RLS/trigger)
   perform pg_temp.reset_to_db_owner();
   if not v_ok then raise exception 'TEST 4b FAILED: normal user soft-deleted self'; end if;
   raise notice 'TEST 4 PASSED: normal user blocked from archiving/deleting self';
@@ -207,7 +243,7 @@ begin
   begin
     insert into public.profiles (id, email, name, role)
     values ('00000000-0000-0000-0000-0000000000cc', 'c2_evil@test.local', 'Evil', 'admin');
-  exception when others then v_ok := true; end;
+  exception when sqlstate '42501' then v_ok := true; end;   -- insufficient_privilege (grant/RLS/trigger)
   perform pg_temp.reset_to_db_owner();
   if not v_ok then raise exception 'TEST 9a FAILED: inserted role=admin'; end if;
 
@@ -217,7 +253,7 @@ begin
   begin
     insert into public.profiles (id, email, name, customer_type)
     values ('00000000-0000-0000-0000-0000000000cc', 'c2_evil@test.local', 'Evil', 'admin');
-  exception when others then v_ok := true; end;
+  exception when sqlstate '42501' then v_ok := true; end;   -- insufficient_privilege (grant/RLS/trigger)
   perform pg_temp.reset_to_db_owner();
   if not v_ok then raise exception 'TEST 9b FAILED: inserted privileged customer_type'; end if;
 
@@ -227,7 +263,7 @@ begin
   begin
     insert into public.profiles (id, email, name, archived)
     values ('00000000-0000-0000-0000-0000000000cc', 'c2_evil@test.local', 'Evil', true);
-  exception when others then v_ok := true; end;
+  exception when sqlstate '42501' then v_ok := true; end;   -- insufficient_privilege (grant/RLS/trigger)
   perform pg_temp.reset_to_db_owner();
   if not v_ok then raise exception 'TEST 9c FAILED: inserted archived=true'; end if;
 
@@ -237,7 +273,7 @@ begin
   begin
     insert into public.profiles (id, email, name, deleted)
     values ('00000000-0000-0000-0000-0000000000cc', 'c2_evil@test.local', 'Evil', true);
-  exception when others then v_ok := true; end;
+  exception when sqlstate '42501' then v_ok := true; end;   -- insufficient_privilege (grant/RLS/trigger)
   perform pg_temp.reset_to_db_owner();
   if not v_ok then raise exception 'TEST 9d FAILED: inserted deleted=true'; end if;
 

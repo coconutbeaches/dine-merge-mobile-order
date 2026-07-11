@@ -45,7 +45,45 @@
 begin;
 
 -- ---------------------------------------------------------------------------
--- 0. Safe column defaults (self-contained; independent of live/prod state).
+-- 0. Prerequisite: public.get_user_role(uuid).
+--    The trigger (B) and RLS policies (C) below depend on this function. In
+--    production it exists, but in this repo it lives only in migrations_archive,
+--    so a freshly repo-provisioned database would FAIL to apply this migration
+--    without it. Recreated here idempotently, matching live behavior exactly:
+--      * SECURITY DEFINER + STABLE, owned by the migration runner (postgres),
+--        so its read of profiles bypasses RLS and does not recurse when the
+--        function is itself called from a profiles RLS policy.
+--      * fixed search_path, no dynamic SQL.
+--      * returns lower(coalesce(role,'customer')) for an existing row, and NULL
+--        when no profile exists (NULL <> 'admin', so a missing profile is never
+--        treated as admin -- the safe outcome).
+--      * returns only the role text; exposes no other profile columns.
+--    (The live debug RAISE NOTICE lines are intentionally omitted.)
+-- ---------------------------------------------------------------------------
+
+create or replace function public.get_user_role(user_id uuid)
+returns text
+language plpgsql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  user_role text;
+begin
+  select lower(coalesce(role, 'customer')) into user_role
+  from public.profiles
+  where id = user_id;
+  return user_role;
+end;
+$$;
+
+-- Minimal privileges: only roles that invoke it (directly or via RLS) may run it.
+revoke all on function public.get_user_role(uuid) from public;
+grant execute on function public.get_user_role(uuid) to authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 1. Safe column defaults (self-contained; independent of live/prod state).
 --    Guarantees a signup-shaped insert that omits these columns lands as a
 --    non-privileged "customer" row that the INSERT guard in (B) accepts.
 -- ---------------------------------------------------------------------------
@@ -155,12 +193,17 @@ create trigger trg_profiles_protect_privileged
 
 -- INSERT: a user may create their own row; an admin may create any row.
 -- (Privileged field values on insert are still gated by the trigger in B.)
+-- auth.uid()/get_user_role are wrapped in scalar subselects so the planner
+-- evaluates them once per statement (InitPlan) rather than once per row.
 drop policy if exists profiles_insert_own_or_admin on public.profiles;
 create policy profiles_insert_own_or_admin
   on public.profiles
   for insert
   to authenticated
-  with check ((id = auth.uid()) or (public.get_user_role(auth.uid()) = 'admin'));
+  with check (
+    id = (select auth.uid())
+    or (select public.get_user_role((select auth.uid())) = 'admin')
+  );
 
 -- UPDATE: own row or admin, enforced for both the old and the new row.
 drop policy if exists "Users can update own profile" on public.profiles;
@@ -169,7 +212,13 @@ create policy profiles_update_own_or_admin
   on public.profiles
   for update
   to authenticated
-  using ((id = auth.uid()) or (public.get_user_role(auth.uid()) = 'admin'))
-  with check ((id = auth.uid()) or (public.get_user_role(auth.uid()) = 'admin'));
+  using (
+    id = (select auth.uid())
+    or (select public.get_user_role((select auth.uid())) = 'admin')
+  )
+  with check (
+    id = (select auth.uid())
+    or (select public.get_user_role((select auth.uid())) = 'admin')
+  );
 
 commit;
