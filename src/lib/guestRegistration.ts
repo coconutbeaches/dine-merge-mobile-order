@@ -40,7 +40,14 @@ export interface GuestRecord {
  * service-role Supabase client; tests implement it in memory.
  */
 export interface GuestRegistrationStore {
-  /** Exact match on (stay_id, first_name); null when no such guest exists. */
+  /**
+   * Match on (stay_id, first_name); null when no such guest exists.
+   *
+   * (stay_id, first_name) has no unique constraint and historical data may hold
+   * several matching rows, so implementations MUST tolerate duplicates and
+   * return a single deterministic canonical row (e.g. earliest created_at, then
+   * id) rather than erroring.
+   */
   findByStayAndName(stayId: string, firstName: string): Promise<GuestRecord | null>;
   /** Number of guest rows already registered under a stay_id. */
   countByStay(stayId: string): Promise<number>;

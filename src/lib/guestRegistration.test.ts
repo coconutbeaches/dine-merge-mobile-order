@@ -123,6 +123,22 @@ describe('registerGuest', () => {
     expect(findSpy).not.toHaveBeenCalled();
   });
 
+  it('tolerates multiple historical rows for the same (stay, name): returns the first deterministic row, no insert', async () => {
+    // No unique constraint on (stay_id, first_name) — historical duplicates exist.
+    store.rows.push({ id: 'row-oldest', stay_id: 'A9_SZEMES', first_name: 'Bouke' });
+    store.rows.push({ id: 'row-newer', stay_id: 'A9_SZEMES', first_name: 'Bouke' });
+
+    const result = await registerGuest(
+      { first_name: 'Bouke', stay_id: 'A9_SZEMES', table_number: '12' },
+      store,
+      { generateId: seqIds() },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.ok && result.session.guest_user_id).toBe('row-oldest');
+    expect(store.insertCalls).toBe(0);
+  });
+
   it('is idempotent for a duplicate registration (same stay + name) and does not insert', async () => {
     store.rows.push({ id: 'existing-id', stay_id: 'A9_SZEMES', first_name: 'Bouke' });
     const result = await registerGuest(
