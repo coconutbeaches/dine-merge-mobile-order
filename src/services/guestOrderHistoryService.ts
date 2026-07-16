@@ -9,7 +9,6 @@ export async function fetchGuestOrderHistory(session: GuestSession): Promise<Ord
     },
     body: JSON.stringify({
       guestUserId: session.guest_user_id,
-      stayId: session.guest_stay_id,
     }),
   });
 

@@ -87,6 +87,33 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_stay_overrides: {
+        Row: {
+          created_at: string | null
+          guest_name: string | null
+          guest_user_id: string
+          id: string
+          notes: string | null
+          target_stay_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          guest_name?: string | null
+          guest_user_id: string
+          id?: string
+          notes?: string | null
+          target_stay_id: string
+        }
+        Update: {
+          created_at?: string | null
+          guest_name?: string | null
+          guest_user_id?: string
+          id?: string
+          notes?: string | null
+          target_stay_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           created_at: string
