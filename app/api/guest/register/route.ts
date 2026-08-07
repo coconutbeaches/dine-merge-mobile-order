@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase-server';
 import { registerGuest } from '@/lib/guestRegistration';
 import { createSupabaseGuestStore } from '@/lib/guestRegistrationStore';
+import { resolveActiveStayForFirstName } from '@/lib/guestStayIdentity';
 
 export const runtime = 'nodejs';
 
@@ -20,7 +21,19 @@ export async function POST(request: NextRequest) {
 
   let result;
   try {
-    result = await registerGuest(payload, createSupabaseGuestStore(serviceClient));
+    let registrationPayload = payload;
+    if (payload && typeof payload === 'object') {
+      const body = payload as Record<string, unknown>;
+      const suppliedStayId = typeof body.stay_id === 'string' ? body.stay_id.trim().toLowerCase() : '';
+      const isWalkInRequest = !suppliedStayId || suppliedStayId === 'unknown' || suppliedStayId.includes('walkin');
+      if (isWalkInRequest && typeof body.first_name === 'string') {
+        const inferredStayId = await resolveActiveStayForFirstName(serviceClient, body.first_name);
+        if (inferredStayId) {
+          registrationPayload = { ...body, stay_id: inferredStayId };
+        }
+      }
+    }
+    result = await registerGuest(registrationPayload, createSupabaseGuestStore(serviceClient));
   } catch (error) {
     console.error('[api/guest/register] Unexpected failure:', error);
     return NextResponse.json({ error: 'Failed to register guest' }, { status: 500 });
