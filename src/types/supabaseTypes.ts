@@ -96,6 +96,12 @@ export type Database = {
           id: number
           order_items: Json | null
           order_status: Database["public"]["Enums"]["order_status"] | null
+          source_display_name: string | null
+          source_first_name: string | null
+          source_message_id: string | null
+          source_sender_id: string | null
+          source_sender_phone_e164: string | null
+          source_whapi_lid: string | null
           stay_id: string | null
           table_number: string | null
           total_amount: number
@@ -110,6 +116,12 @@ export type Database = {
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
+          source_display_name?: string | null
+          source_first_name?: string | null
+          source_message_id?: string | null
+          source_sender_id?: string | null
+          source_sender_phone_e164?: string | null
+          source_whapi_lid?: string | null
           stay_id?: string | null
           table_number?: string | null
           total_amount: number
@@ -124,6 +136,12 @@ export type Database = {
           id?: number
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
+          source_display_name?: string | null
+          source_first_name?: string | null
+          source_message_id?: string | null
+          source_sender_id?: string | null
+          source_sender_phone_e164?: string | null
+          source_whapi_lid?: string | null
           stay_id?: string | null
           table_number?: string | null
           total_amount?: number
