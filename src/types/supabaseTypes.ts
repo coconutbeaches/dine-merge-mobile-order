@@ -169,6 +169,9 @@ export type Database = {
           source_sender_phone_e164: string | null
           source_whapi_lid: string | null
           stay_id: string | null
+          status_message_channel_id: string | null
+          status_message_chat_id: string | null
+          status_message_id: string | null
           table_number: string | null
           total_amount: number
           updated_at: string
@@ -190,6 +193,9 @@ export type Database = {
           source_sender_phone_e164?: string | null
           source_whapi_lid?: string | null
           stay_id?: string | null
+          status_message_channel_id?: string | null
+          status_message_chat_id?: string | null
+          status_message_id?: string | null
           table_number?: string | null
           total_amount: number
           updated_at?: string
@@ -211,6 +217,9 @@ export type Database = {
           source_sender_phone_e164?: string | null
           source_whapi_lid?: string | null
           stay_id?: string | null
+          status_message_channel_id?: string | null
+          status_message_chat_id?: string | null
+          status_message_id?: string | null
           table_number?: string | null
           total_amount?: number
           updated_at?: string
