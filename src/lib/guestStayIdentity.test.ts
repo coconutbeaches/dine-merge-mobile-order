@@ -301,3 +301,73 @@ describe('passport roster resolution', () => {
     expect(result.stayId).toBe('NH_HOSCH');
   });
 });
+
+describe('cross-source ambiguity and roster-only enrichment', () => {
+  const today = '2026-08-19';
+  const dates = { check_in_date: '2026-08-19', check_out_date: '2026-08-24' };
+  const stays = [{ stay_id: 'NH_HOSCH', ...dates }, { stay_id: 'BH_OTHER', ...dates }];
+
+  it('fails closed when an observed name on one stay collides with a roster name on another', () => {
+    const identities = [{
+      identity_id: 'i1', stay_id: 'BH_OTHER', phone_e164: '+32000', whapi_lid: null,
+      observed_first_name: 'Christian', observed_display_name: 'Christian',
+      linked_incoming_guest_id: null, verified: false, evidence: null,
+    }];
+    const roster = [{
+      id: 'g1', stay_id: 'NH_HOSCH', row_type: 'guest', first_name: 'CHRISTIAN',
+      phone_e164: null, nationality_alpha3: 'AUT', ...dates,
+    }];
+    const result = resolveRestaurantIdentity('Christian', identities, stays, [], today, roster);
+    expect(result).toEqual({ stayId: null, identity: null, reason: 'ambiguous' });
+  });
+
+  it('fails closed when two stays share an observed name even if one has a roster match', () => {
+    const identities = [
+      { identity_id: 'i1', stay_id: 'NH_HOSCH', phone_e164: '+43000', whapi_lid: null,
+        observed_first_name: 'Chris', observed_display_name: 'Chris',
+        linked_incoming_guest_id: null, verified: false, evidence: null },
+      { identity_id: 'i2', stay_id: 'BH_OTHER', phone_e164: '+44000', whapi_lid: null,
+        observed_first_name: 'Chris', observed_display_name: 'Chris',
+        linked_incoming_guest_id: null, verified: false, evidence: null },
+    ];
+    const result = resolveRestaurantIdentity('Chris', identities, stays, [], today, []);
+    expect(result.stayId).toBeNull();
+    expect(result.reason).toBe('ambiguous');
+  });
+
+  it('never enriches an identity on a roster-only match', () => {
+    // The lone provisional phone most likely belongs to the booker, not Christian.
+    const identities = [{
+      identity_id: 'andrea-phone', stay_id: 'NH_HOSCH', phone_e164: '+436645346976',
+      whapi_lid: null, observed_first_name: null, observed_display_name: null,
+      linked_incoming_guest_id: null, verified: false, evidence: null,
+    }];
+    const roster = [{
+      id: 'g1', stay_id: 'NH_HOSCH', row_type: 'guest', first_name: 'CHRISTIAN',
+      phone_e164: null, nationality_alpha3: 'AUT', ...dates,
+    }];
+    const result = resolveRestaurantIdentity(
+      'Christian', identities, [{ stay_id: 'NH_HOSCH', ...dates }], [], today, roster,
+    );
+    expect(result.stayId).toBe('NH_HOSCH');
+    expect(result.identity).toBeNull();
+    expect(result.reason).toBe('unique_guest_name');
+  });
+
+  it('still enriches on a booking-name match', () => {
+    const identities = [{
+      identity_id: 'p1', stay_id: 'BH_VAN', phone_e164: '+32485085210', whapi_lid: null,
+      observed_first_name: null, observed_display_name: null,
+      linked_incoming_guest_id: null, verified: false, evidence: null,
+    }];
+    const bookings = [{
+      id: 'b1', stay_id: 'BH_VAN', row_type: 'booking', first_name: 'Laurence',
+      phone_e164: '+32474573647', nationality_alpha3: 'BEL', ...dates,
+    }];
+    const result = resolveRestaurantIdentity(
+      'Laurence', identities, [{ stay_id: 'BH_VAN', ...dates }], bookings, today, [],
+    );
+    expect(result.stayId).toBe('BH_VAN');
+    expect(result.identity?.identity_id).toBe('p1');
+  });
+});

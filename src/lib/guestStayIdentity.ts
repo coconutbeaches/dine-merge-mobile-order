@@ -184,59 +184,79 @@ export function resolveRestaurantIdentity(
   today: string,
   roster: IncomingGuestIdentityCandidate[] = [],
 ): RestaurantIdentityResolution {
-  const namedStayId = resolveUniqueActiveStay(firstName, identities, activeStays, today);
-  if (namedStayId) {
+  const target = canonicalGuestFirstName(firstName);
+  if (!target) return { stayId: null, identity: null, reason: 'no_match' };
+
+  const activeStayIds = new Set(
+    activeStays.filter((row) => isActiveStay(row, today)).map((row) => row.stay_id),
+  );
+
+  const identityStayIds = new Set(
+    identities
+      .filter(
+        (identity) =>
+          activeStayIds.has(identity.stay_id) &&
+          canonicalGuestFirstName(identity.observed_first_name) === target,
+      )
+      .map((identity) => identity.stay_id),
+  );
+  const namedRows = (rows: IncomingGuestIdentityCandidate[]) =>
+    rows.filter(
+      (row) => isActiveStay(row, today) && canonicalGuestFirstName(row.first_name) === target,
+    );
+  const bookingStayIds = new Set(namedRows(bookings).map((row) => row.stay_id));
+  const rosterStayIds = new Set(namedRows(roster).map((row) => row.stay_id));
+
+  // Uniqueness is computed across all three sources together. Checking them in
+  // sequence let an early hit win before a competing stay was ever considered,
+  // so a name observed on one stay and carried by a passport guest on another
+  // could be billed to the wrong family.
+  const candidateStayIds = new Set([...identityStayIds, ...bookingStayIds, ...rosterStayIds]);
+  if (candidateStayIds.size !== 1) {
+    return {
+      stayId: null,
+      identity: null,
+      reason: candidateStayIds.size ? 'ambiguous' : 'no_match',
+    };
+  }
+  const stayId = [...candidateStayIds][0];
+
+  if (identityStayIds.has(stayId)) {
     const matchingNamedIdentities = identities.filter(
       (identity) =>
-        identity.stay_id === namedStayId &&
-        canonicalGuestFirstName(identity.observed_first_name) === canonicalGuestFirstName(firstName),
+        identity.stay_id === stayId &&
+        canonicalGuestFirstName(identity.observed_first_name) === target,
     );
     return {
-      stayId: namedStayId,
+      stayId,
       identity: matchingNamedIdentities.length === 1 ? matchingNamedIdentities[0] : null,
       reason: 'named_identity',
     };
   }
 
-  // A stay's passport rows name every guest, not just the booker. Without
-  // them only the person who made the booking can be recognised: NH_HOSCH is
-  // booked under Andrea, so Christian and the children would fall through to
-  // walk-in despite being confirmed guests of an active stay. Booking and
-  // roster names are pooled so cross-source ambiguity still fails closed.
-  const nameMatchStayIds = new Set(
-    [...bookings, ...roster]
-      .filter((row) => isActiveStay(row, today))
-      .filter((row) => canonicalGuestFirstName(row.first_name) === canonicalGuestFirstName(firstName))
-      .map((row) => row.stay_id),
-  );
-  if (nameMatchStayIds.size !== 1) {
-    return { stayId: null, identity: null, reason: nameMatchStayIds.size ? 'ambiguous' : 'no_match' };
-  }
-
-  const stayId = [...nameMatchStayIds][0];
   const provisionalIdentities = identities.filter(
     (identity) =>
       identity.stay_id === stayId &&
       !identity.observed_first_name &&
       Boolean(identity.phone_e164 || identity.whapi_lid),
   );
-  // Enrichment attaches a name to a provisional identity, so it needs exactly
-  // one candidate on each side. Roster rows count here too, otherwise a stay
-  // resolved by roster name could never enrich.
-  const matchingNamed = [...bookings, ...roster].filter(
-    (row) =>
-      row.stay_id === stayId &&
-      isActiveStay(row, today) &&
-      canonicalGuestFirstName(row.first_name) === canonicalGuestFirstName(firstName),
-  );
 
-  return {
-    stayId,
-    identity: provisionalIdentities.length === 1 && matchingNamed.length === 1
-      ? provisionalIdentities[0]
-      : null,
-    reason: 'unique_guest_name',
-  };
+  if (bookingStayIds.has(stayId)) {
+    const matchingBookings = namedRows(bookings).filter((row) => row.stay_id === stayId);
+    return {
+      stayId,
+      identity:
+        provisionalIdentities.length === 1 && matchingBookings.length === 1
+          ? provisionalIdentities[0]
+          : null,
+      reason: 'unique_guest_name',
+    };
+  }
+
+  // Roster-only match: the stay is certain, but nothing ties this guest to any
+  // particular phone. Enriching the lone provisional identity would stamp their
+  // name onto someone else's number — most likely the booker's.
+  return { stayId, identity: null, reason: 'unique_guest_name' };
 }
 
 function mergeRestaurantEvidence(
