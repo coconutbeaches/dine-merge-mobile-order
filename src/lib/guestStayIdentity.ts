@@ -327,10 +327,17 @@ export async function resolveActiveStayForFirstName(
   firstName: string,
   today = new Date().toISOString().slice(0, 10),
 ): Promise<string | null> {
+  // Restrict to the active window server-side. Passport rows roughly double
+  // this table, so sharing one cap with bookings let history crowd out a live
+  // booking or a competing same-name roster entry — and an unordered silent
+  // truncation can make an ambiguous name look unique, billing the wrong stay.
+  // isActiveStay also requires both dates, so this drops nothing it would keep.
   const activeResult = await client
     .from('incoming_guests')
     .select('id, stay_id, row_type, first_name, phone_e164, nationality_alpha3, check_in_date, check_out_date')
     .in('row_type', ['booking', 'guest'])
+    .lte('check_in_date', today)
+    .gte('check_out_date', today)
     .limit(2000);
   if (activeResult.error) throw activeResult.error;
 

@@ -151,6 +151,8 @@ describe('guest stay identity resolution', () => {
           select() { return this; },
           eq() { return this; },
           in() { return this; },
+          lte() { return this; },
+          gte() { return this; },
           limit: async () => ({ data, error: null }),
           update(values: Record<string, unknown>) {
             updates.push(values);
@@ -183,6 +185,8 @@ describe('guest stay identity resolution', () => {
           select() { return this; },
           eq() { return this; },
           in() { return this; },
+          lte() { return this; },
+          gte() { return this; },
           limit: async () => ({ data, error: null }),
           update(values: Record<string, unknown>) {
             updates.push(values);
@@ -214,6 +218,8 @@ describe('guest stay identity resolution', () => {
           select() { return this; },
           eq() { return this; },
           in() { return this; },
+          lte() { return this; },
+          gte() { return this; },
           limit: async () => ({ data, error: null }),
           update(values: Record<string, unknown>) {
             updates.push(values);
