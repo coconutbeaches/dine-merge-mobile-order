@@ -100,7 +100,7 @@ describe('guest stay identity resolution', () => {
     expect(result).toMatchObject({
       stayId: 'BH_VANSTEEN',
       identity: { identity_id: 'identity-1' },
-      reason: 'unique_booking_name',
+      reason: 'unique_guest_name',
     });
   });
 
@@ -125,7 +125,7 @@ describe('guest stay identity resolution', () => {
       today,
     );
 
-    expect(result).toEqual({ stayId: 'BH_VANSTEEN', identity: null, reason: 'unique_booking_name' });
+    expect(result).toEqual({ stayId: 'BH_VANSTEEN', identity: null, reason: 'unique_guest_name' });
   });
 
   it('refuses phone attribution when the booking has duplicate first names', () => {
@@ -137,7 +137,7 @@ describe('guest stay identity resolution', () => {
       today,
     );
 
-    expect(result).toEqual({ stayId: 'BH_VANSTEEN', identity: null, reason: 'unique_booking_name' });
+    expect(result).toEqual({ stayId: 'BH_VANSTEEN', identity: null, reason: 'unique_guest_name' });
   });
 
   it('persists restaurant evidence and reconciles the provisional phone to Laurence', async () => {
@@ -225,5 +225,79 @@ describe('guest stay identity resolution', () => {
 
     await expect(resolveActiveStayForFirstName(client as never, 'Laurence', today)).resolves.toBe('BH_VANSTEEN');
     expect(updates).toEqual([]);
+  });
+});
+
+describe('passport roster resolution', () => {
+  const today = '2026-08-19';
+  const stayDates = { check_in_date: '2026-08-19', check_out_date: '2026-08-24' };
+  // NH_HOSCH is booked under Andrea; Christian and the children are passport rows.
+  const bookings = [
+    { id: 'b1', stay_id: 'NH_HOSCH', row_type: 'booking', first_name: 'Andrea',
+      phone_e164: '+436645346976', nationality_alpha3: null, ...stayDates },
+  ];
+  const roster = [
+    { id: 'g1', stay_id: 'NH_HOSCH', row_type: 'guest', first_name: 'CHRISTIAN',
+      phone_e164: null, nationality_alpha3: 'AUT', ...stayDates },
+    { id: 'g2', stay_id: 'NH_HOSCH', row_type: 'guest', first_name: 'OSKAR',
+      phone_e164: null, nationality_alpha3: 'AUT', ...stayDates },
+  ];
+  const activeStays = [{ stay_id: 'NH_HOSCH', ...stayDates }];
+
+  it('resolves a non-booker named only on a passport row', () => {
+    const result = resolveRestaurantIdentity('Christian', [], activeStays, bookings, today, roster);
+    expect(result.stayId).toBe('NH_HOSCH');
+  });
+
+  it('still resolves the booker', () => {
+    const result = resolveRestaurantIdentity('Andrea', [], activeStays, bookings, today, roster);
+    expect(result.stayId).toBe('NH_HOSCH');
+  });
+
+  it('resolves a child on the roster', () => {
+    const result = resolveRestaurantIdentity('Oskar', [], activeStays, bookings, today, roster);
+    expect(result.stayId).toBe('NH_HOSCH');
+  });
+
+  it('returns no match for a name on neither booking nor roster', () => {
+    const result = resolveRestaurantIdentity('Nobody', [], activeStays, bookings, today, roster);
+    expect(result).toEqual({ stayId: null, identity: null, reason: 'no_match' });
+  });
+
+  it('fails closed when two active stays share a roster name', () => {
+    const otherStay = { stay_id: 'JH_BUSINARO', ...stayDates };
+    const otherRoster = [{
+      id: 'g9', stay_id: 'JH_BUSINARO', row_type: 'guest', first_name: 'Christian',
+      phone_e164: null, nationality_alpha3: 'ITA', ...stayDates,
+    }];
+    const result = resolveRestaurantIdentity(
+      'Christian', [], [...activeStays, otherStay], bookings, today, [...roster, ...otherRoster],
+    );
+    expect(result).toEqual({ stayId: null, identity: null, reason: 'ambiguous' });
+  });
+
+  it('fails closed when a booking name collides with another stay roster name', () => {
+    const otherStay = { stay_id: 'JH_BUSINARO', ...stayDates };
+    const otherBooking = [{
+      id: 'b9', stay_id: 'JH_BUSINARO', row_type: 'booking', first_name: 'Christian',
+      phone_e164: '+39000', nationality_alpha3: null, ...stayDates,
+    }];
+    const result = resolveRestaurantIdentity(
+      'Christian', [], [...activeStays, otherStay], [...bookings, ...otherBooking], today, roster,
+    );
+    expect(result.stayId).toBeNull();
+    expect(result.reason).toBe('ambiguous');
+  });
+
+  it('ignores roster rows from inactive stays', () => {
+    const pastRoster = [{
+      id: 'g8', stay_id: 'OLD_STAY', row_type: 'guest', first_name: 'Christian',
+      phone_e164: null, nationality_alpha3: 'AUT',
+      check_in_date: '2026-08-01', check_out_date: '2026-08-05',
+    }];
+    const result = resolveRestaurantIdentity(
+      'Christian', [], activeStays, bookings, today, [...roster, ...pastRoster],
+    );
+    expect(result.stayId).toBe('NH_HOSCH');
   });
 });

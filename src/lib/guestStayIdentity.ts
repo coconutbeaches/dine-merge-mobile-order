@@ -23,12 +23,14 @@ export interface IncomingGuestIdentityCandidate extends ActiveStayRow {
   first_name: string;
   phone_e164: string | null;
   nationality_alpha3: string | null;
+  /** 'booking' is the reservation; 'guest' rows are passport identities. */
+  row_type?: string;
 }
 
 export interface RestaurantIdentityResolution {
   stayId: string | null;
   identity: StayIdentityCandidate | null;
-  reason: 'named_identity' | 'unique_booking_name' | 'ambiguous' | 'no_match';
+  reason: 'named_identity' | 'unique_guest_name' | 'ambiguous' | 'no_match';
 }
 
 const NAME_ALIASES: Record<string, string> = {
@@ -180,6 +182,7 @@ export function resolveRestaurantIdentity(
   activeStays: ActiveStayRow[],
   bookings: IncomingGuestIdentityCandidate[],
   today: string,
+  roster: IncomingGuestIdentityCandidate[] = [],
 ): RestaurantIdentityResolution {
   const namedStayId = resolveUniqueActiveStay(firstName, identities, activeStays, today);
   if (namedStayId) {
@@ -195,36 +198,44 @@ export function resolveRestaurantIdentity(
     };
   }
 
-  const activeBookingStayIds = new Set(
-    bookings
-      .filter((booking) => isActiveStay(booking, today))
-      .filter((booking) => canonicalGuestFirstName(booking.first_name) === canonicalGuestFirstName(firstName))
-      .map((booking) => booking.stay_id),
+  // A stay's passport rows name every guest, not just the booker. Without
+  // them only the person who made the booking can be recognised: NH_HOSCH is
+  // booked under Andrea, so Christian and the children would fall through to
+  // walk-in despite being confirmed guests of an active stay. Booking and
+  // roster names are pooled so cross-source ambiguity still fails closed.
+  const nameMatchStayIds = new Set(
+    [...bookings, ...roster]
+      .filter((row) => isActiveStay(row, today))
+      .filter((row) => canonicalGuestFirstName(row.first_name) === canonicalGuestFirstName(firstName))
+      .map((row) => row.stay_id),
   );
-  if (activeBookingStayIds.size !== 1) {
-    return { stayId: null, identity: null, reason: activeBookingStayIds.size ? 'ambiguous' : 'no_match' };
+  if (nameMatchStayIds.size !== 1) {
+    return { stayId: null, identity: null, reason: nameMatchStayIds.size ? 'ambiguous' : 'no_match' };
   }
 
-  const stayId = [...activeBookingStayIds][0];
+  const stayId = [...nameMatchStayIds][0];
   const provisionalIdentities = identities.filter(
     (identity) =>
       identity.stay_id === stayId &&
       !identity.observed_first_name &&
       Boolean(identity.phone_e164 || identity.whapi_lid),
   );
-  const matchingBookings = bookings.filter(
-    (booking) =>
-      booking.stay_id === stayId &&
-      isActiveStay(booking, today) &&
-      canonicalGuestFirstName(booking.first_name) === canonicalGuestFirstName(firstName),
+  // Enrichment attaches a name to a provisional identity, so it needs exactly
+  // one candidate on each side. Roster rows count here too, otherwise a stay
+  // resolved by roster name could never enrich.
+  const matchingNamed = [...bookings, ...roster].filter(
+    (row) =>
+      row.stay_id === stayId &&
+      isActiveStay(row, today) &&
+      canonicalGuestFirstName(row.first_name) === canonicalGuestFirstName(firstName),
   );
 
   return {
     stayId,
-    identity: provisionalIdentities.length === 1 && matchingBookings.length === 1
+    identity: provisionalIdentities.length === 1 && matchingNamed.length === 1
       ? provisionalIdentities[0]
       : null,
-    reason: 'unique_booking_name',
+    reason: 'unique_guest_name',
   };
 }
 
@@ -298,12 +309,16 @@ export async function resolveActiveStayForFirstName(
 ): Promise<string | null> {
   const activeResult = await client
     .from('incoming_guests')
-    .select('id, stay_id, first_name, phone_e164, nationality_alpha3, check_in_date, check_out_date')
-    .eq('row_type', 'booking')
-    .limit(1000);
+    .select('id, stay_id, row_type, first_name, phone_e164, nationality_alpha3, check_in_date, check_out_date')
+    .in('row_type', ['booking', 'guest'])
+    .limit(2000);
   if (activeResult.error) throw activeResult.error;
 
-  const bookings = (activeResult.data ?? []) as IncomingGuestIdentityCandidate[];
+  const allRows = (activeResult.data ?? []) as IncomingGuestIdentityCandidate[];
+  // Anything not explicitly a passport row is treated as a booking, so a row
+  // missing row_type keeps its previous meaning rather than vanishing.
+  const roster = allRows.filter((row) => row.row_type === 'guest');
+  const bookings = allRows.filter((row) => row.row_type !== 'guest');
   const activeStayIds = [...new Set(
     bookings.filter((booking) => isActiveStay(booking, today)).map((booking) => booking.stay_id),
   )];
@@ -323,6 +338,7 @@ export async function resolveActiveStayForFirstName(
     activeStayIds.map((stay_id) => ({ stay_id, check_in_date: today, check_out_date: today })),
     bookings,
     today,
+    roster,
   );
   if (resolution.identity) {
     await persistRestaurantFirstNameEvidence(client, resolution.identity, firstName, bookings);
