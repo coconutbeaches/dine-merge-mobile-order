@@ -88,7 +88,10 @@ export default function CheckoutPage() {
         toast.success('Order placed successfully!');
         clearCart();
         setAdminCustomerContext?.(null);
-        router.push(`/order/${placedOrder.id}/confirmation`);
+        const refFragment = new URLSearchParams({
+          ref: placedOrder.restaurant_order_ref,
+        }).toString();
+        router.push(`/order/${placedOrder.id}/confirmation#${refFragment}`);
       } else {
         toast.error('Failed to place order. Please try again.');
       }

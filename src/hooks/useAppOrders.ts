@@ -1,6 +1,7 @@
 
 import { useOrders } from '@/hooks/useOrders';
-import { Address, Order } from '@/types/supabaseTypes';
+import { Address } from '@/types/supabaseTypes';
+import type { PlacedOrder } from '@/types/restaurantOrderLink';
 
 export function useAppOrders(
   effectiveUserId: string | undefined,
@@ -14,7 +15,7 @@ export function useAppOrders(
     address: Address | null,
     paymentMethod: string,
     tableNumber?: string
-  ): Promise<Order | null> => {
+  ): Promise<PlacedOrder | null> => {
     try {
       console.log("🔍 DEBUGGING: AppContext adminCustomerContext:", adminCustomerContext);
       console.log("🔍 DEBUGGING: Current user ID:", currentUser?.id);
@@ -30,7 +31,7 @@ export function useAppOrders(
       });
 
       const result = await placeOrder(address, paymentMethod, tableNumber, adminCustomerContext);
-      console.log("AppContext: Order placement result:", result);
+      console.log("AppContext: Order placement result:", result?.id ?? null);
       return result;
     } catch (error) {
       console.error("AppContext: Error placing order:", error);

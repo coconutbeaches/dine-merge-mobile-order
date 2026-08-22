@@ -3,9 +3,10 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { Order, Address } from '../types/supabaseTypes'; // Use supabaseTypes Order
 import { useUserContext } from './UserContext';
 import { useOrders } from '@/hooks/useOrders';
+import type { PlacedOrder } from '@/types/restaurantOrderLink';
 
 interface OrderContextType {
-  placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string) => Promise<Order | null>;
+  placeOrder: (address: Address | null, paymentMethod: string, tableNumber?: string) => Promise<PlacedOrder | null>;
   getOrderHistory: () => Order[];
 }
 
@@ -32,7 +33,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
     address: Address | null, 
     paymentMethod: string, 
     tableNumber?: string
-  ): Promise<Order | null> => {
+  ): Promise<PlacedOrder | null> => {
     try {
       console.log("OrderContext: Placing order with:", { 
         userId: currentUser?.id,
@@ -47,7 +48,7 @@ export const OrderProvider = ({ children }: OrderProviderProps) => {
       }
       
       const result = await placeOrder(address, paymentMethod, tableNumber);
-      console.log("OrderContext: Order placement result:", result);
+      console.log("OrderContext: Order placement result:", result?.id ?? null);
       return result;
     } catch (error) {
       console.error("OrderContext: Error placing order:", error);

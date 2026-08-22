@@ -7,6 +7,7 @@ import { Address, Order, OrderStatus } from '@/types/supabaseTypes';
 import { toast } from 'sonner';
 import { getGuestSession, hasGuestSession, getTableNumber } from '@/utils/guestSession';
 import { clearCartBackup } from '@/lib/cartService';
+import type { PlacedOrder } from '@/types/restaurantOrderLink';
 
 export function usePlaceOrder(
   userId: string | undefined,
@@ -19,7 +20,7 @@ export function usePlaceOrder(
     paymentMethod: string, 
     providedTableNumber = 'Take Away',
     adminContext: { customerId: string, customerName: string } | null = null
-  ): Promise<Order | null> => {
+  ): Promise<PlacedOrder | null> => {
     // DEBUG: Log adminContext at the start
     console.log('🔍 DEBUGGING: adminContext received in placeOrder:', adminContext);
     console.log('🔍 DEBUGGING: userId from hook:', userId);
@@ -145,7 +146,8 @@ export function usePlaceOrder(
       
       console.log('🔍 DEBUGGING: Parameters being sent to placeOrderInSupabase:', orderParams);
       
-      const insertedOrderData = await placeOrderInSupabase(orderParams);
+      const placement = await placeOrderInSupabase(orderParams);
+      const insertedOrderData = placement?.order;
 
       if (!insertedOrderData) {
         console.error("Failed to insert order in Supabase");
@@ -185,7 +187,10 @@ export function usePlaceOrder(
       }
       toast.success(`Order #${insertedOrderData.id} placed successfully!`);
       
-      return newOrderForLocalState;
+      return {
+        ...newOrderForLocalState,
+        restaurant_order_ref: placement.restaurantOrderRef,
+      };
     } catch (error) {
       console.error('Error in placeOrder:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
