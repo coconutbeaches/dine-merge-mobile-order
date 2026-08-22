@@ -121,6 +121,9 @@ export type Database = {
           guest_first_name: string | null
           guest_user_id: string | null
           id: number
+          kitchen_whapi_channel_id: string | null
+          kitchen_whapi_chat_id: string | null
+          kitchen_whapi_message_id: string | null
           order_items: Json | null
           order_status: Database["public"]["Enums"]["order_status"] | null
           stay_id: string | null
@@ -135,6 +138,9 @@ export type Database = {
           guest_first_name?: string | null
           guest_user_id?: string | null
           id?: number
+          kitchen_whapi_channel_id?: string | null
+          kitchen_whapi_chat_id?: string | null
+          kitchen_whapi_message_id?: string | null
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
           stay_id?: string | null
@@ -149,6 +155,9 @@ export type Database = {
           guest_first_name?: string | null
           guest_user_id?: string | null
           id?: number
+          kitchen_whapi_channel_id?: string | null
+          kitchen_whapi_chat_id?: string | null
+          kitchen_whapi_message_id?: string | null
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
           stay_id?: string | null
