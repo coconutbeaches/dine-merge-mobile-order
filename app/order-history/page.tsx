@@ -11,6 +11,7 @@ import { getGuestSession, hasGuestSession, GuestSession } from '@/utils/guestSes
 import { formatThaiCurrency } from '@/lib/utils';
 import { useUserOrders } from '@/hooks/useUserOrders'; // Import the hook
 import { fetchGuestOrderHistory } from '@/services/guestOrderHistoryService';
+import { summarizeOrderHistory } from '@/lib/order-history-summary';
 
 export default function OrderHistoryPage() {
   const router = useRouter();
@@ -67,7 +68,7 @@ export default function OrderHistoryPage() {
   const orders = isHotelGuest ? guestOrders : userOrders;
   const isLoading = isHotelGuest ? isLoadingGuestOrders : isLoadingUserOrders;
 
-  const totalSpent = orders.reduce((total, order) => total + order.total_amount, 0);
+  const { totalSpent, billableCount } = summarizeOrderHistory(orders);
 
   if (isLoadingUserContext || isLoading) {
     return (
@@ -104,7 +105,9 @@ export default function OrderHistoryPage() {
           {orders.length > 0 && (
             <div className="bg-muted p-4 rounded-lg text-center max-w-sm mx-auto">
               <div className="text-2xl font-bold">{formatThaiCurrency(totalSpent)}</div>
-              <div className="text-sm text-muted-foreground">{orders.length} order{orders.length !== 1 ? 's' : ''}</div>
+              <div className="text-sm text-muted-foreground">
+                {billableCount} order{billableCount !== 1 ? 's' : ''}
+              </div>
             </div>
           )}
         </div>
