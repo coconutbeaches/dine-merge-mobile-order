@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { formatThaiCurrency } from '@/lib/utils';
 import CustomOrderSection from '@/components/admin/CustomOrderSection';
 import CategorySection from '@/components/menu/CategorySection';
+import KitchenStatus from '@/components/menu/KitchenStatus';
 import { CategorySkeleton } from '@/components/ui/skeleton/index';
 import { getGuestSession, getRegistrationUrl } from '@/utils/guestSession';
 
@@ -253,6 +254,8 @@ function MenuIndexContent() {
             </Card>
           </div>
         )}
+
+        <KitchenStatus />
 
         {authReady && currentUser?.role === 'admin' && adminCustomerContext && (
           <CustomOrderSection customerId={adminCustomerContext.customerId} customerName={adminCustomerContext.customerName} />
