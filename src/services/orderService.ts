@@ -123,7 +123,14 @@ export const placeOrderInSupabase = async (
       console.warn('[Order Service] Could not clear table_number_pending (localStorage unavailable):', localStorageError);
     }
 
-    return payload.order;
+    const signedReference = String(payload?.restaurantOrderRef || '').trim();
+    if (!payload?.order || !signedReference) {
+      throw new Error('Order response did not include a signed restaurant reference');
+    }
+    return {
+      order: payload.order as Order,
+      restaurantOrderRef: signedReference,
+    };
   } catch (error) {
     console.error('Error placing order via /api/orders:', error);
     throw error;

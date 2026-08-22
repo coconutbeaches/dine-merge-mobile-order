@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, Suspense } from 'react';
+import React, { useEffect, Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,18 @@ import { useFetchOrderById } from '@/hooks/useFetchOrderById';
 import { formatThaiCurrency } from '@/lib/utils';
 import OrderErrorFallback from '@/components/order/OrderErrorFallback';
 import { trackOrderComplete, trackWhatsAppSend, trackPageView } from '@/lib/analytics';
+import {
+  appendRestaurantOrderRef,
+  restaurantOrderRefFromHash,
+} from '@/lib/restaurantWhatsAppMessage';
+import { toast } from 'sonner';
 
 const OrderConfirmationContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const { order, isLoading, error, retry } = useFetchOrderById(orderId);
+  const [signedOrderRef, setSignedOrderRef] = useState<string | null>(null);
 
 useEffect(() => {
     // If someone navigates directly to this page without an order ID, redirect to home
@@ -26,7 +32,13 @@ useEffect(() => {
       }, 3000);
     }
     
-    trackPageView(window.location.href, 'Order Confirmation');
+    const readReference = () => {
+      setSignedOrderRef(restaurantOrderRefFromHash(window.location.hash));
+    };
+    readReference();
+    window.addEventListener('hashchange', readReference);
+    trackPageView(`${window.location.origin}${window.location.pathname}`, 'Order Confirmation');
+    return () => window.removeEventListener('hashchange', readReference);
   }, [orderId, router]);
 
   // Track order completion when order data is loaded
@@ -43,6 +55,10 @@ useEffect(() => {
 
   const handleSendWhatsApp = () => {
     if (!order) return;
+    if (!signedOrderRef) {
+      toast.error('This order is missing its secure WhatsApp reference. Please place it again.');
+      return;
+    }
 
     const phoneNumber = '66631457299';
 
@@ -59,7 +75,7 @@ useEffect(() => {
     const tableNumber = order.table_number || 'Takeaway';
     const formattedTotal = formatThaiCurrency(order.total_amount);
 
-    const message = `*Order: #${order.id}*
+    const readableMessage = `*Order: #${order.id}*
 
 *Customer:* ${customerName}
 *Table:* ${tableNumber}
@@ -68,6 +84,7 @@ useEffect(() => {
 ${itemsDetails}
 
 *Total:* ${formattedTotal}`;
+    const message = appendRestaurantOrderRef(readableMessage, signedOrderRef);
 
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
@@ -259,6 +276,7 @@ ${itemsDetails}
                   {/* Primary WhatsApp Button */}
                   <Button 
                     onClick={handleSendWhatsApp} 
+                    disabled={!signedOrderRef}
                     className="w-full bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl confirmation-whatsapp-btn"
                     size="lg"
                   >

@@ -5,6 +5,10 @@ import {
   OrderRejectedError,
   type OrderRequestItem,
 } from '@/lib/orderPricing';
+import {
+  issueRestaurantOrderLink,
+  RestaurantOrderLinkConfigError,
+} from '@/server/restaurantOrderLink';
 
 export const runtime = 'nodejs';
 
@@ -25,6 +29,20 @@ type Attribution = {
 };
 
 export async function POST(request: NextRequest) {
+  let signingSecret: string;
+  try {
+    signingSecret = process.env.RESTAURANT_ORDER_LINK_SIGNING_SECRET?.trim() ?? '';
+    // Validate before insertion so missing/weak configuration cannot create an
+    // order whose required WhatsApp binding can never be issued.
+    issueRestaurantOrderLink(1, signingSecret);
+  } catch (error) {
+    if (error instanceof RestaurantOrderLinkConfigError) {
+      console.error('[api/orders] Restaurant order signing is not configured');
+      return NextResponse.json({ error: 'Order service unavailable' }, { status: 503 });
+    }
+    throw error;
+  }
+
   const serviceClient = createServiceRoleClient();
   if (!serviceClient) {
     return NextResponse.json({ error: 'Order service unavailable' }, { status: 503 });
@@ -170,5 +188,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to place order' }, { status: 500 });
   }
 
-  return NextResponse.json({ order: data }, { status: 201 });
+  const restaurantOrderRef = issueRestaurantOrderLink(data.id, signingSecret);
+  return NextResponse.json({ order: data, restaurantOrderRef }, { status: 201 });
 }
