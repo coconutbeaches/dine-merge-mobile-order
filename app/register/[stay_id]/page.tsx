@@ -68,20 +68,15 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   const [firstName, setFirstName] = useState('')
   const [acceptedRules, setAcceptedRules] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [handshakeCompletionRef, setHandshakeCompletionRef] = useState<string | null>(null)
   const router = useRouter()
 
   const unwrappedParams = use(params)
 
-  const getUrlTableNumber = () => {
-    if (typeof window === 'undefined') return null
-    return new URLSearchParams(window.location.search).get('table')
-  }
-
-  const isTable6Canary = () =>
-    (getUrlTableNumber() || getTableNumber()) === RESTAURANT_HANDSHAKE_CANARY_TABLE
-
   useEffect(() => {
     applySafariIOSFixes()
+    const ref = new URLSearchParams(window.location.search).get('handshake')?.trim() || null
+    setHandshakeCompletionRef(ref)
   }, [])
 
   useEffect(() => {
@@ -108,8 +103,9 @@ export default function RegisterPage({ params }: RegisterPageProps) {
       logStandaloneStatus()
 
       const urlParams = new URLSearchParams(window.location.search)
-      const hasHandshakeCompletionRef = Boolean(urlParams.get('handshake'))
-      const table6Canary = isTable6Canary()
+      const tableNumber = urlParams.get('table') || getTableNumber()
+      const table6Canary = tableNumber === RESTAURANT_HANDSHAKE_CANARY_TABLE
+      const hasHandshakeCompletionRef = Boolean(handshakeCompletionRef)
 
       if (isStandaloneMode()) {
         console.log('[Registration] Standalone mode detected, checking for existing session...')
@@ -146,15 +142,14 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         console.warn('localStorage not available:', error)
       }
     }
-  }, [isLoading, stay_id, router])
+  }, [isLoading, stay_id, router, handshakeCompletionRef])
 
   useEffect(() => {
-    if (isLoading || !stay_id || typeof window === 'undefined') return
+    if (!stay_id || !handshakeCompletionRef || typeof window === 'undefined') return
 
     const urlParams = new URLSearchParams(window.location.search)
-    const handshakeRef = urlParams.get('handshake')?.trim()
     const tableNumber = urlParams.get('table') || getTableNumber()
-    if (!handshakeRef || tableNumber !== RESTAURANT_HANDSHAKE_CANARY_TABLE) return
+    if (tableNumber !== RESTAURANT_HANDSHAKE_CANARY_TABLE) return
 
     let cancelled = false
     let attempts = 0
@@ -164,7 +159,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
       attempts += 1
       try {
         const response = await fetch(
-          `/api/restaurant/handshake/status?ref=${encodeURIComponent(handshakeRef)}`,
+          `/api/restaurant/handshake/status?ref=${encodeURIComponent(handshakeCompletionRef)}`,
           { cache: 'no-store' }
         )
         const payload = (await response.json()) as HandshakeStatusPayload
@@ -208,7 +203,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     return () => {
       cancelled = true
     }
-  }, [isLoading, stay_id, router])
+  }, [handshakeCompletionRef, stay_id, router])
 
   useEffect(() => {
     document.body.style.backgroundColor = 'transparent'
@@ -222,16 +217,6 @@ export default function RegisterPage({ params }: RegisterPageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    console.log('=== SAFARI REGISTRATION DEBUG START ===')
-    console.log('User Agent:', navigator.userAgent)
-    console.log('Form submission started')
-    console.log('Current URL:', window.location.href)
-    console.log('Form data:', {
-      firstName: firstName.trim(),
-      stay_id,
-      acceptedRules,
-    })
 
     if (!acceptedRules) {
       toast.error('Please accept the house rules to continue')
@@ -289,7 +274,6 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         first_name: firstName.trim(),
         stay_id: isWalkinGuest ? undefined : stay_id,
       })
-      console.log('Generated session:', session)
 
       toast.success(`Welcome, ${firstName.trim()}!`)
       setTimeout(() => router.replace('/menu'), 500)
@@ -360,7 +344,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
 
             {isLoading && !stay_id ? (
               <div className="mt-6 text-center text-base text-white/90">Loading...</div>
-            ) : isLoading && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('handshake') ? (
+            ) : isLoading && handshakeCompletionRef ? (
               <div className="mt-6 text-center text-base text-white/90">Confirming WhatsApp...</div>
             ) : (
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
