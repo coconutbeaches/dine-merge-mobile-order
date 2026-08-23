@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   ShoppingCart,
   BarChart,
+  MessageSquare,
 } from 'lucide-react';
 
 // Note: Authentication is now handled by the server-side layout.tsx
@@ -70,6 +71,17 @@ export default function Page() {
                 <CardTitle className="flex items-center gap-2">
                   <BarChart className="h-5 w-5" />
                   Analytics
+                </CardTitle>
+              </CardHeader>
+            </Card>
+          </Link>
+
+          <Link href="/admin/popup">
+            <Card className="hover:shadow-md transition-shadow">
+              <CardHeader className="p-4">
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Popup
                 </CardTitle>
               </CardHeader>
             </Card>

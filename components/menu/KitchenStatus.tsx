@@ -3,10 +3,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import PopupMessageText from '@/components/menu/PopupMessageText';
 
 type KitchenStatusRow = {
   active_orders: number | null;
   oldest_wait_minutes: number | null;
+};
+
+type PopupNoticeRow = {
+  message: string | null;
+  expires_at: string | null;
 };
 
 async function fetchKitchenStatus(): Promise<KitchenStatusRow | null> {
@@ -27,12 +33,29 @@ async function fetchKitchenStatus(): Promise<KitchenStatusRow | null> {
   };
 }
 
+async function fetchPopupNotice(): Promise<PopupNoticeRow | null> {
+  const { data, error } = await (supabase as any).rpc('get_public_restaurant_popup');
+
+  if (error) {
+    console.warn('[KitchenStatus] Unable to load restaurant popup:', error.message);
+    return null;
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+
+  return {
+    message: typeof row.message === 'string' ? row.message : null,
+    expires_at: typeof row.expires_at === 'string' ? row.expires_at : null,
+  };
+}
+
 export default function KitchenStatus() {
   const [dismissed, setDismissed] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const dismissTimerRef = useRef<number | null>(null);
 
-  const { data } = useQuery({
+  const { data: kitchenData } = useQuery({
     queryKey: ['public-kitchen-status'],
     queryFn: fetchKitchenStatus,
     staleTime: 15_000,
@@ -41,13 +64,26 @@ export default function KitchenStatus() {
     retry: 1,
   });
 
-  const activeOrders = Math.max(0, data?.active_orders ?? 0);
+  const { data: popupData } = useQuery({
+    queryKey: ['public-restaurant-popup'],
+    queryFn: fetchPopupNotice,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
+
+  const activeOrders = Math.max(0, kitchenData?.active_orders ?? 0);
   const oldestWaitMinutes =
-    data?.oldest_wait_minutes == null
+    kitchenData?.oldest_wait_minutes == null
       ? null
-      : Math.max(0, data.oldest_wait_minutes);
-  const shouldShow =
+      : Math.max(0, kitchenData.oldest_wait_minutes);
+  const shouldShowQueue =
     activeOrders > 0 && oldestWaitMinutes !== null && oldestWaitMinutes > 5;
+
+  const popupMessage = popupData?.message?.trim() ?? '';
+  const shouldShowPopup = popupMessage.length > 0;
+  const shouldShow = shouldShowPopup || shouldShowQueue;
 
   useEffect(() => {
     if (!shouldShow || dismissed) {
@@ -67,7 +103,7 @@ export default function KitchenStatus() {
     };
   }, []);
 
-  if (!data || !shouldShow || dismissed) return null;
+  if (!shouldShow || dismissed) return null;
 
   const dismiss = () => {
     setIsVisible(false);
@@ -87,7 +123,7 @@ export default function KitchenStatus() {
     <button
       type="button"
       onClick={dismiss}
-      aria-label="Dismiss kitchen queue status"
+      aria-label="Dismiss restaurant notice"
       aria-live="polite"
       className={`fixed left-4 right-4 z-50 mx-auto max-w-md rounded-2xl bg-black px-5 py-4 text-left text-white shadow-xl transition-all duration-300 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
         isVisible
@@ -96,13 +132,25 @@ export default function KitchenStatus() {
       }`}
       style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)' }}
     >
-      <span className="block text-base font-semibold leading-snug">{orderCopy}</span>
-      <span className="mt-1 block text-sm leading-snug text-white/80">
-        The oldest order was placed{' '}
-        <span className="font-semibold text-white">
-          {oldestWaitMinutes} {minuteCopy} ago
+      {shouldShowPopup && (
+        <span
+          className={`block text-base leading-snug ${shouldShowQueue ? 'mb-3' : ''}`}
+        >
+          <PopupMessageText message={popupMessage} />
         </span>
-      </span>
+      )}
+
+      {shouldShowQueue && oldestWaitMinutes !== null && (
+        <span className="block">
+          <span className="block text-base font-semibold leading-snug">{orderCopy}</span>
+          <span className="mt-1 block text-sm leading-snug text-white/80">
+            The oldest order was placed{' '}
+            <span className="font-semibold text-white">
+              {oldestWaitMinutes} {minuteCopy} ago
+            </span>
+          </span>
+        </span>
+      )}
     </button>
   );
 }
