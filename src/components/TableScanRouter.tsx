@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getGuestSession } from '@/utils/guestSession';
+import { isRestaurantHandshakeVerifiedForSession } from '@/lib/restaurantHandshakeSession';
 import { useGuestContext } from '@/context/GuestContext';
 import { useAppContext } from '@/context/AppContext';
+
+const RESTAURANT_HANDSHAKE_CANARY_TABLE = '6';
 
 const TableScanRouter = () => {
   const router = useRouter();
@@ -12,34 +15,31 @@ const TableScanRouter = () => {
   const { setTableNumber } = useGuestContext();
   const { currentUser, isLoggedIn, isLoading: isUserContextLoading } = useAppContext();
 
-  // Ensure this only runs on the client
   useEffect(() => {
     setIsClient(true);
   }, []);
 
   useEffect(() => {
-    // Only run on client-side
     if (!isClient || isUserContextLoading) {
       console.log('[TableScanRouter] Waiting for client or user context to load.', { isClient, isUserContextLoading });
-      return; // Wait for user context to load
+      return;
     }
-    
-    // Skip table scan routing for logged in admin users
+
     if (isLoggedIn && currentUser?.role === 'admin') {
       console.log('[TableScanRouter] Skipping table scan for logged in admin user based on role.', { isLoggedIn, userRole: currentUser.role });
       return;
     }
-    
+
     const params = new URLSearchParams(window.location.search);
-    const goto = params.get('goto');              // e.g. "table-7"
+    const goto = params.get('goto');
     if (!goto?.startsWith('table-')) {
       console.log('[TableScanRouter] No table scan parameter found.');
-      return;      // nothing to do
+      return;
     }
     const tableNum = goto.replace('table-', '');
-    
+
     console.log('[TableScanRouter] Processing table scan:', { goto, tableNum });
-    
+
     const processTableScan = async () => {
       try {
         setTableNumber(tableNum);
@@ -47,24 +47,33 @@ const TableScanRouter = () => {
       } catch (error) {
         console.warn('[TableScanRouter] Failed to store table number:', error);
       }
-      
+
       const session = getGuestSession();
+      const table6RequiresHandshake = tableNum === RESTAURANT_HANDSHAKE_CANARY_TABLE;
+      const table6HandshakeVerified =
+        table6RequiresHandshake && isRestaurantHandshakeVerifiedForSession(session);
+
       console.log('[TableScanRouter] Current guest session:', session);
-      
-      if (session && session.guest_user_id && session.guest_first_name) {
-        console.log('[TableScanRouter] Existing guest session found, redirecting to menu');
+
+      if (
+        session &&
+        session.guest_user_id &&
+        session.guest_first_name &&
+        (!table6RequiresHandshake || table6HandshakeVerified)
+      ) {
+        console.log('[TableScanRouter] Existing verified guest session found, redirecting to menu');
         router.replace('/menu');
       } else {
-        console.log('[TableScanRouter] No existing guest session, redirecting to registration');
+        console.log('[TableScanRouter] Registration/handshake required');
         const registrationUrl = `/register/unknown?table=${tableNum}`;
         console.log('[TableScanRouter] Registration URL:', registrationUrl);
         router.replace(registrationUrl);
       }
     };
-    
+
     processTableScan();
   }, [router, setTableNumber, isClient, currentUser, isLoggedIn, isUserContextLoading]);
-  
+
   return null;
 };
 
