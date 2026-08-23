@@ -14,15 +14,19 @@ import {
   createGuestUser,
   getTableNumber,
 } from '@/utils/guestSession'
+import {
+  isRestaurantHandshakeVerifiedForSession,
+  markRestaurantHandshakeVerified,
+} from '@/lib/restaurantHandshakeSession'
 
-// Safari iOS compatibility checks
+const RESTAURANT_HANDSHAKE_CANARY_TABLE = '6'
+
 const isSafariIOS = () => {
   if (typeof window === 'undefined') return false
   const userAgent = window.navigator.userAgent
   return /iP(ad|od|hone)/i.test(userAgent) && /WebKit/i.test(userAgent) && !/CriOS/i.test(userAgent)
 }
 
-// iOS Safari specific fixes
 const applySafariIOSFixes = () => {
   if (typeof window === 'undefined') return
 
@@ -50,6 +54,15 @@ interface RegisterPageProps {
   params: Promise<{ stay_id: string }>
 }
 
+type HandshakeStatusPayload = {
+  status?: 'pending' | 'completed' | 'expired'
+  table_number?: string
+  first_name?: string
+  match_kind?: 'hotel' | 'walkin'
+  matched_stay_id?: string | null
+  error?: string
+}
+
 export default function RegisterPage({ params }: RegisterPageProps) {
   const [stay_id, setStayId] = useState<string>('')
   const [firstName, setFirstName] = useState('')
@@ -58,6 +71,14 @@ export default function RegisterPage({ params }: RegisterPageProps) {
   const router = useRouter()
 
   const unwrappedParams = use(params)
+
+  const getUrlTableNumber = () => {
+    if (typeof window === 'undefined') return null
+    return new URLSearchParams(window.location.search).get('table')
+  }
+
+  const isTable6Canary = () =>
+    (getUrlTableNumber() || getTableNumber()) === RESTAURANT_HANDSHAKE_CANARY_TABLE
 
   useEffect(() => {
     applySafariIOSFixes()
@@ -86,12 +107,20 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     if (!isLoading && stay_id) {
       logStandaloneStatus()
 
+      const urlParams = new URLSearchParams(window.location.search)
+      const hasHandshakeCompletionRef = Boolean(urlParams.get('handshake'))
+      const table6Canary = isTable6Canary()
+
       if (isStandaloneMode()) {
         console.log('[Registration] Standalone mode detected, checking for existing session...')
 
         const recoveredSession = recoverGuestSessionInStandalone()
-        if (recoveredSession) {
-          console.log('[Registration] Found existing session in standalone mode, redirecting to menu')
+        if (
+          recoveredSession &&
+          !hasHandshakeCompletionRef &&
+          (!table6Canary || isRestaurantHandshakeVerifiedForSession(recoveredSession))
+        ) {
+          console.log('[Registration] Found verified existing session, redirecting to menu')
           router.replace('/menu')
           return
         }
@@ -99,19 +128,85 @@ export default function RegisterPage({ params }: RegisterPageProps) {
 
       try {
         const existingSession = getGuestSession()
-        if (existingSession) {
-          console.log('Found existing guest session:', existingSession)
+        if (existingSession && !hasHandshakeCompletionRef) {
+          if (table6Canary && !isRestaurantHandshakeVerifiedForSession(existingSession)) {
+            console.log('[Registration] Table 6 requires WhatsApp verification for this browser session')
+            return
+          }
 
+          console.log('Found existing guest session:', existingSession)
           if (existingSession.guest_stay_id === stay_id) {
             console.log('Same stay_id found, allowing new family member registration')
           } else {
-            console.log('Different stay_id found, redirecting to menu')
+            console.log('Different verified stay_id found, redirecting to menu')
             router.replace('/menu')
           }
         }
       } catch (error) {
         console.warn('localStorage not available:', error)
       }
+    }
+  }, [isLoading, stay_id, router])
+
+  useEffect(() => {
+    if (isLoading || !stay_id || typeof window === 'undefined') return
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const handshakeRef = urlParams.get('handshake')?.trim()
+    const tableNumber = urlParams.get('table') || getTableNumber()
+    if (!handshakeRef || tableNumber !== RESTAURANT_HANDSHAKE_CANARY_TABLE) return
+
+    let cancelled = false
+    let attempts = 0
+    setIsLoading(true)
+
+    const finishFromHandshake = async () => {
+      attempts += 1
+      try {
+        const response = await fetch(
+          `/api/restaurant/handshake/status?ref=${encodeURIComponent(handshakeRef)}`,
+          { cache: 'no-store' }
+        )
+        const payload = (await response.json()) as HandshakeStatusPayload
+        if (!response.ok) throw new Error(payload.error || 'Could not verify WhatsApp handshake')
+        if (cancelled) return
+
+        if (payload.status === 'pending' && attempts < 20) {
+          window.setTimeout(finishFromHandshake, 1500)
+          return
+        }
+        if (payload.status !== 'completed' || !payload.first_name) {
+          throw new Error(
+            payload.status === 'expired'
+              ? 'This WhatsApp link expired. Please scan the table QR again.'
+              : 'WhatsApp verification is not complete yet.'
+          )
+        }
+
+        const session = await createGuestUser({
+          table_number: RESTAURANT_HANDSHAKE_CANARY_TABLE,
+          first_name: payload.first_name,
+          stay_id:
+            payload.match_kind === 'hotel' && payload.matched_stay_id
+              ? payload.matched_stay_id
+              : undefined,
+        })
+        if (cancelled) return
+
+        markRestaurantHandshakeVerified(session)
+        toast.success(`Welcome, ${payload.first_name}!`)
+        router.replace('/menu')
+      } catch (error: any) {
+        if (cancelled) return
+        console.error('[RestaurantHandshake] completion failed:', error)
+        toast.error(error?.message || 'Could not complete WhatsApp verification')
+        setIsLoading(false)
+      }
+    }
+
+    finishFromHandshake()
+    return () => {
+      cancelled = true
     }
   }, [isLoading, stay_id, router])
 
@@ -144,23 +239,15 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     }
 
     if (!firstName.trim()) {
-      console.error('VALIDATION ERROR: Empty firstName')
       toast.error('Please enter your first name')
       return
     }
 
     if (!stay_id) {
-      console.error('VALIDATION ERROR: No stay_id available:', {
-        stay_id,
-        pathname: window.location.pathname,
-        href: window.location.href,
-        params: unwrappedParams,
-      })
       toast.error('Registration link is invalid. Please try again.')
       return
     }
 
-    console.log('Validation passed, starting registration process...')
     setIsLoading(true)
 
     try {
@@ -171,21 +258,31 @@ export default function RegisterPage({ params }: RegisterPageProps) {
       const isWalkinGuest =
         stay_id.toLowerCase().includes('unknown') ||
         stay_id.toLowerCase().includes('walkin') ||
-        storedTableNumber ||
-        urlTableNumber
+        Boolean(storedTableNumber) ||
+        Boolean(urlTableNumber)
 
       const tableNumberToUse = isWalkinGuest
         ? storedTableNumber || urlTableNumber || stay_id
         : stay_id
 
-      console.log('Guest registration details:', {
-        storedTableNumber,
-        urlTableNumber,
-        stay_id,
-        isWalkinGuest,
-        tableNumberToUse,
-        stay_id_for_hotel: isWalkinGuest ? undefined : stay_id,
-      })
+      if (String(tableNumberToUse) === RESTAURANT_HANDSHAKE_CANARY_TABLE) {
+        const response = await fetch('/api/restaurant/handshake/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table_number: RESTAURANT_HANDSHAKE_CANARY_TABLE,
+            first_name: firstName.trim(),
+          }),
+        })
+        const payload = await response.json()
+        if (!response.ok || !payload?.whatsapp_url) {
+          throw new Error(payload?.error || 'Could not start WhatsApp verification')
+        }
+
+        console.log('[RestaurantHandshake] Opening restaurant WhatsApp')
+        window.location.assign(payload.whatsapp_url)
+        return
+      }
 
       const session = await createGuestUser({
         table_number: tableNumberToUse,
@@ -193,22 +290,11 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         stay_id: isWalkinGuest ? undefined : stay_id,
       })
       console.log('Generated session:', session)
-      console.log('Session saved successfully:', session)
 
       toast.success(`Welcome, ${firstName.trim()}!`)
-
-      setTimeout(() => {
-        console.log('Redirecting to menu...')
-        router.replace('/menu')
-      }, 500)
-
-      console.log('=== SAFARI REGISTRATION DEBUG END (SUCCESS) ===')
+      setTimeout(() => router.replace('/menu'), 500)
     } catch (error: any) {
-      console.error('=== SAFARI REGISTRATION DEBUG END (ERROR) ===')
-      console.error('Outer catch error:', error)
-      console.error('Error stack:', error?.stack)
-      console.error('Error name:', error?.name)
-      console.error('Error message:', error?.message)
+      console.error('Registration error:', error)
       toast.error(`An error occurred: ${error?.message || 'Unknown error'}`)
     } finally {
       setIsLoading(false)
@@ -274,6 +360,8 @@ export default function RegisterPage({ params }: RegisterPageProps) {
 
             {isLoading && !stay_id ? (
               <div className="mt-6 text-center text-base text-white/90">Loading...</div>
+            ) : isLoading && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('handshake') ? (
+              <div className="mt-6 text-center text-base text-white/90">Confirming WhatsApp...</div>
             ) : (
               <form onSubmit={handleSubmit} className="mt-6 space-y-4">
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg bg-white/10 p-3 text-left">
