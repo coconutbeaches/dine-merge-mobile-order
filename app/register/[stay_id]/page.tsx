@@ -272,7 +272,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
               </p>
 
               <p>
-                <strong>Outside food and pets are not permitted.</strong>
+                <strong>Outside food, pets and laptops are not permitted.</strong>
               </p>
 
               <p>
