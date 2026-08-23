@@ -5,7 +5,7 @@ import {
   RESTAURANT_ORDER_LINK_MIN_SECRET_BYTES,
   RESTAURANT_ORDER_LINK_SIGNING_SECRET_ENV,
   RestaurantOrderLinkConfigError,
-} from "@/src/server/restaurantOrderLink";
+} from "./restaurantOrderLink";
 
 export const RESTAURANT_GUEST_HANDSHAKE_TOKEN_VERSION = "h1";
 export const RESTAURANT_GUEST_HANDSHAKE_DOMAIN = "restaurant-guest-handshake";
