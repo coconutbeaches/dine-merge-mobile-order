@@ -302,9 +302,6 @@ export default function RegisterPage({ params }: RegisterPageProps) {
                 </label>
 
                 <div>
-                  <label htmlFor="first-name" className="mb-2 block font-semibold">
-                    First name
-                  </label>
                   <Input
                     id="first-name"
                     type="text"
