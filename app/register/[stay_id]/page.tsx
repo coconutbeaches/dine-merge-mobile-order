@@ -252,18 +252,10 @@ export default function RegisterPage({ params }: RegisterPageProps) {
           />
 
           <div className="rounded-xl bg-black/75 p-5 text-left text-white shadow-2xl backdrop-blur-sm sm:p-7">
-            <h1 className="text-center text-2xl font-semibold sm:text-3xl">
-              Welcome to Coconut Beach
-            </h1>
-
-            <p className="mt-3 text-center text-sm leading-relaxed text-white/90 sm:text-base">
-              It looks like this may be your first visit. Please read our house rules carefully.
-            </p>
-
-            <div className="mt-5 space-y-4 text-sm leading-relaxed text-white/95 sm:text-base">
+            <div className="space-y-4 text-sm leading-relaxed text-white/95 sm:text-base">
               <p>
                 <strong>Coconut Beach is a calm, quiet and relaxed place.</strong>{' '}
-                Please do not play music, play football, shout, or play loudly where it may disturb guests or the nearby massage area. Please use the other end of the beach for these activities.
+                To respect our guests and the nearby massage area, please use the other end of the beach for music, sports, loud children, etc.
               </p>
 
               <p>
@@ -276,11 +268,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
               </p>
 
               <p>
-                <strong>Public nudity and cannabis use are not permitted on the property.</strong>
-              </p>
-
-              <p className="text-white/85">
-                Violations may be reported to the authorities, and security-camera footage may be provided.
+                <strong>Public nudity and cannabis use are illegal.</strong>
               </p>
             </div>
 
