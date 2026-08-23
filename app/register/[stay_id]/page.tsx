@@ -282,8 +282,14 @@ export default function RegisterPage({ params }: RegisterPageProps) {
                     checked={acceptedRules}
                     onChange={(e) => setAcceptedRules(e.target.checked)}
                     disabled={isLoading}
-                    className="mt-0.5 h-5 w-5 shrink-0 accent-white"
+                    className="peer sr-only"
                   />
+                  <span
+                    aria-hidden="true"
+                    className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 border-white/70 bg-white/95 text-[18px] font-black leading-none text-gray-950 shadow-sm peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-black/70"
+                  >
+                    {acceptedRules ? '✓' : ''}
+                  </span>
                   <span className="font-semibold leading-snug">
                     I understand and accept the rules
                   </span>
