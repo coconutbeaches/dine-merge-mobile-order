@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { calculateTotalPrice } from '@/utils/productUtils';
 import { hasGuestSession } from '@/utils/guestSession';
+import { resetRestaurantToastOrderSession } from '@/lib/restaurantToastSession';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -86,6 +87,12 @@ export default function CheckoutPage() {
       );
       if (placedOrder) {
         toast.success('Order placed successfully!');
+        if (!adminCustomerContext) {
+          // A successful guest/customer order starts a fresh order session.
+          // The restaurant toaster may be shown once again the next time the
+          // guest returns to the main menu with an empty cart.
+          resetRestaurantToastOrderSession();
+        }
         clearCart();
         setAdminCustomerContext?.(null);
         const refFragment = new URLSearchParams({
@@ -101,7 +108,15 @@ export default function CheckoutPage() {
     } finally {
       setIsPlacingOrder(false);
     }
-  }, [validateOrder, tableNumber, placeOrder, clearCart, setAdminCustomerContext, router]);
+  }, [
+    validateOrder,
+    tableNumber,
+    placeOrder,
+    adminCustomerContext,
+    clearCart,
+    setAdminCustomerContext,
+    router,
+  ]);
 
   if (cart.length === 0) {
     return (
@@ -173,7 +188,7 @@ export default function CheckoutPage() {
                   {tableNumbers.map(n => (
                     <SelectItem 
                       key={n} 
-                      value={n} 
+                      value={n}
                       className="pl-8 pr-3 py-2 text-sm hover:bg-gray-100 rounded-md cursor-pointer transition-colors relative"
                     >
                       {n === 'Take Away' ? 'Take Away' : `Table ${n}`}

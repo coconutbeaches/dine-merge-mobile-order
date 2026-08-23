@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useCartContext } from '@/context/CartContext';
 import PopupMessageText from '@/components/menu/PopupMessageText';
+import {
+  hasSeenRestaurantToastThisOrderSession,
+  markRestaurantToastSeenForOrderSession,
+} from '@/lib/restaurantToastSession';
 
 type KitchenStatusRow = {
   active_orders: number | null;
@@ -51,6 +56,10 @@ async function fetchPopupNotice(): Promise<PopupNoticeRow | null> {
 }
 
 export default function KitchenStatus() {
+  const { cart, isLoading: cartIsLoading } = useCartContext();
+  const [sessionBlocked, setSessionBlocked] = useState<boolean | null>(null);
+  const [hasActivated, setHasActivated] = useState(false);
+  const [retired, setRetired] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const dismissTimerRef = useRef<number | null>(null);
@@ -83,17 +92,91 @@ export default function KitchenStatus() {
 
   const popupMessage = popupData?.message?.trim() ?? '';
   const shouldShowPopup = popupMessage.length > 0;
-  const shouldShow = shouldShowPopup || shouldShowQueue;
+  const hasToastContent = shouldShowPopup || shouldShowQueue;
 
   useEffect(() => {
-    if (!shouldShow || dismissed) {
+    setSessionBlocked(hasSeenRestaurantToastThisOrderSession());
+  }, []);
+
+  // A cart with any item means the guest is already in an order session.
+  // Suppress the toaster for the rest of that session, even if the cart is
+  // later emptied before an order is submitted.
+  useEffect(() => {
+    if (cartIsLoading || sessionBlocked === null || cart.length === 0) return;
+
+    markRestaurantToastSeenForOrderSession();
+    setSessionBlocked(true);
+    if (hasActivated) {
+      setRetired(true);
+    }
+    setIsVisible(false);
+  }, [cart.length, cartIsLoading, hasActivated, sessionBlocked]);
+
+  // Activate at most once per order session, only on the main menu with an
+  // empty cart. Persist the seen marker immediately so navigation/refreshing
+  // cannot make it appear again.
+  useEffect(() => {
+    if (
+      cartIsLoading ||
+      sessionBlocked === null ||
+      sessionBlocked ||
+      cart.length > 0 ||
+      !hasToastContent ||
+      hasActivated ||
+      retired ||
+      dismissed
+    ) {
+      return;
+    }
+
+    markRestaurantToastSeenForOrderSession();
+    setHasActivated(true);
+  }, [
+    cart.length,
+    cartIsLoading,
+    dismissed,
+    hasActivated,
+    hasToastContent,
+    retired,
+    sessionBlocked,
+  ]);
+
+  // If the live condition that caused the toast disappears after it has been
+  // shown, retire it instead of allowing it to pop up a second time later in
+  // the same order session.
+  useEffect(() => {
+    if (hasActivated && !hasToastContent) {
+      setRetired(true);
+      setIsVisible(false);
+    }
+  }, [hasActivated, hasToastContent]);
+
+  useEffect(() => {
+    const canDisplay =
+      hasActivated &&
+      !retired &&
+      !dismissed &&
+      sessionBlocked === false &&
+      !cartIsLoading &&
+      cart.length === 0 &&
+      hasToastContent;
+
+    if (!canDisplay) {
       setIsVisible(false);
       return;
     }
 
     const frame = window.requestAnimationFrame(() => setIsVisible(true));
     return () => window.cancelAnimationFrame(frame);
-  }, [shouldShow, dismissed]);
+  }, [
+    cart.length,
+    cartIsLoading,
+    dismissed,
+    hasActivated,
+    hasToastContent,
+    retired,
+    sessionBlocked,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -103,7 +186,17 @@ export default function KitchenStatus() {
     };
   }, []);
 
-  if (!shouldShow || dismissed) return null;
+  if (
+    cartIsLoading ||
+    sessionBlocked !== false ||
+    !hasActivated ||
+    retired ||
+    dismissed ||
+    cart.length > 0 ||
+    !hasToastContent
+  ) {
+    return null;
+  }
 
   const dismiss = () => {
     setIsVisible(false);
