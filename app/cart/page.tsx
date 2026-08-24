@@ -1,21 +1,57 @@
 "use client";
 
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
 import { useAppContext } from '@/context/AppContext';
+import { useGuestContext } from '@/context/GuestContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Trash2, Plus, Minus, ShoppingBag, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { formatThaiCurrency } from '@/lib/utils';
 import { calculateTotalPrice } from '@/utils/productUtils';
 import { hasGuestSession } from '@/utils/guestSession';
+import { resetRestaurantToastOrderSession } from '@/lib/restaurantToastSession';
 
 export default function Page() {
   const router = useRouter();
-  const { cart, removeFromCart, updateCartItemQuantity, cartTotal, isLoggedIn } = useAppContext();
-  const { toast } = useToast();
+  const {
+    cart,
+    removeFromCart,
+    updateCartItemQuantity,
+    cartTotal,
+    clearCart,
+    currentUser,
+    placeOrder,
+    adminCustomerContext,
+    setAdminCustomerContext,
+  } = useAppContext();
+  const { tableNumber: scannedTableNumber, setTableNumber: setTableNumberCtx } = useGuestContext();
+  const [tableNumber, setTableNumber] = useState(scannedTableNumber ?? 'Take Away');
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+
+  useEffect(() => {
+    if (scannedTableNumber && scannedTableNumber !== tableNumber) {
+      setTableNumber(scannedTableNumber);
+    }
+  }, [scannedTableNumber, tableNumber]);
+
+  const tableNumbers = useMemo(() => {
+    const nums = ['Take Away'];
+    for (let i = 1; i <= 40; i++) nums.push(i.toString());
+    return nums;
+  }, []);
+
+  const formatTableDisplay = (value: string) =>
+    value === 'Take Away' ? 'Take Away' : `Table ${value}`;
 
   const handleQuantityChange = (
     cartItemId: string,
@@ -30,18 +66,58 @@ export default function Page() {
     }
   };
 
-  const handleCheckout = () => {
-    if (!isLoggedIn && !hasGuestSession()) {
-      toast({
-        title: 'Sign in required',
-        description: 'Please sign in or create an account to checkout',
-        variant: 'destructive',
-      });
+  const handlePlaceOrder = useCallback(async () => {
+    if (!currentUser && !hasGuestSession()) {
+      toast.error('Please sign in or create an account to place your order.');
       router.push('/login?returnTo=/cart');
       return;
     }
-    router.push('/checkout');
-  };
+
+    if (cart.length === 0) {
+      toast.error('Your cart is empty.');
+      return;
+    }
+
+    setIsPlacingOrder(true);
+    try {
+      const placedOrder = await placeOrder(
+        null,
+        'Cash on Delivery',
+        tableNumber
+      );
+
+      if (!placedOrder) {
+        toast.error('Failed to place order. Please try again.');
+        return;
+      }
+
+      toast.success('Order placed successfully!');
+      if (!adminCustomerContext) {
+        resetRestaurantToastOrderSession();
+      }
+      clearCart();
+      setAdminCustomerContext?.(null);
+
+      const refFragment = new URLSearchParams({
+        ref: placedOrder.restaurant_order_ref,
+      }).toString();
+      router.push(`/order/${placedOrder.id}/confirmation#${refFragment}`);
+    } catch (error) {
+      console.error('Error placing order:', error);
+      toast.error('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  }, [
+    currentUser,
+    cart.length,
+    router,
+    placeOrder,
+    tableNumber,
+    adminCustomerContext,
+    clearCart,
+    setAdminCustomerContext,
+  ]);
 
   const grandTotal = cartTotal;
 
@@ -54,7 +130,9 @@ export default function Page() {
           <p className="text-muted-foreground mb-6">
             Add items from the menu to get started
           </p>
-          <Button onClick={() => router.push('/menu')} className="bg-black text-white hover:bg-gray-800">Browse Menu</Button>
+          <Button onClick={() => router.push('/menu')} className="bg-black text-white hover:bg-gray-800">
+            Browse Menu
+          </Button>
         </div>
       </Layout>
     );
@@ -62,7 +140,15 @@ export default function Page() {
 
   return (
     <Layout title="" showBackButton>
-      <div className="page-container pb-24">
+      <div className="page-container pb-8">
+        {adminCustomerContext && (
+          <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-3 mb-4 rounded">
+            <p className="font-bold">
+              Placing order for: {adminCustomerContext.customerName}
+            </p>
+          </div>
+        )}
+
         <div className="mb-6">
           <div className="space-y-3">
             {cart.map((item) => {
@@ -79,11 +165,9 @@ export default function Page() {
                       <div
                         className="w-16 h-16 rounded-md mr-3 bg-center bg-cover flex-shrink-0"
                         style={{
-                          backgroundImage: `url(${item.menuItem.image ||
-                            '/placeholder.svg'})`,
+                          backgroundImage: `url(${item.menuItem.image || '/placeholder.svg'})`,
                         }}
-                      >
-                      </div>
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
                           <h3
@@ -160,30 +244,63 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="mb-16">
-          <Card>
-            <CardContent className="p-4">
-              <div className="space-y-2">
-                <div className="flex justify-between font-bold">
-                  <span>Total</span>
-                  <span>{formatThaiCurrency(grandTotal)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardContent className="p-4 space-y-5">
+            <div className="flex justify-between font-bold">
+              <span>Total</span>
+              <span>{formatThaiCurrency(grandTotal)}</span>
+            </div>
 
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 shadow-md z-10">
-          <div className="max-w-lg mx-auto">
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Table Number</h2>
+              <Select
+                value={tableNumber}
+                onValueChange={(value) => {
+                  setTableNumber(value);
+                  setTableNumberCtx(value);
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select table number">
+                    {tableNumber ? formatTableDisplay(tableNumber) : 'Select table number'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent
+                  side="top"
+                  align="center"
+                  position="popper"
+                  className="z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg p-2 min-w-[200px] max-h-[300px] overflow-auto"
+                  sideOffset={8}
+                >
+                  {tableNumbers.map((number) => (
+                    <SelectItem
+                      key={number}
+                      value={number}
+                      className="pl-8 pr-3 py-2 text-sm hover:bg-gray-100 rounded-md cursor-pointer transition-colors relative"
+                    >
+                      {formatTableDisplay(number)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <Button
-              onClick={handleCheckout}
+              onClick={handlePlaceOrder}
               className="w-full bg-black hover:bg-gray-800 text-white"
-              disabled={cart.length === 0}
+              disabled={isPlacingOrder || cart.length === 0}
             >
-              Proceed to checkout {formatThaiCurrency(grandTotal)}
+              {isPlacingOrder ? (
+                <>
+                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  Processing...
+                </>
+              ) : (
+                <>Place Order {formatThaiCurrency(grandTotal)}</>
+              )}
             </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
