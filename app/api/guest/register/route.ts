@@ -6,6 +6,8 @@ import { resolveActiveStayForFirstName } from '@/lib/guestStayIdentity';
 
 export const runtime = 'nodejs';
 
+const RESTAURANT_HANDSHAKE_CANARY_TABLE = '6';
+
 export async function POST(request: NextRequest) {
   const serviceClient = createServiceRoleClient();
   if (!serviceClient) {
@@ -26,7 +28,17 @@ export async function POST(request: NextRequest) {
       const body = payload as Record<string, unknown>;
       const suppliedStayId = typeof body.stay_id === 'string' ? body.stay_id.trim().toLowerCase() : '';
       const isWalkInRequest = !suppliedStayId || suppliedStayId === 'unknown' || suppliedStayId.includes('walkin');
-      if (isWalkInRequest && typeof body.first_name === 'string') {
+      const tableNumber = typeof body.table_number === 'string' ? body.table_number.trim() : '';
+      const handshakeDecisionIsAuthoritative = tableNumber === RESTAURANT_HANDSHAKE_CANARY_TABLE;
+
+      // Table 6 is currently the WhatsApp-handshake canary. Once the verified
+      // handshake has decided hotel vs walk-in, do not independently reclassify
+      // a walk-in by first name here; that previously masked handshake failures.
+      if (
+        isWalkInRequest &&
+        !handshakeDecisionIsAuthoritative &&
+        typeof body.first_name === 'string'
+      ) {
         const inferredStayId = await resolveActiveStayForFirstName(serviceClient, body.first_name);
         if (inferredStayId) {
           registrationPayload = { ...body, stay_id: inferredStayId };
