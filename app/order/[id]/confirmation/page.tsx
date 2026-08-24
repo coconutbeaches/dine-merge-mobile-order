@@ -3,8 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Layout from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ArrowDownCircle, MessageSquare, Loader2 } from 'lucide-react';
 import { useFetchOrderById } from '@/hooks/useFetchOrderById';
 import { formatThaiCurrency } from '@/lib/utils';
@@ -21,18 +20,17 @@ const OrderConfirmationById = () => {
   const params = useParams();
   const orderId = params.id as string;
   const { order, isLoading, error, retry } = useFetchOrderById(orderId);
-  const [signedOrderRef, setSignedOrderRef] = useState<string | null>(null);
+  const [orderNumberRef, setOrderNumberRef] = useState<string | null>(null);
 
   useEffect(() => {
-    // If someone navigates directly to this page without an order ID, redirect to home
     if (!orderId) {
       setTimeout(() => {
         router.push('/');
       }, 3000);
     }
-    
+
     const readReference = () => {
-      setSignedOrderRef(restaurantOrderRefFromHash(window.location.hash));
+      setOrderNumberRef(restaurantOrderRefFromHash(window.location.hash));
     };
     readReference();
     window.addEventListener('hashchange', readReference);
@@ -40,7 +38,6 @@ const OrderConfirmationById = () => {
     return () => window.removeEventListener('hashchange', readReference);
   }, [orderId, router]);
 
-  // Track order completion when order data is loaded
   useEffect(() => {
     if (order && orderId) {
       trackOrderComplete({
@@ -54,8 +51,8 @@ const OrderConfirmationById = () => {
 
   const handleSendWhatsApp = () => {
     if (!order) return;
-    if (!signedOrderRef) {
-      toast.error('This order is missing its secure WhatsApp reference. Please place it again.');
+    if (!orderNumberRef || orderNumberRef !== String(order.id)) {
+      toast.error('This order number is missing or invalid. Please place the order again.');
       return;
     }
 
@@ -71,16 +68,12 @@ const OrderConfirmationById = () => {
     const tableNumber = order.table_number || 'Takeaway';
     const formattedTotal = formatThaiCurrency(order.total_amount);
 
-    // Check if this is a walk-in customer
     const isWalkIn = order.stay_id && order.stay_id.toLowerCase().includes('walkin');
-    
-    // Format customer name based on type
+
     let displayCustomerName = customerName;
     if (isWalkIn) {
       displayCustomerName = `Walkin ${customerName}`;
     } else {
-      // All non-walkin customers are hotel guests and should have stay_id
-      // Use formatted stay_id (underscores replaced with spaces)
       const formattedStayId = order.stay_id ? order.stay_id.replace(/_/g, ' ') : 'Guest';
       displayCustomerName = `${formattedStayId} ${customerName}`;
     }
@@ -92,17 +85,14 @@ const OrderConfirmationById = () => {
 ${itemsDetails}
 
 *Total:* ${formattedTotal}`;
-    const message = appendRestaurantOrderRef(readableMessage, signedOrderRef);
+    const message = appendRestaurantOrderRef(readableMessage, orderNumberRef);
 
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    
-    // Track WhatsApp conversion
+
     trackWhatsAppSend(order.id, order.total_amount);
   };
 
-
-  // Loading state
   if (isLoading) {
     return (
       <Layout title="Order Confirmation" showBackButton={false}>
@@ -118,11 +108,10 @@ ${itemsDetails}
     );
   }
 
-  // Error state
   if (error || (!isLoading && !order)) {
     return (
       <Layout title="Order Confirmation" showBackButton={false}>
-        <OrderErrorFallback 
+        <OrderErrorFallback
           orderId={orderId}
           error={error}
           onRetry={retry}
@@ -132,49 +121,36 @@ ${itemsDetails}
     );
   }
 
-  const customerName = order.customer_name || order.customer_name_from_profile || order.guest_first_name || 'Guest';
-  const tableNumber = order.table_number || 'Takeaway';
-  const orderDate = new Date(order.created_at).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-
   return (
     <Layout title="Order Confirmation" showBackButton={false}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
         <div className="container py-8 px-4 max-w-4xl mx-auto">
-          {/* Success Header */}
           <Card className="mb-8 border-0 shadow-xl bg-white backdrop-blur-sm confirmation-card confirmation-header">
             <CardHeader className="text-center py-12">
               <div className="relative">
                 <div className="absolute inset-0 bg-black/10 rounded-full w-32 h-32 mx-auto animate-pulse"></div>
                 <ArrowDownCircle className="relative mx-auto h-20 w-20 text-black mb-6 animate-bounce" />
               </div>
-              
-              {/* WhatsApp Button directly under the circle */}
-              <div style={{ 
-                backgroundColor: '#16a34a', 
+
+              <div style={{
+                backgroundColor: '#16a34a',
                 borderRadius: '0.5rem',
                 padding: '0.75rem 1.5rem',
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                cursor: signedOrderRef ? 'pointer' : 'not-allowed',
-                opacity: signedOrderRef ? 1 : 0.6,
+                cursor: orderNumberRef ? 'pointer' : 'not-allowed',
+                opacity: orderNumberRef ? 1 : 0.6,
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
                 border: 'none'
               }}
-              onClick={signedOrderRef ? handleSendWhatsApp : undefined}
-              aria-disabled={!signedOrderRef}
+              onClick={orderNumberRef ? handleSendWhatsApp : undefined}
+              aria-disabled={!orderNumberRef}
               >
                 <MessageSquare className="mr-3 h-5 w-5 text-white" />
                 <span className="text-white font-medium text-lg">Send Order via WhatsApp</span>
               </div>
-              
-              {/* Instructional text below WhatsApp button */}
+
               <p className="text-black text-center mt-4 text-sm font-medium">
                 To complete your order, send via whatsapp
               </p>
