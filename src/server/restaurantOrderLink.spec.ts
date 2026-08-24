@@ -30,13 +30,12 @@ describe("restaurant order number reference", () => {
       "utf8",
     );
 
-    expect(apiSource).toContain(
-      "issueRestaurantOrderLink(data.id, signingSecret)",
+    expect(apiSource).toContain("issueRestaurantOrderLink(data.id)");
+    expect(apiSource.indexOf("issueRestaurantOrderLink(data.id)")).toBeGreaterThan(
+      apiSource.indexOf(".insert("),
     );
-    expect(
-      apiSource.indexOf("issueRestaurantOrderLink(data.id, signingSecret)"),
-    ).toBeGreaterThan(apiSource.indexOf(".insert("));
     expect(apiSource).toContain("{ order: data, restaurantOrderRef }");
+    expect(apiSource).not.toContain("RESTAURANT_ORDER_LINK_SIGNING_SECRET");
   });
 
   it("verifies only for the expected order ID", () => {
