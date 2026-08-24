@@ -1,11 +1,7 @@
 import "server-only";
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
-import {
-  RESTAURANT_ORDER_LINK_MIN_SECRET_BYTES,
-  RESTAURANT_ORDER_LINK_SIGNING_SECRET_ENV,
-  RestaurantOrderLinkConfigError,
-} from "./restaurantOrderLink";
+import { RESTAURANT_ORDER_LINK_MIN_SECRET_BYTES } from "./restaurantOrderLink";
 
 export const RESTAURANT_GUEST_HANDSHAKE_TOKEN_VERSION = "h1";
 export const RESTAURANT_GUEST_HANDSHAKE_DOMAIN = "restaurant-guest-handshake";
@@ -14,41 +10,29 @@ export const RESTAURANT_GUEST_HANDSHAKE_TTL_MINUTES = 15;
 export const RESTAURANT_GUEST_HANDSHAKE_COMPLETION_TTL_MINUTES = 120;
 export const RESTAURANT_WHATSAPP_DIGITS = "66631457299";
 
-const requireSigningSecret = (value?: string): string => {
-  const secret = value?.trim();
-  if (!secret) {
-    throw new RestaurantOrderLinkConfigError(
-      `${RESTAURANT_ORDER_LINK_SIGNING_SECRET_ENV} is required`,
-    );
-  }
-  if (Buffer.byteLength(secret, "utf8") < RESTAURANT_ORDER_LINK_MIN_SECRET_BYTES) {
-    throw new RestaurantOrderLinkConfigError(
-      `${RESTAURANT_ORDER_LINK_SIGNING_SECRET_ENV} must be at least ${RESTAURANT_ORDER_LINK_MIN_SECRET_BYTES} bytes`,
-    );
-  }
-  return secret;
-};
+const SHORT_REF_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+export const RESTAURANT_GUEST_HANDSHAKE_SHORT_REF_PATTERN =
+  /^[A-HJ-NP-Z2-9]{5}-[A-HJ-NP-Z2-9]{5}$/;
 
 const signingInput = (nonce: string): string =>
   `${RESTAURANT_GUEST_HANDSHAKE_DOMAIN}:${RESTAURANT_GUEST_HANDSHAKE_TOKEN_VERSION}.${nonce}`;
 
-export const issueRestaurantGuestHandshakeRef = (
-  secretValue = process.env.RESTAURANT_ORDER_LINK_SIGNING_SECRET,
-): string => {
-  const secret = requireSigningSecret(secretValue);
-  const nonce = randomBytes(24).toString("base64url");
-  const signature = createHmac("sha256", secret)
-    .update(signingInput(nonce), "ascii")
-    .digest("base64url");
-  return `${RESTAURANT_GUEST_HANDSHAKE_TOKEN_VERSION}.${nonce}.${signature}`;
+const issueShortRef = (): string => {
+  const bytes = randomBytes(10);
+  const chars = Array.from(bytes, (byte) => SHORT_REF_ALPHABET[byte & 31]);
+  return `${chars.slice(0, 5).join("")}-${chars.slice(5).join("")}`;
 };
 
-export const verifyRestaurantGuestHandshakeRef = (
-  ref: string,
-  secretValue = process.env.RESTAURANT_ORDER_LINK_SIGNING_SECRET,
-): boolean => {
-  const secret = requireSigningSecret(secretValue);
-  const parts = String(ref || "").trim().split(".");
+export const issueRestaurantGuestHandshakeRef = (_secretValue?: string): string =>
+  issueShortRef();
+
+const verifyLegacySignedRef = (ref: string, secretValue?: string): boolean => {
+  const secret = secretValue?.trim();
+  if (!secret || Buffer.byteLength(secret, "utf8") < RESTAURANT_ORDER_LINK_MIN_SECRET_BYTES) {
+    return false;
+  }
+
+  const parts = ref.split(".");
   if (parts.length !== 3) return false;
   const [version, nonce, signature] = parts;
   if (version !== RESTAURANT_GUEST_HANDSHAKE_TOKEN_VERSION) return false;
@@ -67,6 +51,19 @@ export const verifyRestaurantGuestHandshakeRef = (
     .update(signingInput(nonce), "ascii")
     .digest();
   return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+};
+
+export const verifyRestaurantGuestHandshakeRef = (
+  ref: string,
+  secretValue = process.env.RESTAURANT_ORDER_LINK_SIGNING_SECRET,
+): boolean => {
+  const normalized = String(ref || "").trim();
+  if (RESTAURANT_GUEST_HANDSHAKE_SHORT_REF_PATTERN.test(normalized)) {
+    return true;
+  }
+  // Temporary compatibility for a handshake that was generated immediately
+  // before this rollout and is still inside the short completion window.
+  return verifyLegacySignedRef(normalized, secretValue);
 };
 
 export const hashRestaurantGuestHandshakeRef = (ref: string): string =>
