@@ -5,30 +5,28 @@ import {
   restaurantOrderRefFromHash,
 } from "./restaurantWhatsAppMessage";
 
-const SIGNED_REF = "v1.MjEyNDQ.dpKNzQdWHQjk8k8TWuK7c1FcRa9IjHmXy0xkuedV3mA";
+const ORDER_NUMBER = "21244";
 
 describe("restaurant WhatsApp message", () => {
-  it("keeps the human-readable order line and appends the signed Ref", () => {
+  it("uses the readable order number without appending a Ref line", () => {
     const message = appendRestaurantOrderRef(
       "*Order: #21244*\n\n*Items:*\n- 1x Rice\n\n*Total:* ฿30",
-      SIGNED_REF,
+      ORDER_NUMBER,
     );
 
     expect(message).toContain("*Order: #21244*");
-    expect(message).toContain(`\n\nRef: ${SIGNED_REF}`);
+    expect(message).not.toContain("\nRef:");
   });
 
-  it("refuses to build an unsigned or malformed WhatsApp message", () => {
+  it("rejects a missing or malformed order number", () => {
     expect(() => appendRestaurantOrderRef("*Order: #21244*", "")).toThrow();
     expect(() =>
       appendRestaurantOrderRef("*Order: #21244*", "v1.bad"),
     ).toThrow();
   });
 
-  it("transports only a versioned signed reference from the URL fragment", () => {
-    expect(
-      restaurantOrderRefFromHash(`#ref=${encodeURIComponent(SIGNED_REF)}`),
-    ).toBe(SIGNED_REF);
+  it("transports only a decimal order number from the URL fragment", () => {
+    expect(restaurantOrderRefFromHash("#ref=21244")).toBe(ORDER_NUMBER);
     expect(restaurantOrderRefFromHash("#ref=unsigned-21244")).toBeNull();
   });
 });
