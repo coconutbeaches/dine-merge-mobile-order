@@ -1,16 +1,18 @@
-export const RESTAURANT_ORDER_REF_PATTERN =
-  /^v1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
+export const RESTAURANT_ORDER_REF_PATTERN = /^[1-9][0-9]*$/;
 
 export const appendRestaurantOrderRef = (
   readableMessage: string,
-  signedReference: string,
+  orderNumber: string,
 ): string => {
   const base = readableMessage.trimEnd();
-  const ref = signedReference.trim();
+  const ref = orderNumber.trim();
   if (!base || !RESTAURANT_ORDER_REF_PATTERN.test(ref)) {
-    throw new Error("A valid signed restaurant order reference is required");
+    throw new Error("A valid restaurant order number is required");
   }
-  return `${base}\n\nRef: ${ref}`;
+
+  // The readable message already contains `*Order: #<id>*`, which is the only
+  // order identifier staff need to see. Do not append an opaque Ref line.
+  return base;
 };
 
 export const restaurantOrderRefFromHash = (hash: string): string | null => {
