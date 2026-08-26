@@ -5,9 +5,9 @@ import {
   hashRestaurantGuestHandshakeRef,
   issueRestaurantGuestHandshakeRef,
   normalizeHandshakeFirstName,
-  RESTAURANT_GUEST_HANDSHAKE_CANARY_TABLE,
   RESTAURANT_GUEST_HANDSHAKE_TTL_MINUTES,
 } from '@/server/restaurantGuestHandshake';
+import { normalizeRestaurantServiceLocation } from '@/lib/restaurantServiceLocation';
 import { RestaurantOrderLinkConfigError } from '@/server/restaurantOrderLink';
 
 export const runtime = 'nodejs';
@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 
-  const tableNumber = String(body.table_number ?? '').trim();
-  if (tableNumber !== RESTAURANT_GUEST_HANDSHAKE_CANARY_TABLE) {
-    return NextResponse.json({ error: 'WhatsApp handshake is not enabled for this table' }, { status: 404 });
+  const tableNumber = normalizeRestaurantServiceLocation(body.table_number);
+  if (!tableNumber) {
+    return NextResponse.json({ error: 'WhatsApp handshake is not enabled for this order location' }, { status: 404 });
   }
 
   const firstName = normalizeHandshakeFirstName(body.first_name);

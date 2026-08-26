@@ -14,9 +14,9 @@ import {
   restaurantOrderRefFromHash,
 } from '@/lib/restaurantWhatsAppMessage';
 import { getRestaurantHandshakeBrowserProof } from '@/lib/restaurantHandshakeSession';
+import { isRestaurantServiceLocation } from '@/lib/restaurantServiceLocation';
 import { toast } from 'sonner';
 
-const RESTAURANT_AUTO_DELIVERY_TABLES = new Set(['6']);
 const AUTO_DELIVERY_POLL_MS = 2000;
 const AUTO_DELIVERY_MAX_POLLS = 60;
 
@@ -69,7 +69,7 @@ const OrderConfirmationById = () => {
     if (!order || !referenceChecked) return;
 
     const tableNumber = String(order.table_number || '').trim();
-    if (!RESTAURANT_AUTO_DELIVERY_TABLES.has(tableNumber)) {
+    if (!isRestaurantServiceLocation(tableNumber)) {
       setAutoDeliveryStatus('idle');
       return;
     }
@@ -81,9 +81,8 @@ const OrderConfirmationById = () => {
 
     const proof = getRestaurantHandshakeBrowserProof();
     if (!proof?.handshake_ref) {
-      // A pre-rollout Table 6 browser may have a valid guest session but no
-      // exact raw handshake ref. Falling back is safe because no automatic send
-      // has been attempted for this order.
+      // Existing guests without an exact v2 WhatsApp binding safely retain the
+      // original manual path. No automatic send has been attempted yet.
       setAutoDeliveryStatus('failed');
       return;
     }
@@ -243,9 +242,7 @@ ${itemsDetails}
     );
   }
 
-  const autoDeliveryEnabled = RESTAURANT_AUTO_DELIVERY_TABLES.has(
-    String(order.table_number || '').trim()
-  );
+  const autoDeliveryEnabled = isRestaurantServiceLocation(order.table_number);
   const showManualButton = !autoDeliveryEnabled || autoDeliveryStatus === 'failed';
   const showConfirmed = autoDeliveryEnabled && autoDeliveryStatus === 'sent';
   const showAutomaticProgress =
