@@ -1,9 +1,11 @@
 const STORAGE_KEY = 'restaurant_handshake_verified_v1';
+const CURRENT_BINDING_VERSION = 2;
 
 export type RestaurantHandshakeBrowserProof = {
   guest_user_id: string;
   guest_stay_id: string;
   verified_at: string;
+  binding_version?: number;
   handshake_ref?: string;
 };
 
@@ -20,6 +22,9 @@ export function getRestaurantHandshakeBrowserProof(): RestaurantHandshakeBrowser
       guest_user_id: parsed.guest_user_id,
       guest_stay_id: parsed.guest_stay_id,
       verified_at: parsed.verified_at,
+      ...(typeof parsed.binding_version === 'number'
+        ? { binding_version: parsed.binding_version }
+        : {}),
       ...(handshakeRef ? { handshake_ref: handshakeRef } : {}),
     };
   } catch {
@@ -35,6 +40,7 @@ export function isRestaurantHandshakeVerifiedForSession(session: {
   const proof = getRestaurantHandshakeBrowserProof();
   return Boolean(
     proof &&
+      proof.binding_version === CURRENT_BINDING_VERSION &&
       proof.guest_user_id === session.guest_user_id &&
       proof.guest_stay_id === session.guest_stay_id,
   );
@@ -54,6 +60,7 @@ export function markRestaurantHandshakeVerified(
       guest_user_id: session.guest_user_id,
       guest_stay_id: session.guest_stay_id,
       verified_at: new Date().toISOString(),
+      binding_version: CURRENT_BINDING_VERSION,
       ...(normalizedHandshakeRef ? { handshake_ref: normalizedHandshakeRef } : {}),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(proof));
