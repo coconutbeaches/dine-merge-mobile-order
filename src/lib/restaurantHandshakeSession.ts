@@ -4,6 +4,7 @@ export type RestaurantHandshakeBrowserProof = {
   guest_user_id: string;
   guest_stay_id: string;
   verified_at: string;
+  handshake_ref?: string;
 };
 
 export function getRestaurantHandshakeBrowserProof(): RestaurantHandshakeBrowserProof | null {
@@ -13,10 +14,13 @@ export function getRestaurantHandshakeBrowserProof(): RestaurantHandshakeBrowser
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<RestaurantHandshakeBrowserProof>;
     if (!parsed.guest_user_id || !parsed.guest_stay_id || !parsed.verified_at) return null;
+    const handshakeRef =
+      typeof parsed.handshake_ref === 'string' ? parsed.handshake_ref.trim() : '';
     return {
       guest_user_id: parsed.guest_user_id,
       guest_stay_id: parsed.guest_stay_id,
       verified_at: parsed.verified_at,
+      ...(handshakeRef ? { handshake_ref: handshakeRef } : {}),
     };
   } catch {
     return null;
@@ -36,16 +40,21 @@ export function isRestaurantHandshakeVerifiedForSession(session: {
   );
 }
 
-export function markRestaurantHandshakeVerified(session: {
-  guest_user_id: string;
-  guest_stay_id: string;
-}): void {
+export function markRestaurantHandshakeVerified(
+  session: {
+    guest_user_id: string;
+    guest_stay_id: string;
+  },
+  handshakeRef?: string | null,
+): void {
   if (typeof window === 'undefined') return;
   try {
+    const normalizedHandshakeRef = String(handshakeRef || '').trim();
     const proof: RestaurantHandshakeBrowserProof = {
       guest_user_id: session.guest_user_id,
       guest_stay_id: session.guest_stay_id,
       verified_at: new Date().toISOString(),
+      ...(normalizedHandshakeRef ? { handshake_ref: normalizedHandshakeRef } : {}),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(proof));
   } catch {
