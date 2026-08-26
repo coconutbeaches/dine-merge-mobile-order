@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase-server';
+import { normalizeRestaurantServiceLocation } from '@/lib/restaurantServiceLocation';
 import {
   hashRestaurantGuestHandshakeRef,
   verifyRestaurantGuestHandshakeRef,
@@ -84,15 +85,27 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const orderLocation = normalizeRestaurantServiceLocation(order.table_number);
+  const handshakeLocation = normalizeRestaurantServiceLocation(handshake.table_number);
+  if (!orderLocation) {
+    return NextResponse.json(
+      {
+        status: 'failed',
+        code: 'table_not_enabled',
+        safe_manual_fallback: true,
+      },
+      { status: 200 },
+    );
+  }
+
   const orderGuestId = String(order.guest_user_id ?? '').trim();
   const orderStayId = String(order.stay_id ?? '').trim();
   const boundGuestId = String(handshake.bound_guest_user_id ?? '').trim();
   const boundStayId = String(handshake.bound_guest_stay_id ?? '').trim();
-  const sameTable = String(order.table_number ?? '').trim() === String(handshake.table_number ?? '').trim();
 
   if (
     handshake.status !== 'completed' ||
-    !sameTable ||
+    !handshakeLocation ||
     !orderGuestId ||
     !boundGuestId ||
     orderGuestId !== boundGuestId ||
@@ -100,7 +113,8 @@ export async function POST(request: NextRequest) {
   ) {
     console.warn('[restaurant-order-delivery] exact guest/WhatsApp binding missing or mismatched', {
       orderId,
-      sameTable,
+      orderLocation,
+      handshakeLocation,
       orderGuestPresent: Boolean(orderGuestId),
       boundGuestPresent: Boolean(boundGuestId),
     });
