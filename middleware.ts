@@ -1,87 +1,67 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 /**
- * Keep middleware limited to routes that actually need server-side auth.
+ * Refresh Supabase auth cookies only for document/page requests.
  *
- * Public menu/order routes use client-side Supabase sessions and do not need an
- * auth lookup on every page request. Global security headers, API no-cache
- * headers, and the canonical-domain redirect live in next.config.js so they can
- * be applied by the routing layer without consuming middleware CPU.
+ * API routes, Next.js assets, service-worker/static files, and other file
+ * requests do not need session refresh. Excluding them at the matcher level
+ * means they never start middleware compute in the first place.
+ *
+ * Security/cache headers and the canonical-domain redirect are configured in
+ * next.config.js so those behaviors no longer require middleware execution.
  */
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  const isAdminRoute = pathname.startsWith('/admin');
-  const isLoginRoute = pathname === '/login';
-
-  const response = NextResponse.next({
+  let response = NextResponse.next({
     request: {
       headers: request.headers,
     },
   });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey =
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     return response;
   }
 
-  let supabaseResponse = response;
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient(supabaseUrl, supabasePublishableKey, {
     cookies: {
       getAll() {
-        return request.cookies.getAll();
+        return request.cookies.getAll().map((cookie) => ({
+          name: cookie.name,
+          value: cookie.value,
+        }));
       },
-      setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+      setAll(cookiesToSet) {
+        // Update cookies on the request for downstream handlers.
+        cookiesToSet.forEach(({ name, value }) => {
+          request.cookies.set(name, value);
+        });
 
-        supabaseResponse = NextResponse.next({
+        // Update cookies on the response for the browser.
+        response = NextResponse.next({
           request: {
             headers: request.headers,
           },
         });
-
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
-        );
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
       },
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getUser() validates/refreshes the cookie-backed session when needed.
+  await supabase.auth.getUser();
 
-  if (isAdminRoute && !user) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = '/login';
-    loginUrl.searchParams.set('redirect', `${pathname}${request.nextUrl.search}`);
-
-    const redirectResponse = NextResponse.redirect(loginUrl);
-    supabaseResponse.cookies.getAll().forEach((cookie) =>
-      redirectResponse.cookies.set(cookie.name, cookie.value, cookie),
-    );
-    return redirectResponse;
-  }
-
-  if (isLoginRoute && user) {
-    const adminUrl = request.nextUrl.clone();
-    adminUrl.pathname = '/admin';
-    adminUrl.search = '';
-
-    const redirectResponse = NextResponse.redirect(adminUrl);
-    supabaseResponse.cookies.getAll().forEach((cookie) =>
-      redirectResponse.cookies.set(cookie.name, cookie.value, cookie),
-    );
-    return redirectResponse;
-  }
-
-  return supabaseResponse;
+  return response;
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/login'],
+  matcher: [
+    '/((?!api|rest/v1|auth/v1|_next|.*\\..*).*)',
+  ],
 };
