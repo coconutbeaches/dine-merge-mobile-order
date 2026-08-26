@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  clearRestaurantHandshakeBrowserProof,
   getRestaurantHandshakeBrowserProof,
   isRestaurantHandshakeVerifiedForSession,
   markRestaurantHandshakeVerified,
@@ -46,5 +47,20 @@ describe('restaurant handshake browser proof', () => {
         guest_stay_id: 'walkin-old',
       }),
     ).toBe(true);
+  });
+
+  it('clears a previous guest proof before a fresh Table 6 QR handshake', () => {
+    const oldSession = {
+      guest_user_id: 'guest-alvaro-old',
+      guest_stay_id: 'walkin-alvaro-old',
+    };
+
+    markRestaurantHandshakeVerified(oldSession, 'ABCDE-FGHIJ');
+    expect(isRestaurantHandshakeVerifiedForSession(oldSession)).toBe(true);
+
+    clearRestaurantHandshakeBrowserProof();
+
+    expect(getRestaurantHandshakeBrowserProof()).toBeNull();
+    expect(isRestaurantHandshakeVerifiedForSession(oldSession)).toBe(false);
   });
 });
