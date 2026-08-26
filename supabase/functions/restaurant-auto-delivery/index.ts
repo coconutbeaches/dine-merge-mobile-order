@@ -188,6 +188,48 @@ async function readOrder(supabase: ReturnType<typeof createAdminClient>, orderId
   return (data as OrderRow | null) ?? null;
 }
 
+async function readAndValidateHandshake(
+  supabase: ReturnType<typeof createAdminClient>,
+  handshakeRef: string,
+  order: OrderRow,
+): Promise<{ handshake: HandshakeRow | null; code: string | null }> {
+  const refHash = await sha256Hex(handshakeRef);
+  const { data: handshakeData, error: handshakeError } = await supabase
+    .from("restaurant_guest_handshakes")
+    .select("id,table_number,first_name,status,match_kind,whatsapp_chat_id,matched_stay_id,provider_channel_id,completed_at")
+    .eq("ref_hash", refHash)
+    .maybeSingle();
+
+  if (handshakeError || !handshakeData) {
+    return { handshake: null, code: "handshake_not_found" };
+  }
+
+  const handshake = handshakeData as HandshakeRow;
+  const completedAt = handshake.completed_at ? new Date(handshake.completed_at).getTime() : 0;
+  const orderCreatedAt = new Date(order.created_at).getTime();
+  const completedTooOld = !completedAt || Date.now() - completedAt > HANDSHAKE_MAX_AGE_MS;
+  const completedAfterOrder = completedAt > orderCreatedAt + 5 * 60 * 1000;
+  const orderName = normalizeName(order.guest_first_name || order.customer_name);
+  const handshakeName = normalizeName(handshake.first_name);
+  const hotelMismatch = handshake.match_kind === "hotel" && normalizeName(handshake.matched_stay_id) !== normalizeName(order.stay_id);
+  const nameMismatch = Boolean(orderName && handshakeName && orderName !== handshakeName);
+
+  if (
+    handshake.status !== "completed" ||
+    handshake.table_number !== String(order.table_number) ||
+    !handshake.whatsapp_chat_id ||
+    !handshake.provider_channel_id ||
+    completedTooOld ||
+    completedAfterOrder ||
+    hotelMismatch ||
+    nameMismatch
+  ) {
+    return { handshake: null, code: "handshake_order_mismatch" };
+  }
+
+  return { handshake, code: null };
+}
+
 async function sendWhapiText(token: string, to: string, body: string): Promise<{
   ok: boolean;
   status: number;
@@ -279,6 +321,39 @@ serve(async (req) => {
     return json({ status: "pending", safe_manual_fallback: false });
   }
 
+  // Validate the exact raw handshake before mutating the order. This prevents
+  // a guessed order number plus a random well-formed ref from forcing a Table 6
+  // order into fallback mode.
+  const handshakeResult = await readAndValidateHandshake(supabase, handshakeRef, order);
+  if (!handshakeResult.handshake) {
+    return json({
+      status: "failed",
+      code: handshakeResult.code || "handshake_order_mismatch",
+      safe_manual_fallback: true,
+    });
+  }
+  const handshake = handshakeResult.handshake;
+
+  const tokenInfo = getRestaurantToken();
+  if (!tokenInfo.token) {
+    const { data: failedClaim } = await supabase
+      .from("orders")
+      .update({
+        restaurant_auto_delivery_status: "failed",
+        restaurant_auto_delivery_attempted_at: new Date().toISOString(),
+        restaurant_auto_delivery_error: "missing_restaurant_whapi_token",
+      })
+      .eq("id", orderId)
+      .is("restaurant_auto_delivery_status", null)
+      .select("id");
+    if (failedClaim && failedClaim.length > 0) {
+      return json({ status: "failed", code: "restaurant_channel_unavailable", safe_manual_fallback: true });
+    }
+    const current = await readOrder(supabase, orderId).catch(() => null);
+    if (current?.kitchen_whapi_message_id) return json({ status: "sent", message_id: current.kitchen_whapi_message_id, deduped: true });
+    return json({ status: current?.restaurant_auto_delivery_status || "uncertain", safe_manual_fallback: current?.restaurant_auto_delivery_status === "failed" });
+  }
+
   const attemptedAt = new Date().toISOString();
   const { data: claimed, error: claimError } = await supabase
     .from("orders")
@@ -301,51 +376,10 @@ serve(async (req) => {
     return json({ status: current?.restaurant_auto_delivery_status || "pending", safe_manual_fallback: current?.restaurant_auto_delivery_status === "failed" });
   }
 
-  const refHash = await sha256Hex(handshakeRef);
-  const { data: handshakeData, error: handshakeError } = await supabase
-    .from("restaurant_guest_handshakes")
-    .select("id,table_number,first_name,status,match_kind,whatsapp_chat_id,matched_stay_id,provider_channel_id,completed_at")
-    .eq("ref_hash", refHash)
-    .maybeSingle();
-
-  if (handshakeError || !handshakeData) {
-    await updateDeliveryState(supabase, orderId, "failed", "handshake_not_found");
-    return json({ status: "failed", code: "handshake_not_found", safe_manual_fallback: true });
-  }
-  const handshake = handshakeData as HandshakeRow;
-  const completedAt = handshake.completed_at ? new Date(handshake.completed_at).getTime() : 0;
-  const orderCreatedAt = new Date(order.created_at).getTime();
-  const completedTooOld = !completedAt || Date.now() - completedAt > HANDSHAKE_MAX_AGE_MS;
-  const completedAfterOrder = completedAt > orderCreatedAt + 5 * 60 * 1000;
-  const orderName = normalizeName(order.guest_first_name || order.customer_name);
-  const handshakeName = normalizeName(handshake.first_name);
-  const hotelMismatch = handshake.match_kind === "hotel" && normalizeName(handshake.matched_stay_id) !== normalizeName(order.stay_id);
-  const nameMismatch = Boolean(orderName && handshakeName && orderName !== handshakeName);
-
-  if (
-    handshake.status !== "completed" ||
-    handshake.table_number !== String(order.table_number) ||
-    !handshake.whatsapp_chat_id ||
-    !handshake.provider_channel_id ||
-    completedTooOld ||
-    completedAfterOrder ||
-    hotelMismatch ||
-    nameMismatch
-  ) {
-    await updateDeliveryState(supabase, orderId, "failed", "handshake_order_mismatch");
-    return json({ status: "failed", code: "handshake_order_mismatch", safe_manual_fallback: true });
-  }
-
-  const tokenInfo = getRestaurantToken();
-  if (!tokenInfo.token) {
-    await updateDeliveryState(supabase, orderId, "failed", "missing_restaurant_whapi_token");
-    return json({ status: "failed", code: "restaurant_channel_unavailable", safe_manual_fallback: true });
-  }
-
   const message = buildOrderMessage(order);
   let sent: { ok: boolean; status: number; messageId: string | null };
   try {
-    sent = await sendWhapiText(tokenInfo.token, handshake.whatsapp_chat_id, message);
+    sent = await sendWhapiText(tokenInfo.token, handshake.whatsapp_chat_id!, message);
   } catch {
     console.error("[RESTAURANT_AUTO_DELIVERY_UNCERTAIN] order=%s reason=network_or_timeout", orderId);
     await updateDeliveryState(supabase, orderId, "uncertain", "whapi_network_or_timeout");
