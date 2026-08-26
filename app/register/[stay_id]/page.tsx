@@ -188,7 +188,7 @@ export default function RegisterPage({ params }: RegisterPageProps) {
         })
         if (cancelled) return
 
-        markRestaurantHandshakeVerified(session)
+        markRestaurantHandshakeVerified(session, handshakeCompletionRef)
         toast.success(`Welcome, ${payload.first_name}!`)
         router.replace('/menu')
       } catch (error: any) {
