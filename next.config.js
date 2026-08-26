@@ -1,65 +1,83 @@
-const productImageHostname = (() => {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_PRODUCT_IMAGE_BASE_URL || 'https://menu-images.coconut.holiday').hostname;
-  } catch {
-    return 'menu-images.coconut.holiday';
-  }
-})();
+const { withSentryConfig } = require('@sentry/nextjs');
 
-/** @type {import('next').NextConfig} */
+const securityHeaders = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+];
+
 const nextConfig = {
-  reactStrictMode: true,
-  devIndicators: {
-    position: 'bottom-right',
-  },
-  turbopack: {
-    root: __dirname,
+  eslint: {
+    ignoreDuringBuilds: true,
   },
   typescript: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has type errors.
     ignoreBuildErrors: true,
   },
-  // Performance optimizations
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production'
-      ? { exclude: ['error', 'warn'] }
-      : false,
-  },
-  experimental: {
-    optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
-  },
   images: {
-    formats: ['image/webp', 'image/avif'],
-    minimumCacheTTL: 60,
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**.supabase.co',
-        pathname: '/storage/v1/object/public/**',
+        hostname: 'fupducghlxscyeykhvkl.supabase.co',
       },
       {
         protocol: 'https',
-        hostname: productImageHostname,
+        hostname: 'ui-avatars.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'pub-f163d6c7060f490a95f87ed1300b2fff.r2.dev',
       },
     ],
   },
-  // Enable compression
-  compress: true,
-  // PWA-like features
-  headers: async () => {
+  async headers() {
     return [
       {
-        source: '/(.*)',
+        source: '/:path*',
+        headers: securityHeaders,
+      },
+      {
+        source: '/api/:path*',
         headers: [
           {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, private',
           },
         ],
       },
-    ]
+    ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'dine-merge-mobile-order.vercel.app',
+          },
+        ],
+        destination: 'https://dine.coconutbeachkohphangan.com/:path*',
+        permanent: true,
+      },
+    ];
+  },
+  ...(process.env.NODE_ENV === 'production' && {
+    logging: {
+      fetches: {
+        fullUrl: false,
+      },
+    },
+  }),
 };
 
-module.exports = nextConfig;
+module.exports = withSentryConfig(nextConfig, {
+  silent: true,
+  widenClientFileUpload: true,
+  disableLogger: true,
+  automaticVercelMonitors: false,
+  sourcemaps: {
+    disable: true,
+  },
+});
