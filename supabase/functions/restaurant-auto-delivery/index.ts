@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const WHAPI_TEXT_URL = "https://gate.whapi.cloud/messages/text";
+const PYTHON_AUTO_DELIVERY_URL =
+  (Deno.env.get("RESTAURANT_AUTO_DELIVERY_PYTHON_URL") ?? "").trim() ||
+  "https://python-whatsapp-chatbot.fly.dev/api/restaurant/order-delivery";
 const AUTO_DELIVERY_TABLES = new Set(["6"]);
 const RESTAURANT_TOKEN_ENV_NAMES = ["RESTAURANT_WHAPI_TOKEN", "WHAPI_RESTAURANT_TOKEN"];
 const EDGE_ADMIN_KEY_NAME = "edge_admin_2026_06";
@@ -12,6 +15,14 @@ const PENDING_STALE_MS = 90_000;
 const HANDSHAKE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 type DeliveryStatus = "pending" | "sent" | "failed" | "uncertain";
+
+type DeliveryPayload = {
+  status: DeliveryStatus;
+  code?: string;
+  message_id?: string;
+  safe_manual_fallback?: boolean;
+  deduped?: boolean;
+};
 
 type OrderRow = {
   id: number;
@@ -84,6 +95,77 @@ function getRestaurantToken(): { token: string; source: string } {
     if (token) return { token, source: name };
   }
   return { token: "", source: "missing" };
+}
+
+function isDeliveryStatus(value: unknown): value is DeliveryStatus {
+  return value === "pending" || value === "sent" || value === "failed" || value === "uncertain";
+}
+
+async function sendViaPythonDelivery(orderId: number, handshakeRef: string): Promise<DeliveryPayload> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const response = await fetch(PYTHON_AUTO_DELIVERY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: orderId, handshake_ref: handshakeRef }),
+      signal: controller.signal,
+    });
+
+    const responseText = await response.text();
+    let parsed: Record<string, unknown> | null = null;
+    try {
+      const value = responseText ? JSON.parse(responseText) : null;
+      parsed = value && typeof value === "object" && !Array.isArray(value)
+        ? value as Record<string, unknown>
+        : null;
+    } catch {
+      parsed = null;
+    }
+
+    if (!response.ok) {
+      console.error(
+        "[RESTAURANT_AUTO_DELIVERY_PYTHON_HTTP_ERROR] order=%s status=%s",
+        orderId,
+        response.status,
+      );
+      return {
+        status: "uncertain",
+        code: `python_http_${response.status}`,
+        safe_manual_fallback: false,
+      };
+    }
+
+    if (!parsed || !isDeliveryStatus(parsed.status)) {
+      console.error("[RESTAURANT_AUTO_DELIVERY_PYTHON_INVALID] order=%s", orderId);
+      return {
+        status: "uncertain",
+        code: "python_invalid_response",
+        safe_manual_fallback: false,
+      };
+    }
+
+    return {
+      status: parsed.status,
+      ...(typeof parsed.code === "string" && parsed.code ? { code: parsed.code } : {}),
+      ...(typeof parsed.message_id === "string" && parsed.message_id ? { message_id: parsed.message_id } : {}),
+      safe_manual_fallback: parsed.safe_manual_fallback === true,
+      ...(parsed.deduped === true ? { deduped: true } : {}),
+    };
+  } catch (error) {
+    console.error(
+      "[RESTAURANT_AUTO_DELIVERY_PYTHON_UNCERTAIN] order=%s error=%s",
+      orderId,
+      error instanceof Error ? error.name : "unknown",
+    );
+    return {
+      status: "uncertain",
+      code: "python_transport_uncertain",
+      safe_manual_fallback: false,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function normalizeName(value: unknown): string {
@@ -336,22 +418,18 @@ serve(async (req) => {
 
   const tokenInfo = getRestaurantToken();
   if (!tokenInfo.token) {
-    const { data: failedClaim } = await supabase
-      .from("orders")
-      .update({
-        restaurant_auto_delivery_status: "failed",
-        restaurant_auto_delivery_attempted_at: new Date().toISOString(),
-        restaurant_auto_delivery_error: "missing_restaurant_whapi_token",
-      })
-      .eq("id", orderId)
-      .is("restaurant_auto_delivery_status", null)
-      .select("id");
-    if (failedClaim && failedClaim.length > 0) {
-      return json({ status: "failed", code: "restaurant_channel_unavailable", safe_manual_fallback: true });
-    }
-    const current = await readOrder(supabase, orderId).catch(() => null);
-    if (current?.kitchen_whapi_message_id) return json({ status: "sent", message_id: current.kitchen_whapi_message_id, deduped: true });
-    return json({ status: current?.restaurant_auto_delivery_status || "uncertain", safe_manual_fallback: current?.restaurant_auto_delivery_status === "failed" });
+    // Supabase Edge does not currently have the restaurant WHAPI credential,
+    // while the live Python WhatsApp service does (it already powers the
+    // restaurant handshake/review flows). Delegate the exact same idempotent
+    // order+handshake capability there instead of declaring a false failure.
+    const delegated = await sendViaPythonDelivery(orderId, handshakeRef);
+    console.log(
+      "[RESTAURANT_AUTO_DELIVERY_DELEGATED] order=%s status=%s code=%s",
+      orderId,
+      delegated.status,
+      delegated.code || "none",
+    );
+    return json(delegated as unknown as Record<string, unknown>);
   }
 
   const attemptedAt = new Date().toISOString();
