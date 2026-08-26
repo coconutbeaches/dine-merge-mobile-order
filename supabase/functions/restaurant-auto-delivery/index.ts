@@ -5,12 +5,12 @@ const WHAPI_TEXT_URL = "https://gate.whapi.cloud/messages/text";
 const PYTHON_AUTO_DELIVERY_URL =
   (Deno.env.get("RESTAURANT_AUTO_DELIVERY_PYTHON_URL") ?? "").trim() ||
   "https://python-whatsapp-chatbot.fly.dev/api/restaurant/order-delivery";
-const AUTO_DELIVERY_TABLES = new Set(["6"]);
 const RESTAURANT_TOKEN_ENV_NAMES = ["RESTAURANT_WHAPI_TOKEN", "WHAPI_RESTAURANT_TOKEN"];
 const EDGE_ADMIN_KEY_NAME = "edge_admin_2026_06";
 const EDGE_ADMIN_KEY_FALLBACKS = ["edge_admin"];
 const SHORT_HANDSHAKE_REF_RE = /^[A-HJ-NP-Z2-9]{5}-[A-HJ-NP-Z2-9]{5}$/;
 const LEGACY_HANDSHAKE_REF_RE = /^h1\.[A-Za-z0-9_-]{20,80}\.[A-Za-z0-9_-]+$/;
+const NUMERIC_TABLE_RE = /^[1-9]\d*$/;
 const PENDING_STALE_MS = 90_000;
 const HANDSHAKE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
@@ -54,6 +54,8 @@ type HandshakeRow = {
   matched_stay_id: string | null;
   provider_channel_id: string | null;
   completed_at: string | null;
+  bound_guest_user_id: string | null;
+  bound_guest_stay_id: string | null;
 };
 
 function json(payload: Record<string, unknown>, status = 200): Response {
@@ -61,6 +63,13 @@ function json(payload: Record<string, unknown>, status = 200): Response {
     status,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function normalizeRestaurantServiceLocation(value: unknown): string | null {
+  const raw = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (NUMERIC_TABLE_RE.test(raw)) return String(Number(raw));
+  const collapsed = raw.replace(/[\s_-]+/g, "").toLocaleLowerCase("en");
+  return collapsed === "takeaway" ? "Take Away" : null;
 }
 
 function getAdminKey(): string {
@@ -278,7 +287,7 @@ async function readAndValidateHandshake(
   const refHash = await sha256Hex(handshakeRef);
   const { data: handshakeData, error: handshakeError } = await supabase
     .from("restaurant_guest_handshakes")
-    .select("id,table_number,first_name,status,match_kind,whatsapp_chat_id,matched_stay_id,provider_channel_id,completed_at")
+    .select("id,table_number,first_name,status,match_kind,whatsapp_chat_id,matched_stay_id,provider_channel_id,completed_at,bound_guest_user_id,bound_guest_stay_id")
     .eq("ref_hash", refHash)
     .maybeSingle();
 
@@ -295,18 +304,33 @@ async function readAndValidateHandshake(
   const handshakeName = normalizeName(handshake.first_name);
   const hotelMismatch = handshake.match_kind === "hotel" && normalizeName(handshake.matched_stay_id) !== normalizeName(order.stay_id);
   const nameMismatch = Boolean(orderName && handshakeName && orderName !== handshakeName);
+  const orderGuestId = String(order.guest_user_id ?? "").trim();
+  const boundGuestId = String(handshake.bound_guest_user_id ?? "").trim();
+  const orderStayId = String(order.stay_id ?? "").trim();
+  const boundStayId = String(handshake.bound_guest_stay_id ?? "").trim();
+  const bindingMissing = !orderGuestId || !boundGuestId || !boundStayId;
+  const bindingMismatch = orderGuestId !== boundGuestId || orderStayId !== boundStayId;
 
   if (
     handshake.status !== "completed" ||
-    handshake.table_number !== String(order.table_number) ||
+    !normalizeRestaurantServiceLocation(handshake.table_number) ||
     !handshake.whatsapp_chat_id ||
     !handshake.provider_channel_id ||
     completedTooOld ||
     completedAfterOrder ||
     hotelMismatch ||
-    nameMismatch
+    nameMismatch ||
+    bindingMissing ||
+    bindingMismatch
   ) {
-    return { handshake: null, code: "handshake_order_mismatch" };
+    return {
+      handshake: null,
+      code: bindingMissing
+        ? "guest_whatsapp_binding_required"
+        : bindingMismatch
+          ? "guest_whatsapp_binding_mismatch"
+          : "handshake_order_mismatch",
+    };
   }
 
   return { handshake, code: null };
@@ -375,7 +399,7 @@ serve(async (req) => {
     return json({ status: "uncertain", code: "order_lookup_error", safe_manual_fallback: false }, 200);
   }
   if (!order) return json({ status: "failed", code: "order_not_found", safe_manual_fallback: true }, 200);
-  if (!AUTO_DELIVERY_TABLES.has(String(order.table_number ?? "").trim())) {
+  if (!normalizeRestaurantServiceLocation(order.table_number)) {
     return json({ status: "failed", code: "table_not_enabled", safe_manual_fallback: true }, 200);
   }
 
@@ -403,9 +427,8 @@ serve(async (req) => {
     return json({ status: "pending", safe_manual_fallback: false });
   }
 
-  // Validate the exact raw handshake before mutating the order. This prevents
-  // a guessed order number plus a random well-formed ref from forcing a Table 6
-  // order into fallback mode.
+  // Validate the exact raw handshake before mutating the order. A valid ref is
+  // not sufficient: it must be durably bound to this exact guest session.
   const handshakeResult = await readAndValidateHandshake(supabase, handshakeRef, order);
   if (!handshakeResult.handshake) {
     return json({
@@ -419,9 +442,8 @@ serve(async (req) => {
   const tokenInfo = getRestaurantToken();
   if (!tokenInfo.token) {
     // Supabase Edge does not currently have the restaurant WHAPI credential,
-    // while the live Python WhatsApp service does (it already powers the
-    // restaurant handshake/review flows). Delegate the exact same idempotent
-    // order+handshake capability there instead of declaring a false failure.
+    // while the live Python WhatsApp service does. Delegate the exact same
+    // idempotent order+handshake capability there.
     const delegated = await sendViaPythonDelivery(orderId, handshakeRef);
     console.log(
       "[RESTAURANT_AUTO_DELIVERY_DELEGATED] order=%s status=%s code=%s",
