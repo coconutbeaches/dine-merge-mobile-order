@@ -4,10 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getGuestSession } from '@/utils/guestSession';
 import { isRestaurantHandshakeVerifiedForSession } from '@/lib/restaurantHandshakeSession';
+import {
+  normalizeRestaurantServiceLocation,
+} from '@/lib/restaurantServiceLocation';
 import { useGuestContext } from '@/context/GuestContext';
 import { useAppContext } from '@/context/AppContext';
-
-const RESTAURANT_HANDSHAKE_CANARY_TABLE = '6';
 
 const TableScanRouter = () => {
   const router = useRouter();
@@ -36,7 +37,9 @@ const TableScanRouter = () => {
       console.log('[TableScanRouter] No table scan parameter found.');
       return;
     }
-    const tableNum = goto.replace('table-', '');
+    const rawTableNum = goto.replace('table-', '');
+    const restaurantLocation = normalizeRestaurantServiceLocation(rawTableNum);
+    const tableNum = restaurantLocation || rawTableNum;
 
     console.log('[TableScanRouter] Processing table scan:', { goto, tableNum });
 
@@ -49,9 +52,9 @@ const TableScanRouter = () => {
       }
 
       const session = getGuestSession();
-      const table6RequiresHandshake = tableNum === RESTAURANT_HANDSHAKE_CANARY_TABLE;
-      const table6HandshakeVerified =
-        table6RequiresHandshake && isRestaurantHandshakeVerifiedForSession(session);
+      const requiresHandshake = Boolean(restaurantLocation);
+      const handshakeVerified =
+        requiresHandshake && isRestaurantHandshakeVerifiedForSession(session);
 
       console.log('[TableScanRouter] Current guest session:', session);
 
@@ -59,13 +62,13 @@ const TableScanRouter = () => {
         session &&
         session.guest_user_id &&
         session.guest_first_name &&
-        (!table6RequiresHandshake || table6HandshakeVerified)
+        (!requiresHandshake || handshakeVerified)
       ) {
         console.log('[TableScanRouter] Existing verified guest session found, redirecting to menu');
         router.replace('/menu');
       } else {
         console.log('[TableScanRouter] Registration/handshake required');
-        const registrationUrl = `/register/unknown?table=${tableNum}`;
+        const registrationUrl = `/register/unknown?table=${encodeURIComponent(tableNum)}`;
         console.log('[TableScanRouter] Registration URL:', registrationUrl);
         router.replace(registrationUrl);
       }
