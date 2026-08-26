@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createServiceRoleClient } from '@/lib/supabase-server';
+import { normalizeRestaurantServiceLocation } from '@/lib/restaurantServiceLocation';
 import {
   hashRestaurantGuestHandshakeRef,
-  RESTAURANT_GUEST_HANDSHAKE_CANARY_TABLE,
   verifyRestaurantGuestHandshakeRef,
 } from '@/server/restaurantGuestHandshake';
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   }
   if (
     handshake.status !== 'completed' ||
-    String(handshake.table_number) !== RESTAURANT_GUEST_HANDSHAKE_CANARY_TABLE
+    !normalizeRestaurantServiceLocation(handshake.table_number)
   ) {
     return NextResponse.json({ error: 'Handshake is not complete' }, { status: 409 });
   }
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Guest session not found' }, { status: 404 });
   }
 
-  const guestTable = String(guest.table_number ?? '').trim();
+  const guestTable = normalizeRestaurantServiceLocation(guest.table_number);
   const guestStay = String(guest.stay_id ?? '').trim();
   const sameName = normalizeName(guest.first_name) === normalizeName(handshake.first_name);
   const hotelStayMatches =
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     guestStay.toUpperCase() === String(handshake.matched_stay_id ?? '').trim().toUpperCase();
 
   if (
-    guestTable !== RESTAURANT_GUEST_HANDSHAKE_CANARY_TABLE ||
+    !guestTable ||
     guestStay !== guestStayId ||
     !sameName ||
     !hotelStayMatches
