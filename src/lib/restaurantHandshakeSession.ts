@@ -27,6 +27,16 @@ export function getRestaurantHandshakeBrowserProof(): RestaurantHandshakeBrowser
   }
 }
 
+export function clearRestaurantHandshakeBrowserProof(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // A fresh Table 6 scan will still route through registration when browser
+    // storage is unavailable; there is simply no stale proof to reuse.
+  }
+}
+
 export function isRestaurantHandshakeVerifiedForSession(session: {
   guest_user_id?: string | null;
   guest_stay_id?: string | null;
