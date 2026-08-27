@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
   const { data, error } = await serviceClient
     .from('restaurant_guest_handshakes')
-    .select('status,table_number,first_name,match_kind,matched_stay_id,expires_at,completed_at')
+    .select('status,table_number,first_name,match_kind,matched_stay_id,expires_at,completed_at,upgrade_guest_user_id')
     .eq('ref_hash', hashRestaurantGuestHandshakeRef(ref))
     .maybeSingle();
 
@@ -66,5 +66,6 @@ export async function GET(request: NextRequest) {
     first_name: data.first_name,
     match_kind: data.match_kind,
     matched_stay_id: data.match_kind === 'hotel' ? data.matched_stay_id : null,
+    upgrade_required: Boolean(data.upgrade_guest_user_id),
   });
 }

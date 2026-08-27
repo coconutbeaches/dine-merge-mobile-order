@@ -23,6 +23,13 @@ export function SessionRecovery({ children }: SessionRecoveryProps) {
   useEffect(() => {
     const handleSessionRecovery = async () => {
 
+      // A returning guest must finish verification before any menu redirect.
+      // In particular, upgrading an existing account always has a saved session.
+      if (pathname.startsWith('/restaurant/upgrade') ||
+        (pathname.startsWith('/register/') && new URLSearchParams(window.location.search).has('handshake'))) {
+        return;
+      }
+
       // Skip session recovery for admin and login pages
       if (pathname.startsWith('/admin') || pathname.startsWith('/login')) {
         return;

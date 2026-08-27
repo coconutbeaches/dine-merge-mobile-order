@@ -33,12 +33,17 @@ export async function POST(request: NextRequest) {
 
   const { data: handshake, error: handshakeError } = await serviceClient
     .from('restaurant_guest_handshakes')
-    .select('id,status,table_number,first_name,match_kind,matched_stay_id,bound_guest_user_id,bound_guest_stay_id')
+    .select('id,status,table_number,first_name,match_kind,matched_stay_id,bound_guest_user_id,bound_guest_stay_id,upgrade_guest_user_id')
     .eq('ref_hash', hashRestaurantGuestHandshakeRef(ref))
     .maybeSingle();
 
   if (handshakeError || !handshake) {
     return NextResponse.json({ error: 'Handshake not found' }, { status: 404 });
+  }
+  // Upgrade refs must pass the historical phone/channel checks, not this
+  // legacy name-only binding path.
+  if (handshake.upgrade_guest_user_id) {
+    return NextResponse.json({ error: 'Complete this verification on the account upgrade page' }, { status: 409 });
   }
   if (
     handshake.status !== 'completed' ||

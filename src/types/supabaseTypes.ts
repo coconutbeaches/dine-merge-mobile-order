@@ -6,9 +6,41 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+type RestaurantGuestHandshakeRow = {
+  id: string
+  ref_hash: string
+  table_number: string
+  first_name: string
+  status: string
+  match_kind: string | null
+  phone_e164: string | null
+  whatsapp_chat_id: string | null
+  linked_incoming_guest_id: string | null
+  matched_stay_id: string | null
+  match_method: string | null
+  match_confidence: number | null
+  provider_channel_id: string | null
+  created_at: string
+  expires_at: string
+  completed_at: string | null
+  reply_sent_at: string | null
+  last_error: string | null
+  bound_guest_user_id: string | null
+  bound_guest_stay_id: string | null
+  bound_at: string | null
+  upgrade_guest_user_id: string | null
+  upgrade_guest_stay_id: string | null
+}
+
 export type Database = {
   public: {
     Tables: {
+      restaurant_guest_handshakes: {
+        Row: RestaurantGuestHandshakeRow
+        Insert: Partial<RestaurantGuestHandshakeRow> & Pick<RestaurantGuestHandshakeRow, 'ref_hash' | 'table_number' | 'first_name' | 'expires_at'>
+        Update: Partial<RestaurantGuestHandshakeRow>
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string
@@ -72,18 +104,21 @@ export type Database = {
           first_name: string
           id: string
           stay_id: string
+          table_number: string | null
         }
         Insert: {
           created_at?: string | null
           first_name: string
           id?: string
           stay_id: string
+          table_number?: string | null
         }
         Update: {
           created_at?: string | null
           first_name?: string
           id?: string
           stay_id?: string
+          table_number?: string | null
         }
         Relationships: []
       }
