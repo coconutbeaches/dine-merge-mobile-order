@@ -59,6 +59,7 @@ type HandshakeStatusPayload = {
   first_name?: string
   match_kind?: 'hotel' | 'walkin'
   matched_stay_id?: string | null
+  upgrade_required?: boolean
   error?: string
 }
 
@@ -178,6 +179,10 @@ export default function RegisterPage({ params }: RegisterPageProps) {
               : 'WhatsApp verification is not complete yet.'
           )
         }
+        if (payload.upgrade_required) {
+          router.replace(`/restaurant/upgrade#handshake=${encodeURIComponent(handshakeCompletionRef)}`)
+          return
+        }
         if (normalizeRestaurantServiceLocation(payload.table_number) !== restaurantLocation) {
           throw new Error('This WhatsApp verification belongs to another restaurant location.')
         }
@@ -294,7 +299,6 @@ export default function RegisterPage({ params }: RegisterPageProps) {
     <div
       className="w-full overflow-y-auto"
       style={{
-        minHeight: '100vh',
         minHeight: '100dvh',
         position: 'relative',
         backgroundImage: 'url(/bg-landing.png)',

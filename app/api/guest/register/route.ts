@@ -103,6 +103,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
   }
 
+  // Guard BEFORE registerGuest: an upgrade callback must never insert another
+  // walk-in guest, even if an old browser bundle calls this endpoint directly.
+  const ref = handshakeRefFromRequest(request);
+  if (ref) {
+    if (!verifyRestaurantGuestHandshakeRef(ref)) {
+      return NextResponse.json({ error: 'Invalid WhatsApp verification' }, { status: 400 });
+    }
+    const { data: handshake, error } = await serviceClient.from('restaurant_guest_handshakes')
+      .select('upgrade_guest_user_id').eq('ref_hash', hashRestaurantGuestHandshakeRef(ref)).maybeSingle();
+    if (error || !handshake) {
+      return NextResponse.json({ error: 'Could not check WhatsApp verification' }, { status: 409 });
+    }
+    if (handshake.upgrade_guest_user_id) {
+      return NextResponse.json({ error: 'Use the account upgrade page to keep your existing account', code: 'existing_account_upgrade_required' }, { status: 409 });
+    }
+  }
+
   let result;
   let restaurantLocation: string | null = null;
   try {
