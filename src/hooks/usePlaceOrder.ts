@@ -8,6 +8,10 @@ import { toast } from 'sonner';
 import { getGuestSession, hasGuestSession, getTableNumber } from '@/utils/guestSession';
 import { clearCartBackup } from '@/lib/cartService';
 import type { PlacedOrder } from '@/types/restaurantOrderLink';
+import {
+  completeOrderRequest,
+  getOrCreateOrderRequestId,
+} from '@/lib/orderRequestIdentity';
 
 export function usePlaceOrder(
   userId: string | undefined,
@@ -115,7 +119,7 @@ export function usePlaceOrder(
       const guestSession = getGuestSession();
       const guestCtx = { tableNumber: typeof window !== 'undefined' ? getTableNumber() : null };
       
-      const orderParams = {
+      const orderParamsWithoutRequestId = {
         userId: adminContext ? 
           // Admin creating order: use customer ID if it's a UUID, null if hotel guest
           (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(adminContext.customerId) ? adminContext.customerId : null) :
@@ -143,6 +147,15 @@ export function usePlaceOrder(
         adminCustomerId: adminContext?.customerId ?? null,
         adminCustomerName: adminContext?.customerName ?? null,
       };
+
+      const clientRequestId = getOrCreateOrderRequestId({
+        cartItems: cart as CartItem[],
+        tableNumber: orderParamsWithoutRequestId.tableNumber,
+        userId: orderParamsWithoutRequestId.userId,
+        guestUserId: orderParamsWithoutRequestId.guestUserId,
+        adminCustomerId: orderParamsWithoutRequestId.adminCustomerId,
+      });
+      const orderParams = { ...orderParamsWithoutRequestId, clientRequestId };
       
       console.log('🔍 DEBUGGING: Parameters being sent to placeOrderInSupabase:', orderParams);
       
@@ -159,12 +172,13 @@ export function usePlaceOrder(
 
       const newOrderForLocalState: Order = {
         id: insertedOrderData.id,
+        client_request_id: insertedOrderData.client_request_id,
         user_id: insertedOrderData.user_id,
         guest_user_id: insertedOrderData.guest_user_id,
         guest_first_name: insertedOrderData.guest_first_name,
         stay_id: insertedOrderData.stay_id,
         total_amount: insertedOrderData.total_amount,
-        order_status: 'new' as OrderStatus,
+        order_status: (insertedOrderData.order_status ?? 'new') as OrderStatus,
         created_at: insertedOrderData.created_at,
         updated_at: insertedOrderData.updated_at,
         order_items: insertedOrderData.order_items,
@@ -186,7 +200,11 @@ export function usePlaceOrder(
         clearCartBackup(guestId);
       }
       toast.success(`Order #${insertedOrderData.id} placed successfully!`);
-      
+
+      // Clear only after every local success step above completes. Any lost
+      // response or post-insert exception retains the same ID for safe retry.
+      completeOrderRequest(clientRequestId);
+
       return {
         ...newOrderForLocalState,
         restaurant_order_ref: placement.restaurantOrderRef,

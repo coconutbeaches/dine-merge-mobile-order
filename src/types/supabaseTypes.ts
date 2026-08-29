@@ -151,6 +151,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          client_request_id: string | null
           created_at: string
           customer_name: string | null
           guest_first_name: string | null
@@ -168,6 +169,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          client_request_id?: string | null
           created_at?: string
           customer_name?: string | null
           guest_first_name?: string | null
@@ -185,6 +187,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          client_request_id?: string | null
           created_at?: string
           customer_name?: string | null
           guest_first_name?: string | null

@@ -31,8 +31,9 @@ describe("restaurant order number reference", () => {
     );
 
     expect(apiSource).toContain("issueRestaurantOrderLink(data.id)");
+    expect(apiSource).toContain("persistIdempotentOrder(serviceClient");
     expect(apiSource.indexOf("issueRestaurantOrderLink(data.id)")).toBeGreaterThan(
-      apiSource.indexOf(".insert("),
+      apiSource.indexOf("persistIdempotentOrder(serviceClient"),
     );
     expect(apiSource).toContain("{ order: data, restaurantOrderRef }");
     expect(apiSource).not.toContain("RESTAURANT_ORDER_LINK_SIGNING_SECRET");
