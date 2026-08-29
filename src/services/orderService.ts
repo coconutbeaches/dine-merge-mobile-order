@@ -73,6 +73,7 @@ export const placeOrderInSupabase = async (
     customerName,
     cartItems,
     tableNumber,
+    clientRequestId,
     adminCustomerId,
     adminCustomerName,
   }: {
@@ -87,6 +88,7 @@ export const placeOrderInSupabase = async (
     cartItems: CartItem[];
     total?: number;
     tableNumber?: string;
+    clientRequestId: string;
     adminCustomerId?: string | null;
     adminCustomerName?: string | null;
   }
@@ -104,6 +106,7 @@ export const placeOrderInSupabase = async (
         guestUserId: guestUserId || null,
         customerName: customerName || null,
         tableNumber: tableNumber || null,
+        clientRequestId,
         adminCustomerId: adminCustomerId || null,
         adminCustomerName: adminCustomerName || null,
       }),
@@ -115,17 +118,17 @@ export const placeOrderInSupabase = async (
       throw new Error(payload?.error || 'Failed to place order');
     }
 
-    // Clear table number after successful order placement so subsequent orders
-    // without rescanning will have table_number=null.
+    const signedReference = String(payload?.restaurantOrderRef || '').trim();
+    if (!payload?.order || !signedReference) {
+      throw new Error('Order response did not include a signed restaurant reference');
+    }
+
+    // Mutate browser session state only after the complete success payload has
+    // been validated. A truncated/lost response remains safely retryable.
     try {
       localStorage.removeItem('table_number_pending');
     } catch (localStorageError) {
       console.warn('[Order Service] Could not clear table_number_pending (localStorage unavailable):', localStorageError);
-    }
-
-    const signedReference = String(payload?.restaurantOrderRef || '').trim();
-    if (!payload?.order || !signedReference) {
-      throw new Error('Order response did not include a signed restaurant reference');
     }
     return {
       order: payload.order as Order,

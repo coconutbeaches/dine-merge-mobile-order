@@ -6,6 +6,11 @@ import {
   type OrderRequestItem,
 } from '@/lib/orderPricing';
 import { issueRestaurantOrderLink } from '@/server/restaurantOrderLink';
+import {
+  OrderIdempotencyMismatchError,
+  OrderPersistenceError,
+  persistIdempotentOrder,
+} from '@/server/orderIdempotency';
 
 export const runtime = 'nodejs';
 
@@ -39,6 +44,12 @@ export async function POST(request: NextRequest) {
   }
 
   const body = (payload ?? {}) as Record<string, unknown>;
+  const rawClientRequestId = cleanString(body.clientRequestId);
+  if (!rawClientRequestId || !UUID_PATTERN.test(rawClientRequestId)) {
+    return NextResponse.json({ error: 'A valid client request ID is required' }, { status: 400 });
+  }
+  const clientRequestId = rawClientRequestId.toLowerCase();
+
   const items = Array.isArray(body.cartItems)
     ? (body.cartItems as OrderRequestItem[])
     : Array.isArray(body.items)
@@ -149,9 +160,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to price order' }, { status: 500 });
   }
 
-  const { data, error } = await serviceClient
-    .from('orders')
-    .insert({
+  let data;
+  let replayed: boolean;
+  try {
+    const result = await persistIdempotentOrder(serviceClient, {
+      client_request_id: clientRequestId,
       user_id: attribution.user_id,
       guest_user_id: attribution.guest_user_id,
       guest_first_name: attribution.guest_first_name,
@@ -162,16 +175,24 @@ export async function POST(request: NextRequest) {
       total_amount: total,
       table_number: tableNumber,
       order_status: 'new',
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error('[api/orders] Insert failed:', error.message);
+    });
+    data = result.order;
+    replayed = result.replayed;
+  } catch (error) {
+    if (error instanceof OrderIdempotencyMismatchError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    const databaseCode =
+      error instanceof OrderPersistenceError ? error.databaseCode : null;
+    console.error('[api/orders] Insert failed', { databaseCode });
     return NextResponse.json({ error: 'Failed to place order' }, { status: 500 });
   }
 
   // The order number itself is the restaurant WhatsApp identifier.
   const restaurantOrderRef = issueRestaurantOrderLink(data.id);
-  return NextResponse.json({ order: data, restaurantOrderRef }, { status: 201 });
+  const responseBody = { order: data, restaurantOrderRef };
+  return NextResponse.json(
+    replayed ? { ...responseBody, idempotentReplay: true } : responseBody,
+    { status: replayed ? 200 : 201 },
+  );
 }
