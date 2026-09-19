@@ -149,6 +149,71 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_customer_identifiers: {
+        Row: {
+          created_at: string
+          customer_id: string
+          first_observed_at: string
+          identifier_id: string
+          identifier_type: string
+          identifier_value: string
+          last_observed_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          first_observed_at?: string
+          identifier_id?: string
+          identifier_type: string
+          identifier_value: string
+          last_observed_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          first_observed_at?: string
+          identifier_id?: string
+          identifier_type?: string
+          identifier_value?: string
+          last_observed_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_customer_identifiers_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_customers"
+            referencedColumns: ["customer_id"]
+          },
+        ]
+      }
+      restaurant_customers: {
+        Row: {
+          created_at: string
+          customer_id: string
+          first_observed_at: string
+          last_observed_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string
+          first_observed_at?: string
+          last_observed_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          first_observed_at?: string
+          last_observed_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           client_request_id: string | null
@@ -162,7 +227,17 @@ export type Database = {
           kitchen_whapi_message_id: string | null
           order_items: Json | null
           order_status: Database["public"]["Enums"]["order_status"] | null
+          restaurant_customer_id: string | null
+          source_display_name: string | null
+          source_first_name: string | null
+          source_message_id: string | null
+          source_sender_id: string | null
+          source_sender_phone_e164: string | null
+          source_whapi_lid: string | null
           stay_id: string | null
+          status_message_channel_id: string | null
+          status_message_chat_id: string | null
+          status_message_id: string | null
           table_number: string | null
           total_amount: number
           updated_at: string
@@ -180,7 +255,17 @@ export type Database = {
           kitchen_whapi_message_id?: string | null
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
+          restaurant_customer_id?: string | null
+          source_display_name?: string | null
+          source_first_name?: string | null
+          source_message_id?: string | null
+          source_sender_id?: string | null
+          source_sender_phone_e164?: string | null
+          source_whapi_lid?: string | null
           stay_id?: string | null
+          status_message_channel_id?: string | null
+          status_message_chat_id?: string | null
+          status_message_id?: string | null
           table_number?: string | null
           total_amount: number
           updated_at?: string
@@ -198,13 +283,30 @@ export type Database = {
           kitchen_whapi_message_id?: string | null
           order_items?: Json | null
           order_status?: Database["public"]["Enums"]["order_status"] | null
+          restaurant_customer_id?: string | null
+          source_display_name?: string | null
+          source_first_name?: string | null
+          source_message_id?: string | null
+          source_sender_id?: string | null
+          source_sender_phone_e164?: string | null
+          source_whapi_lid?: string | null
           stay_id?: string | null
+          status_message_channel_id?: string | null
+          status_message_chat_id?: string | null
+          status_message_id?: string | null
           table_number?: string | null
           total_amount?: number
           updated_at?: string
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_restaurant_customer_id_fkey"
+            columns: ["restaurant_customer_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_customers"
+            referencedColumns: ["customer_id"]
+          },
           {
             foreignKeyName: "orders_user_id_fkey"
             columns: ["user_id"]
@@ -505,6 +607,16 @@ export type Database = {
           non_guest_count: number
           guest_amount: number
           non_guest_amount: number
+        }[]
+      }
+      resolve_restaurant_customer_identity: {
+        Args: {
+          p_phone_e164?: string | null
+          p_whapi_lid?: string | null
+        }
+        Returns: {
+          resolved_customer_id: string | null
+          resolution: string
         }[]
       }
       top_products_by_quantity: {
