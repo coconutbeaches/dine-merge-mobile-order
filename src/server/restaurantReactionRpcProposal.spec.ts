@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-const sql=readFileSync('review-artifacts/sql/restaurant_apply_kitchen_reaction_v1.sql','utf8');
+const sql=readFileSync('src/server/__fixtures__/restaurant_apply_kitchen_reaction_v1.sql','utf8');
 describe('unapplied reaction RPC proposal source safeguards (not DB execution)',()=>{
   it('restricts execution and holds exact mapping locks',()=>{
     expect(sql).toContain('security invoker');
