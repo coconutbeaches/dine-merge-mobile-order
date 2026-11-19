@@ -47,8 +47,21 @@ follow-up below.
    manual fallback if automatic delivery may already have sent the order.
    Runtime warns with counts only, never guest identities, tokens, or payloads.
 
-There is no all-guest mode in this candidate; a later reviewed change is
-required to enable that behavior.
+## All-guests mode
+
+`RESTAURANT_FEEDBACK_POLL_MODE=all-guests` sends the poll to whichever guest's
+order message the Restaurant account stars ⭐ — still one manual staff action
+per poll, still one poll per order, still only direct chats whose order binding
+the claim RPC confirms. Differences from the canary:
+
+- `RESTAURANT_FEEDBACK_POLL_CANARY_DM` is ignored.
+- No two-hour expiry. `RESTAURANT_FEEDBACK_POLL_LIVE_AFTER` is still required
+  and reactions before it are ignored; reactions must still be under 2 minutes old.
+- The 5-star review reply follows the same mode.
+
+To turn it off, set the mode back to `staff-canary` (or remove
+`RESTAURANT_FEEDBACK_POLL_ENABLED`) and redeploy. Unknown or missing modes send
+nothing.
 
 The authenticated callback finishes existing status/binding and acknowledges
 Whapi before its poll worker begins. The worker is capped at five concurrent
@@ -68,9 +81,9 @@ to retain deduplication. No rollback step uses Fly.io.
 
 When the guest picks ⭐⭐⭐⭐⭐ on the poll, they get one message with the Google
 review link (text in `src/server/restaurantFeedbackReviewReply.ts`). Enable with
-`RESTAURANT_FEEDBACK_REVIEW_REPLY_ENABLED=true`; it reuses the poll's
-`RESTAURANT_FEEDBACK_POLL_MODE=staff-canary` and `..._CANARY_DM`, so it can only
-reply to that one staff DM until the poll itself is widened.
+`RESTAURANT_FEEDBACK_REVIEW_REPLY_ENABLED=true`. It follows
+`RESTAURANT_FEEDBACK_POLL_MODE`: only the canary DM in `staff-canary`, any guest
+who received a poll in `all-guests`.
 
 - The vote event only says *a* vote happened. The handler re-reads the poll from
   Whapi (`GET /messages/{id}`) and replies only if the guest is in the 5-star

@@ -123,6 +123,39 @@ describe('atomic reservation and fixed native survey payload', () => {
     expect(f.fetcher).not.toHaveBeenCalled();
     expect(f.rpc).not.toHaveBeenCalled();
   });
+  describe('all-guests mode', () => {
+    const otherGuest = '66800000003@s.whatsapp.net';
+    const guestEnv = { ...testEnv, RESTAURANT_FEEDBACK_POLL_MODE: 'all-guests', RESTAURANT_FEEDBACK_POLL_CANARY_DM: undefined };
+    it('sends to any guest DM the claim RPC confirms, without a canary DM', async () => {
+      const f = fixture();
+      f.claim.mockResolvedValue({ data: [{ order_id: 123, guest_chat: otherGuest }] });
+      f.fetcher.mockImplementation(async input => String(input).includes('/health')
+        ? Response.json({ status: { text: 'AUTH' }, channel_id: config.channelId, user: { id: '66800000001' } })
+        : Response.json({ message: { id: 'accepted-poll', chat_id: otherGuest } }));
+      await expect(f.run({ ...feedback, ref: { ...ref, chatId: otherGuest } }, guestEnv)).resolves.toBe('feedback_sent');
+      const send = f.fetcher.mock.calls.find(([x]) => String(x).endsWith('/messages/poll'));
+      expect(JSON.parse(String(send?.[1]?.body)).to).toBe(otherGuest);
+    });
+    it('has no two-hour expiry but still requires a fresh reaction after LIVE_AFTER', async () => {
+      const f = fixture();
+      const later = now.getTime() + 3 * 24 * 60 * 60 * 1000;
+      await expect(f.run({ ...feedback, timestampMs: later }, guestEnv, () => later)).resolves.toBe('feedback_sent');
+      await expect(f.run({ ...feedback, timestampMs: later - 121_000 }, guestEnv, () => later)).resolves.toBe('feedback_before_cutoff_or_stale');
+      await expect(f.run(feedback, { ...guestEnv, RESTAURANT_FEEDBACK_POLL_LIVE_AFTER: '2026-11-19T08:30:02Z' }))
+        .resolves.toBe('feedback_before_cutoff_or_stale');
+    });
+    it('still refuses a claim whose chat differs from the starred chat', async () => {
+      const f = fixture();
+      f.claim.mockResolvedValue({ data: [{ order_id: 123, guest_chat: otherGuest }] });
+      await expect(f.run(feedback, guestEnv)).resolves.toBe('feedback_claim_unconfirmed');
+      expect(f.fetcher.mock.calls.some(([x]) => String(x).endsWith('/messages/poll'))).toBe(false);
+    });
+    it('still requires the Restaurant account as the sender', async () => {
+      const f = fixture();
+      await expect(f.run({ ...feedback, actorPhone: '66800000009' }, guestEnv)).resolves.toBe('feedback_wrong_sender');
+      await expect(f.run({ ...feedback, fromMe: false }, guestEnv)).resolves.toBe('feedback_wrong_sender');
+    });
+  });
   it('rejects a live non-allowlisted direct chat before touching provider or database', async () => {
     const f = fixture();
     await expect(f.run({ ...feedback, ref: { ...ref, chatId: '66800000003@s.whatsapp.net' } }))

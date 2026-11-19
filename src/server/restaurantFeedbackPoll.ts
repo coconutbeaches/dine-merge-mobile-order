@@ -54,10 +54,13 @@ export async function runRestaurantFeedbackBatch(
 export function createRestaurantFeedbackHandler(
   client: SupabaseClient, env: NodeJS.ProcessEnv, fetcher: typeof fetch = fetch, clock: () => number = Date.now,
 ): FeedbackHandler | undefined {
-  // This deployment has no unrestricted mode. Partial or mistyped canary
-  // configuration must not fall back to dispatching to production guests.
+  // Two explicit modes. 'staff-canary': one approved DM, two-hour window.
+  // 'all-guests': any guest DM whose order message staff starred, no expiry.
+  // Anything else (missing or mistyped) sends nothing.
+  const mode = env.RESTAURANT_FEEDBACK_POLL_MODE;
   if (env.RESTAURANT_FEEDBACK_POLL_ENABLED !== 'true'
-      || env.RESTAURANT_FEEDBACK_POLL_MODE !== 'staff-canary') return undefined;
+      || (mode !== 'staff-canary' && mode !== 'all-guests')) return undefined;
+  const canary = mode === 'staff-canary';
   const token = str(env.RESTAURANT_WHAPI_TOKEN);
   const channel = str(env.RESTAURANT_WHAPI_CHANNEL_ID);
   const phone = str(env.RESTAURANT_WHAPI_PHONE);
@@ -66,7 +69,7 @@ export function createRestaurantFeedbackHandler(
   const startsAt = canaryUtc(liveAfter);
   const orderCutoff = str(env.RESTAURANT_ORDER_WEBHOOK_LIVE_AFTER);
   if (!token || !/^[A-Z0-9-]+$/.test(channel) || !/^[1-9]\d{7,14}$/.test(phone)
-      || !dm.test(destination) || destination === `${phone}@s.whatsapp.net`
+      || (canary && (!dm.test(destination) || destination === `${phone}@s.whatsapp.net`))
       || !Number.isFinite(startsAt)
       || !Number.isFinite(utc(orderCutoff))) return async () => 'feedback_configuration_invalid';
 
@@ -81,11 +84,12 @@ export function createRestaurantFeedbackHandler(
     if (!fromMe || actorPhone !== phone) return 'feedback_wrong_sender';
     if (ref.channelId !== channel || !dm.test(ref.chatId)
         || ref.chatId === `${phone}@s.whatsapp.net`) return 'feedback_wrong_route';
-    if (ref.chatId !== destination) return 'feedback_canary_recipient_denied';
+    if (canary && ref.chatId !== destination) return 'feedback_canary_recipient_denied';
+    const endsAt = canary ? startsAt + CANARY_WINDOW_MS : Infinity;
     const fresh = () => {
       const now = clock();
-      return !budget?.aborted && Number.isFinite(timestampMs) && now >= startsAt && now < startsAt + CANARY_WINDOW_MS
-        && timestampMs >= startsAt && timestampMs < startsAt + CANARY_WINDOW_MS && timestampMs >= now - 120_000 && timestampMs <= now + 5_000;
+      return !budget?.aborted && Number.isFinite(timestampMs) && now >= startsAt && now < endsAt
+        && timestampMs >= startsAt && timestampMs < endsAt && timestampMs >= now - 120_000 && timestampMs <= now + 5_000;
     };
     if (!fresh()) return 'feedback_before_cutoff_or_stale';
 
@@ -112,7 +116,7 @@ export function createRestaurantFeedbackHandler(
     const guest = str(row.guest_chat);
     const orderId = Number(row.order_id);
     if (!dm.test(guest) || guest === `${phone}@s.whatsapp.net`
-        || guest !== ref.chatId || guest !== destination
+        || guest !== ref.chatId || (canary && guest !== destination)
         || !Number.isSafeInteger(orderId) || orderId <= 0) return 'feedback_claim_unconfirmed';
 
     // A persistent claim now owns the only send attempt. Never retry after

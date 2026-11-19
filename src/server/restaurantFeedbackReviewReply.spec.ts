@@ -93,6 +93,16 @@ describe('review reply handler', () => {
     await expect(f.run({ ...vote, chatId: '66800000003@s.whatsapp.net' })).resolves.toBe('review_canary_recipient_denied');
     expect(f.fetcher).not.toHaveBeenCalled();
   });
+  it('in all-guests mode replies to any guest chat the claim RPC accepts', async () => {
+    const f = fixture();
+    const allEnv = { ...env, RESTAURANT_FEEDBACK_POLL_MODE: 'all-guests', RESTAURANT_FEEDBACK_POLL_CANARY_DM: undefined };
+    await expect(f.run(vote, allEnv)).resolves.toBe('review_sent');
+  });
+  it.each([undefined, 'all', 'staff'])('refuses unknown poll mode %s', async mode => {
+    const f = fixture();
+    await expect(f.run(vote, { ...env, RESTAURANT_FEEDBACK_POLL_MODE: mode })).resolves.toBe('review_configuration_invalid');
+    expect(f.fetcher).not.toHaveBeenCalled();
+  });
   it('rejects stale votes', async () => {
     const f = fixture();
     await expect(f.run({ ...vote, atMs: now - 11 * 60_000 })).resolves.toBe('review_stale');

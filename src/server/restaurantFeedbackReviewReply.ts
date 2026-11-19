@@ -91,12 +91,15 @@ export function createRestaurantReviewReplyHandler(
   const token = str(env.RESTAURANT_WHAPI_TOKEN);
   const channel = str(env.RESTAURANT_WHAPI_CHANNEL_ID);
   const phone = str(env.RESTAURANT_WHAPI_PHONE);
-  // Polls only go to the staff canary DM today, so replies are held to it too.
-  // Widening this needs the same reviewed change as widening the poll.
+  // Follows the poll's mode: in 'staff-canary' replies are held to the one
+  // approved DM; in 'all-guests' the claim RPC ties the reply to the chat the
+  // poll was actually sent to.
+  const mode = env.RESTAURANT_FEEDBACK_POLL_MODE;
+  const canary = mode === 'staff-canary';
   const destination = str(env.RESTAURANT_FEEDBACK_POLL_CANARY_DM);
   if (!token || !/^[A-Z0-9-]+$/.test(channel) || !/^[1-9]\d{7,14}$/.test(phone)
-      || env.RESTAURANT_FEEDBACK_POLL_MODE !== 'staff-canary'
-      || !DM.test(destination) || destination === `${phone}@s.whatsapp.net`) return async () => 'review_configuration_invalid';
+      || (mode !== 'staff-canary' && mode !== 'all-guests')
+      || (canary && (!DM.test(destination) || destination === `${phone}@s.whatsapp.net`))) return async () => 'review_configuration_invalid';
 
   const signal = (budget: AbortSignal, ms = 5000) => AbortSignal.any([budget, AbortSignal.timeout(ms)]);
   const call = (path: string, budget: AbortSignal, init: RequestInit = {}, ms = 5000) => fetcher(origin + path, {
@@ -107,7 +110,7 @@ export function createRestaurantReviewReplyHandler(
   return async ({ pollMessageId, chatId, atMs }, budget) => {
     const guestPhone = DM.exec(chatId)?.[1];
     if (!guestPhone || guestPhone === phone || !ID.test(pollMessageId)) return 'review_bad_reference';
-    if (chatId !== destination) return 'review_canary_recipient_denied';
+    if (canary && chatId !== destination) return 'review_canary_recipient_denied';
     const now = clock();
     if (atMs !== null && (atMs < now - MAX_VOTE_AGE_MS || atMs > now + 5_000)) return 'review_stale';
 
