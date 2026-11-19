@@ -24,6 +24,10 @@ type RestaurantGuestHandshakeRow = {
   expires_at: string
   completed_at: string | null
   reply_sent_at: string | null
+  inbound_message_id: string | null
+  reply_delivery_state: string
+  reply_attempted_at: string | null
+  reply_provider_message_id: string | null
   last_error: string | null
   bound_guest_user_id: string | null
   bound_guest_stay_id: string | null

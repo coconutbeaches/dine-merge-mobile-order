@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { finalizeGuestDelivery, freshDeliveryOrder, verifyRestaurantProvider } from "./finalizeGuestDelivery.ts";
 
 const WHAPI_TEXT_URL = "https://gate.whapi.cloud/messages/text";
-const PYTHON_AUTO_DELIVERY_URL =
-  (Deno.env.get("RESTAURANT_AUTO_DELIVERY_PYTHON_URL") ?? "").trim() ||
-  "https://python-whatsapp-chatbot.fly.dev/api/restaurant/order-delivery";
 const RESTAURANT_TOKEN_ENV_NAMES = ["RESTAURANT_WHAPI_TOKEN", "WHAPI_RESTAURANT_TOKEN"];
 const EDGE_ADMIN_KEY_NAME = "edge_admin_2026_06";
 const EDGE_ADMIN_KEY_FALLBACKS = ["edge_admin"];
@@ -110,73 +108,6 @@ function isDeliveryStatus(value: unknown): value is DeliveryStatus {
   return value === "pending" || value === "sent" || value === "failed" || value === "uncertain";
 }
 
-async function sendViaPythonDelivery(orderId: number, handshakeRef: string): Promise<DeliveryPayload> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 15_000);
-  try {
-    const response = await fetch(PYTHON_AUTO_DELIVERY_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order_id: orderId, handshake_ref: handshakeRef }),
-      signal: controller.signal,
-    });
-
-    const responseText = await response.text();
-    let parsed: Record<string, unknown> | null = null;
-    try {
-      const value = responseText ? JSON.parse(responseText) : null;
-      parsed = value && typeof value === "object" && !Array.isArray(value)
-        ? value as Record<string, unknown>
-        : null;
-    } catch {
-      parsed = null;
-    }
-
-    if (!response.ok) {
-      console.error(
-        "[RESTAURANT_AUTO_DELIVERY_PYTHON_HTTP_ERROR] order=%s status=%s",
-        orderId,
-        response.status,
-      );
-      return {
-        status: "uncertain",
-        code: `python_http_${response.status}`,
-        safe_manual_fallback: false,
-      };
-    }
-
-    if (!parsed || !isDeliveryStatus(parsed.status)) {
-      console.error("[RESTAURANT_AUTO_DELIVERY_PYTHON_INVALID] order=%s", orderId);
-      return {
-        status: "uncertain",
-        code: "python_invalid_response",
-        safe_manual_fallback: false,
-      };
-    }
-
-    return {
-      status: parsed.status,
-      ...(typeof parsed.code === "string" && parsed.code ? { code: parsed.code } : {}),
-      ...(typeof parsed.message_id === "string" && parsed.message_id ? { message_id: parsed.message_id } : {}),
-      safe_manual_fallback: parsed.safe_manual_fallback === true,
-      ...(parsed.deduped === true ? { deduped: true } : {}),
-    };
-  } catch (error) {
-    console.error(
-      "[RESTAURANT_AUTO_DELIVERY_PYTHON_UNCERTAIN] order=%s error=%s",
-      orderId,
-      error instanceof Error ? error.name : "unknown",
-    );
-    return {
-      status: "uncertain",
-      code: "python_transport_uncertain",
-      safe_manual_fallback: false,
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 function normalizeName(value: unknown): string {
   return String(value ?? "").trim().replace(/\s+/g, " ").toLocaleLowerCase("en");
 }
@@ -259,13 +190,19 @@ async function updateDeliveryState(
   orderId: number,
   status: DeliveryStatus,
   errorCode: string | null,
+  attemptedAt?: string,
 ): Promise<void> {
   const payload: Record<string, unknown> = {
     restaurant_auto_delivery_status: status,
     restaurant_auto_delivery_error: errorCode,
   };
   if (status === "sent") payload.restaurant_auto_delivery_completed_at = new Date().toISOString();
-  const { error } = await supabase.from("orders").update(payload).eq("id", orderId);
+  let query = supabase.from("orders").update(payload).eq("id", orderId);
+  if (attemptedAt) {
+    query = query.eq("restaurant_auto_delivery_status", "pending")
+      .eq("restaurant_auto_delivery_attempted_at", attemptedAt);
+  }
+  const { error } = await query;
   if (error) console.error("[RESTAURANT_AUTO_DELIVERY_STATE_ERROR] order=%s status=%s err=%s", orderId, status, error.message);
 }
 
@@ -399,6 +336,12 @@ serve(async (req) => {
     return json({ status: "uncertain", code: "order_lookup_error", safe_manual_fallback: false }, 200);
   }
   if (!order) return json({ status: "failed", code: "order_not_found", safe_manual_fallback: true }, 200);
+  // Migration cutoff is checked before ANY legacy state normalization or stale
+  // claim handling: invoking an old order must not mutate it or trigger replay.
+  const liveAfter = (Deno.env.get("RESTAURANT_OUTBOUND_LIVE_AFTER") ?? "").trim();
+  if (!freshDeliveryOrder(order.created_at, liveAfter, Date.now())) {
+    return json({ status: "failed", code: "order_outside_migration_window", safe_manual_fallback: false }, 200);
+  }
   if (!normalizeRestaurantServiceLocation(order.table_number)) {
     return json({ status: "failed", code: "table_not_enabled", safe_manual_fallback: true }, 200);
   }
@@ -421,14 +364,12 @@ serve(async (req) => {
       ? new Date(order.restaurant_auto_delivery_attempted_at).getTime()
       : 0;
     if (attemptedAt && Date.now() - attemptedAt > PENDING_STALE_MS) {
-      await updateDeliveryState(supabase, orderId, "uncertain", "stale_pending_attempt");
+      await updateDeliveryState(supabase, orderId, "uncertain", "stale_pending_attempt", order.restaurant_auto_delivery_attempted_at ?? undefined);
       return json({ status: "uncertain", code: "stale_pending_attempt", safe_manual_fallback: false });
     }
     return json({ status: "pending", safe_manual_fallback: false });
   }
 
-  // Validate the exact raw handshake before mutating the order. A valid ref is
-  // not sufficient: it must be durably bound to this exact guest session.
   const handshakeResult = await readAndValidateHandshake(supabase, handshakeRef, order);
   if (!handshakeResult.handshake) {
     return json({
@@ -441,17 +382,17 @@ serve(async (req) => {
 
   const tokenInfo = getRestaurantToken();
   if (!tokenInfo.token) {
-    // Supabase Edge does not currently have the restaurant WHAPI credential,
-    // while the live Python WhatsApp service does. Delegate the exact same
-    // idempotent order+handshake capability there.
-    const delegated = await sendViaPythonDelivery(orderId, handshakeRef);
-    console.log(
-      "[RESTAURANT_AUTO_DELIVERY_DELEGATED] order=%s status=%s code=%s",
-      orderId,
-      delegated.status,
-      delegated.code || "none",
-    );
-    return json(delegated as unknown as Record<string, unknown>);
+    // Fly is permanently retired. No alternate sender or automatic retry.
+    // No send claim has occurred, so the existing manual fallback remains safe.
+    return json({ status: "failed", code: "restaurant_provider_not_configured", safe_manual_fallback: true }, 200);
+  }
+
+  const expectedChannel = (Deno.env.get("RESTAURANT_WHAPI_CHANNEL_ID") ?? "").trim();
+  const expectedPhone = (Deno.env.get("RESTAURANT_WHAPI_PHONE") ?? "").trim();
+  if (!freshDeliveryOrder(order.created_at, liveAfter, Date.now()) ||
+      handshake.provider_channel_id !== expectedChannel ||
+      !await verifyRestaurantProvider(tokenInfo.token, expectedChannel, expectedPhone)) {
+    return json({ status: "failed", code: "restaurant_identity_or_cutoff_unverified", safe_manual_fallback: true }, 200);
   }
 
   const attemptedAt = new Date().toISOString();
@@ -482,41 +423,38 @@ serve(async (req) => {
     sent = await sendWhapiText(tokenInfo.token, handshake.whatsapp_chat_id!, message);
   } catch {
     console.error("[RESTAURANT_AUTO_DELIVERY_UNCERTAIN] order=%s reason=network_or_timeout", orderId);
-    await updateDeliveryState(supabase, orderId, "uncertain", "whapi_network_or_timeout");
+    await updateDeliveryState(supabase, orderId, "uncertain", "whapi_network_or_timeout", attemptedAt);
     return json({ status: "uncertain", code: "whapi_network_or_timeout", safe_manual_fallback: false });
   }
 
   if (!sent.ok) {
     const status: DeliveryStatus = sent.status >= 500 ? "uncertain" : "failed";
     const code = `whapi_http_${sent.status}`;
-    await updateDeliveryState(supabase, orderId, status, code);
+    await updateDeliveryState(supabase, orderId, status, code, attemptedAt);
     return json({ status, code, safe_manual_fallback: status === "failed" });
   }
   if (!sent.messageId) {
-    await updateDeliveryState(supabase, orderId, "uncertain", "whapi_success_missing_message_id");
+    await updateDeliveryState(supabase, orderId, "uncertain", "whapi_success_missing_message_id", attemptedAt);
     return json({ status: "uncertain", code: "whapi_success_missing_message_id", safe_manual_fallback: false });
   }
 
-  const completedAtIso = new Date().toISOString();
-  const { error: persistError } = await supabase
-    .from("orders")
-    .update({
-      kitchen_whapi_message_id: sent.messageId,
-      kitchen_whapi_channel_id: handshake.provider_channel_id,
-      kitchen_whapi_chat_id: handshake.whatsapp_chat_id,
-      restaurant_auto_delivery_status: "sent",
-      restaurant_auto_delivery_completed_at: completedAtIso,
-      restaurant_auto_delivery_error: null,
-    })
-    .eq("id", orderId)
-    .eq("restaurant_auto_delivery_status", "pending");
-
-  if (persistError) {
-    console.error("[RESTAURANT_AUTO_DELIVERY_UNCERTAIN] order=%s reason=persist_after_send_failed err=%s", orderId, persistError.message);
-    await updateDeliveryState(supabase, orderId, "uncertain", "persist_after_send_failed");
-    return json({ status: "uncertain", code: "persist_after_send_failed", safe_manual_fallback: false });
+  const finalized = await finalizeGuestDelivery(supabase, {
+    orderId,
+    messageId: sent.messageId,
+    chatId: handshake.whatsapp_chat_id!,
+    channelId: handshake.provider_channel_id!,
+    attemptedAt,
+    handshakeRefHash: await sha256Hex(handshakeRef),
+    liveAfter,
+  });
+  if (!finalized) {
+    // RPC response loss may mean sent is already committed. Never overwrite that
+    // state or resend; only this attempt's still-pending claim may become uncertain.
+    await updateDeliveryState(supabase, orderId, "uncertain", "persist_after_send_unconfirmed", attemptedAt);
+    return json({ status: "uncertain", code: "persist_after_send_unconfirmed", safe_manual_fallback: false });
   }
 
   console.log("[RESTAURANT_AUTO_DELIVERY_SENT] order=%s table=%s message=%s token_source=%s", orderId, order.table_number, sent.messageId, tokenInfo.source);
   return json({ status: "sent", message_id: sent.messageId, safe_manual_fallback: false });
 });
+

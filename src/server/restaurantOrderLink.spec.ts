@@ -36,7 +36,7 @@ describe("restaurant order number reference", () => {
       apiSource.indexOf("persistIdempotentOrder(serviceClient"),
     );
     expect(apiSource).toContain("{ order: data, restaurantOrderRef }");
-    expect(apiSource).not.toContain("RESTAURANT_ORDER_LINK_SIGNING_SECRET");
+    expect(apiSource).toContain("RESTAURANT_ORDER_SIGNED_REFS_ENABLED");
   });
 
   it("verifies only for the expected order ID", () => {
@@ -58,7 +58,7 @@ describe("restaurant order number reference", () => {
   });
 
   it("does not depend on a signing secret", () => {
-    expect(issueRestaurantOrderLink(ORDER_ID, "")).toBe(String(ORDER_ID));
+    expect(() => issueRestaurantOrderLink(ORDER_ID, "")).toThrow();
     expect(verifyRestaurantOrderLink(String(ORDER_ID), "too-short")?.orderId).toBe(
       ORDER_ID,
     );
