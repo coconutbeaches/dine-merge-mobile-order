@@ -12,6 +12,7 @@ import { trackOrderComplete, trackWhatsAppSend, trackPageView } from '@/lib/anal
 import {
   appendRestaurantOrderRef,
   restaurantOrderRefFromHash,
+  restaurantOrderRefMatchesId,
 } from '@/lib/restaurantWhatsAppMessage';
 import { getRestaurantHandshakeBrowserProof } from '@/lib/restaurantHandshakeSession';
 import { isRestaurantServiceLocation } from '@/lib/restaurantServiceLocation';
@@ -74,7 +75,7 @@ const OrderConfirmationById = () => {
       return;
     }
 
-    if (!orderNumberRef || orderNumberRef !== String(order.id)) {
+    if (!orderNumberRef || !restaurantOrderRefMatchesId(orderNumberRef, order.id)) {
       setAutoDeliveryStatus('failed');
       return;
     }
@@ -172,7 +173,7 @@ const OrderConfirmationById = () => {
 
   const handleSendWhatsApp = () => {
     if (!order) return;
-    if (!orderNumberRef || orderNumberRef !== String(order.id)) {
+    if (!orderNumberRef || !restaurantOrderRefMatchesId(orderNumberRef, order.id)) {
       toast.error('This order number is missing or invalid. Please place the order again.');
       return;
     }

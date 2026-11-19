@@ -1,0 +1,23 @@
+# Never upload local environment or credential material.
+.env*
+!.env.example
+!.env.local.example
+!.env.*.example
+.npmrc
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*.json
+secrets*.json
+*.secret
+
+# Local verification artifacts are not deployable source.
+review-artifacts
+coverage
+
+# Exclude unrelated dormant provider-switch prototype.
+src/server/restaurantBridge
+services/restaurant-bridge
+docs/restaurant-provider-switch.md
+supabase/migration-proposals

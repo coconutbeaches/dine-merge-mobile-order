@@ -263,4 +263,28 @@ describe("/api/orders idempotent creation", () => {
       }),
     );
   });
+  it("fails signing preflight before persistence when enabled but misconfigured", async () => {
+    vi.stubEnv('RESTAURANT_ORDER_SIGNED_REFS_ENABLED', 'true');
+    vi.stubEnv('RESTAURANT_ORDER_LINK_SIGNING_SECRET', '');
+    mocks.issueRestaurantOrderLink.mockImplementation(() => { throw new Error('config'); });
+    try {
+      const response = await POST(request(guestBody()));
+      expect(response.status).toBe(503);
+      expect(mocks.persistIdempotentOrder).not.toHaveBeenCalled();
+    } finally { vi.unstubAllEnvs(); }
+  });
+  it("signs only the persisted order result when enabled, including idempotent replay", async () => {
+    vi.stubEnv('RESTAURANT_ORDER_SIGNED_REFS_ENABLED', 'true');
+    vi.stubEnv('RESTAURANT_ORDER_LINK_SIGNING_SECRET', 'synthetic-test-key-at-least-32-bytes-long');
+    mocks.persistIdempotentOrder.mockResolvedValue({ order: ORDER, replayed: true });
+    mocks.issueRestaurantOrderLink.mockImplementation((id: number) => `signed-${id}`);
+    try {
+      const response = await POST(request(guestBody({ orderId: 999 })));
+      expect(response.status).toBe(200);
+      expect((await response.json()).restaurantOrderRef).toBe(`signed-${ORDER.id}`);
+      expect(mocks.issueRestaurantOrderLink).toHaveBeenLastCalledWith(ORDER.id, 'synthetic-test-key-at-least-32-bytes-long');
+      expect(mocks.issueRestaurantOrderLink.mock.invocationCallOrder.at(-1)).toBeGreaterThan(mocks.persistIdempotentOrder.mock.invocationCallOrder[0]);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
 });

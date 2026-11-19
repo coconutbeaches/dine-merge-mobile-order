@@ -31,6 +31,14 @@ type Attribution = {
 };
 
 export async function POST(request: NextRequest) {
+  // Opt-in signing is validated before any order persistence. Never expose the key.
+  const signingEnabled = process.env.RESTAURANT_ORDER_SIGNED_REFS_ENABLED === 'true';
+  const signingSecret = signingEnabled ? (process.env.RESTAURANT_ORDER_LINK_SIGNING_SECRET ?? '') : undefined;
+  if (signingEnabled) {
+    try { issueRestaurantOrderLink(1, signingSecret); } catch {
+      return NextResponse.json({ error: 'Order service unavailable' }, { status: 503 });
+    }
+  }
   const serviceClient = createServiceRoleClient();
   if (!serviceClient) {
     return NextResponse.json({ error: 'Order service unavailable' }, { status: 503 });
@@ -188,8 +196,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to place order' }, { status: 500 });
   }
 
-  // The order number itself is the restaurant WhatsApp identifier.
-  const restaurantOrderRef = issueRestaurantOrderLink(data.id);
+  // Issue only for the persisted result, never a caller-provided order ID.
+  const restaurantOrderRef = signingEnabled
+    ? issueRestaurantOrderLink(data.id, signingSecret)
+    : issueRestaurantOrderLink(data.id);
   const responseBody = { order: data, restaurantOrderRef };
   return NextResponse.json(
     replayed ? { ...responseBody, idempotentReplay: true } : responseBody,
