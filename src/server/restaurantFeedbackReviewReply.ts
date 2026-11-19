@@ -7,7 +7,7 @@ import { FEEDBACK_POLL_OPTIONS } from './restaurantFeedbackPoll';
 const origin = 'https://gate.whapi.cloud';
 export const REVIEW_REPLY_OPTION = FEEDBACK_POLL_OPTIONS[4];
 export const REVIEW_REPLY_TEXT = 'Amazing, thank you so much 🙏\n'
-  + 'Do you have 10 seconds? We would ❤️ to see your 5 stars and any photos 📷\n'
+  + 'We would ❤️ to see your 5 stars and any photos 📷\n'
   + 'on our Google map page 👉 https://g.page/r/CYRc5Z1q0Lc8EBM/review';
 const DM = /^([1-9]\d{7,14})@s\.whatsapp\.net$/;
 const ID = /^[A-Za-z0-9._-]{1,250}$/;
@@ -98,9 +98,9 @@ export function createRestaurantReviewReplyHandler(
       || env.RESTAURANT_FEEDBACK_POLL_MODE !== 'staff-canary'
       || !DM.test(destination) || destination === `${phone}@s.whatsapp.net`) return async () => 'review_configuration_invalid';
 
-  const signal = (budget: AbortSignal) => AbortSignal.any([budget, AbortSignal.timeout(5000)]);
-  const call = (path: string, budget: AbortSignal, init: RequestInit = {}) => fetcher(origin + path, {
-    ...init, redirect: 'error', signal: signal(budget),
+  const signal = (budget: AbortSignal, ms = 5000) => AbortSignal.any([budget, AbortSignal.timeout(ms)]);
+  const call = (path: string, budget: AbortSignal, init: RequestInit = {}, ms = 5000) => fetcher(origin + path, {
+    ...init, redirect: 'error', signal: signal(budget, ms),
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   });
 
@@ -147,9 +147,11 @@ export function createRestaurantReviewReplyHandler(
     let status = 'uncertain';
     let providerId: string | null = null;
     try {
+      // typing_time 0: Whapi otherwise simulates typing for seconds before
+      // sending. 10s still fits the route's 20s background budget.
       const res = await call('/messages/text', budget, {
-        method: 'POST', body: JSON.stringify({ to: chatId, body: REVIEW_REPLY_TEXT }),
-      });
+        method: 'POST', body: JSON.stringify({ to: chatId, body: REVIEW_REPLY_TEXT, typing_time: 0 }),
+      }, 10_000);
       if (res.ok) {
         const data = asObj(await res.json()), message = asObj(data.message);
         const accepted = str(message.id) || str(data.id);

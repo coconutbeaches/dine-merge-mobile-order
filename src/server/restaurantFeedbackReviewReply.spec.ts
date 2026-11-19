@@ -69,7 +69,8 @@ describe('review reply handler', () => {
     await expect(f.run()).resolves.toBe('review_sent');
     expect(f.rpc).toHaveBeenCalledWith('restaurant_claim_feedback_review_reply_v1', { p_poll_message: 'poll-1', p_guest_chat: guest, p_channel: channel });
     expect(f.sends()).toHaveLength(1);
-    expect(JSON.parse(String(f.sends()[0][1]?.body))).toEqual({ to: guest, body: REVIEW_REPLY_TEXT });
+    expect(JSON.parse(String(f.sends()[0][1]?.body))).toEqual({ to: guest, body: REVIEW_REPLY_TEXT, typing_time: 0 });
+    expect(REVIEW_REPLY_TEXT).toBe('Amazing, thank you so much 🙏\nWe would ❤️ to see your 5 stars and any photos 📷\non our Google map page 👉 https://g.page/r/CYRc5Z1q0Lc8EBM/review');
     expect(f.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'sent', provider_message_id: 'reply-1' }));
   });
   it('matches the 5-star option even when written with U+FE0F', async () => {
