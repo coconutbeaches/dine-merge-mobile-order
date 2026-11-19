@@ -5,6 +5,7 @@ import type { FeedbackReaction } from './restaurantOrderWebhook';
 const origin = 'https://gate.whapi.cloud';
 const title = 'How was your visit to Coconut Beach?';
 const options = Array.from({ length: 5 }, (_, i) => '⭐'.repeat(i + 1));
+export const FEEDBACK_POLL_OPTIONS: readonly string[] = options;
 const dm = /^[1-9]\d{7,14}@s\.whatsapp\.net$/;
 const asObj = (value: unknown): Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};

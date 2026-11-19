@@ -12,7 +12,8 @@ status emojis and their mirroring. Stars on a Kitchen copy, group chats,
 personal accounts, bare order-number guesses, API-set reactions, old callbacks,
 and ambiguous message bindings do not send. The ⭐ is a deliberate staff action;
 there is no order-status gate or automatic send at completion/payment. There are
-no replay or bulk operations, vote-based replies, or external-review requests.
+no replay or bulk operations. The one vote-based reply is the 5-star review
+follow-up below.
 
 ## Activation checklist
 
@@ -62,3 +63,24 @@ WhatsApp history if an attempt is uncertain; do not clear records or resend to
 make a console indicator look successful. Poll-off or promote the previously
 verified replacement deployment for rollback; leave the attempt ledger in place
 to retain deduplication. No rollback step uses Fly.io.
+
+## 5-star review follow-up (separate flag)
+
+When the guest picks ⭐⭐⭐⭐⭐ on the poll, they get one message with the Google
+review link (text in `src/server/restaurantFeedbackReviewReply.ts`). Enable with
+`RESTAURANT_FEEDBACK_REVIEW_REPLY_ENABLED=true`; it reuses the poll's
+`RESTAURANT_FEEDBACK_POLL_MODE=staff-canary` and `..._CANARY_DM`, so it can only
+reply to that one staff DM until the poll itself is widened.
+
+- The vote event only says *a* vote happened. The handler re-reads the poll from
+  Whapi (`GET /messages/{id}`) and replies only if the guest is in the 5-star
+  voter list at that moment.
+- One reply per order (`restaurant_feedback_review_replies`, claimed via
+  `restaurant_claim_feedback_review_reply_v1`), only for polls in the attempt
+  ledger with status `sent`, to the same chat, within 7 days. Never retried.
+- Votes older than 10 minutes are ignored. Webhook must deliver Messages POST
+  and/or PATCH events (both shapes are handled).
+- Log tag: `[restaurant-review-reply]` with outcome counts only.
+- Policy note: Google prohibits selectively soliciting positive reviews. Asking
+  only 5-star voters is that pattern; changing `REVIEW_REPLY_OPTION` logic to any
+  vote is the compliant variant.

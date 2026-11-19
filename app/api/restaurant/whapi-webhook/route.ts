@@ -12,6 +12,7 @@ import { createOrderWebhookStore, orderWebhookConfig, processRestaurantOrders, t
 
 import { createRestaurantFeedbackHandler, runRestaurantFeedbackBatch } from '@/server/restaurantFeedbackPoll';
 import { collectRestaurantHours, createRestaurantHoursHandler, runRestaurantHoursBatch } from '@/server/restaurantHoursFaq';
+import { collectRestaurantPollVotes, createRestaurantReviewReplyHandler, runRestaurantReviewReplyBatch } from '@/server/restaurantFeedbackReviewReply';
 
 export const runtime = 'nodejs';
 
@@ -87,7 +88,9 @@ export async function POST(request: NextRequest) {
   // can block a binding, status update, or the provider's response.
   const handleHours = createRestaurantHoursHandler(client, process.env);
   const hourQuestions = handleHours ? collectRestaurantHours(payload) : [];
-  if ((handleFeedback && feedbackReactions.length) || (handleHours && hourQuestions.length)) {
+  const handleReview = createRestaurantReviewReplyHandler(client, process.env);
+  const pollVotes = handleReview ? collectRestaurantPollVotes(payload, expectedChannelId) : [];
+  if ((handleFeedback && feedbackReactions.length) || (handleHours && hourQuestions.length) || (handleReview && pollVotes.length)) {
     try {
       after(async () => {
         const budget = AbortSignal.timeout(20_000);
@@ -97,6 +100,8 @@ export async function POST(request: NextRequest) {
             .then(outcomes => console.warn('[restaurant-feedback]', outcomes)) : undefined,
           handleHours && hourQuestions.length ? runRestaurantHoursBatch(hourQuestions, handleHours, budget)
             .then(outcomes => console.warn('[restaurant-hours-faq]', outcomes)) : undefined,
+          handleReview && pollVotes.length ? runRestaurantReviewReplyBatch(pollVotes, handleReview, budget)
+            .then(outcomes => console.warn('[restaurant-review-reply]', outcomes)) : undefined,
         ]);
       });
     } catch {
